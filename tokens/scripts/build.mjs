@@ -31,15 +31,6 @@ const leaf = v =>
 const stripMeta = obj =>
   Object.fromEntries(Object.entries(obj).filter(([k]) => !k.startsWith('$')));
 
-// ---- colour: split [light, dark] into two trees, keep descriptions for JSDoc ----
-function splitScheme(node, idx) {
-  const out = {};
-  for (const [k, v] of Object.entries(stripMeta(node))) {
-    const l = leaf(v);
-    out[k] = l ? l.value[idx] : splitScheme(v, idx);
-  }
-  return out;
-}
 function tsObject(node, indent, docs) {
   const pad = ' '.repeat(indent);
   const lines = ['{'];

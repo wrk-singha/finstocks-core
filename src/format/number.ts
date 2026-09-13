@@ -85,3 +85,13 @@ export const formatCroreCompact = (
 /** Prefix `+` on a positive value; formatted negatives already carry their `-`. */
 export const withSign = (formatted: string, value: number): string =>
   value > 0 ? `+${formatted}` : formatted;
+
+/** "+₹1,240" / "-₹1,240": a rupee amount that must show its direction (P&L cells, deltas). */
+export const signedCurrency = (value: number, decimals = 0): string =>
+  withSign(formatCurrency(value, decimals), value);
+
+/** "+2.4%" / "-0.5%"; an unrepresentable value prints a dash rather than "NaN%". */
+export const signedPct = (value: number, decimals = 1): string =>
+  Number.isFinite(value)
+    ? `${value >= 0 ? '+' : ''}${value.toFixed(decimals)}%`
+    : '—';

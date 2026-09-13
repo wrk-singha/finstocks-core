@@ -19,10 +19,14 @@ registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/co
 ## Commands
 
 ```bash
-pnpm install
-pnpm check          # tokens:check + typecheck + tests
-pnpm tokens:build   # after editing tokens/src/*.json — commit the outputs
+npm ci
+npm run check         # tokens:check + typecheck + tests
+npm run tokens:build  # after editing tokens/src/*.json — commit the outputs
 ```
+
+Package manager: **npm** on purpose — this package is installed from git by consumers on Yarn 4,
+npm and pnpm, and Yarn packs a git dependency with the dependency's own package manager; npm is the
+one every consumer already has.
 
 ## No install-time scripts
 

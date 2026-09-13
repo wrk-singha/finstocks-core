@@ -3,8 +3,6 @@ export {
   buildScreenMessage,
   capBand,
   DEFAULTS,
-  mapSector,
-  SECTOR_CHIPS,
   sortStocks,
   toBackendFilters,
 } from './screenerFilters.ts';

@@ -1,0 +1,44 @@
+import type {
+  ScreenerStrategiesResponse,
+  ScreenerStrategyDetailResponse,
+} from '../types/screener.ts';
+import type {HttpClient} from './http.ts';
+import {query} from './http.ts';
+
+export interface ScreenerStrategiesQuery {
+  page: number;
+  limit: number;
+  isIntraday?: boolean;
+  isPremium?: boolean;
+  isFno?: boolean;
+  /**
+   * Narrows the page to strategies that already carry a live (non-backtest)
+   * pick. Opt-in: the server ignores anything but an explicit true.
+   */
+  hasTodaysPick?: boolean;
+}
+
+export const templatesApi = (http: HttpClient) => ({
+  // drift resolved 2026-09-13: the mobile sent has_todays_pick=false explicitly, the web
+  // only ever sent true; the web copy won because the server ignores anything but an
+  // explicit true, so false was a byte-for-byte no-op.
+  getScreenerStrategies: (params: ScreenerStrategiesQuery) =>
+    http.request<ScreenerStrategiesResponse>(
+      `/templates/screener-strategies${query({
+        page: params.page,
+        limit: params.limit,
+        is_intraday: params.isIntraday,
+        is_premium: params.isPremium,
+        is_fno: params.isFno,
+        has_todays_pick: params.hasTodaysPick === true ? true : undefined,
+      })}`,
+    ),
+
+  /** Pagination is intentionally omitted — the detail returns every result. */
+  getScreenerStrategyDetail: (id: number, timeframe: string, year: number) =>
+    http.request<ScreenerStrategyDetailResponse>(
+      `/templates/screener-strategies/${id}${query({timeframe, year})}`,
+    ),
+});
+
+export type TemplatesApi = ReturnType<typeof templatesApi>;

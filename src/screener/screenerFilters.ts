@@ -1,3 +1,4 @@
+import {mapSector} from '../market/sectors.ts';
 import type {CustomIndicatorFilter, ScreenerStock} from '../types/screener.ts';
 import {
   DEFAULT_TIMEFRAME,
@@ -73,89 +74,7 @@ export function toBackendFilters(
   return params;
 }
 
-export const SECTOR_CHIPS = [
-  'Energy',
-  'IT',
-  'Financials',
-  'Auto',
-  'Healthcare',
-  'FMCG',
-  'Infrastructure',
-] as const;
-
 /** Map a fine-grained data sector to one of the coarse screener chips. */
-export function mapSector(sector: string | null): string | null {
-  if (!sector) return null;
-  const s = sector.toLowerCase();
-  const has = (...ks: string[]) => ks.some(k => s.includes(k));
-  if (
-    has(
-      'oil',
-      'gas',
-      'coal',
-      'energy',
-      'petroleum',
-      'power',
-      'electric util',
-      'fuel',
-    )
-  )
-    return 'Energy';
-  if (
-    has(
-      'software',
-      'computer',
-      'semiconductor',
-      'communications equipment',
-      'internet',
-      'information tech',
-      'electronic',
-    )
-  )
-    return 'IT';
-  if (has('bank', 'insurance', 'financ', 'investment', 'broker'))
-    return 'Financials';
-  if (has('auto', 'truck', 'vehicle', 'tyre', 'tire')) return 'Auto';
-  if (has('drug', 'pharma', 'health', 'biotech', 'medical', 'hospital'))
-    return 'Healthcare';
-  if (
-    has(
-      'food',
-      'beverage',
-      'household',
-      'tobacco',
-      'restaurant',
-      'grocery',
-      'apparel',
-      'personal',
-      'consumer',
-      'retail',
-      'jewelry',
-      'recreational',
-    )
-  )
-    return 'FMCG';
-  if (
-    has(
-      'construction',
-      'cement',
-      'steel',
-      'iron',
-      'infrastruct',
-      'engineering',
-      'capital goods',
-      'railroad',
-      'real estate',
-      'metal',
-      'machinery',
-      'fabricated',
-      'paper',
-      'chemical',
-    )
-  )
-    return 'Infrastructure';
-  return null;
-}
 
 /** ₹ crore -> Mega / Large / Mid / Small band. */
 export function capBand(cr: number | null): MktCap | null {

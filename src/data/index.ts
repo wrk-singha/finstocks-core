@@ -53,3 +53,15 @@ export {
   displayName,
 } from './stocksData.ts';
 export type {Stock} from './stocksData.ts';
+export {
+  ALERT_CHANNELS,
+  ALERT_SCOPES,
+  alertScopeForChannel,
+  defaultAlertPreferences,
+} from './alertChannels.ts';
+export {ACTION_ICON_NAMES} from './actionIcons.ts';
+export type {ActionIconKey, ActionIconName} from './actionIcons.ts';
+export {CHAT_CATEGORIES} from './chatCategories.ts';
+export type {ChatCategoryOption} from './chatCategories.ts';
+export {AGENT_STATUS_MESSAGES} from './agentStatusMessages.ts';
+export {CORE_LESSONS, LESSONS, lessonsForRoute} from './lessons.ts';

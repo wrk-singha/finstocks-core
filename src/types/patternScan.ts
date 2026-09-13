@@ -56,3 +56,31 @@ export interface PatternScanResponse {
   /** Names with no detector. Never render these as "not found" — nothing looked. */
   unknown: string[];
 }
+
+/** POST /news/pattern-detect request (web interfaces/patternDetect). */
+export interface PatternDetectParams {
+  symbol: string;
+  interval: string;
+  lookback_bars?: number;
+  patterns?: string[];
+}
+
+export interface PatternDetectHit {
+  bars_ago: number;
+  direction: string | null;
+  canonical: string;
+}
+
+/**
+ * `absent` means the pattern did not occur; `unknown` means no canonical
+ * detector exists for that name. Collapsing them would render a confident
+ * "not present" for a pattern nothing ever looked for.
+ */
+export interface PatternDetectResponse {
+  symbol: string;
+  as_of: string | null;
+  bars: number;
+  detected: Record<string, PatternDetectHit>;
+  absent: string[];
+  unknown: string[];
+}

@@ -1,6 +1,6 @@
 {
   "name": "@finstocks/core",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "sideEffects": false,
@@ -37,7 +37,7 @@
     "./tokens": "./src/tokens/index.ts",
     "./tokens.css": "./tokens/dist/tokens.css"
   },
-  "description": "FinStocks shared core: domain types, market/trading/strategy maths, static data, query keys, endpoint definitions, generated design tokens. Pure TypeScript — consumed by the mobile and web apps.",
+  "description": "FinStocks shared core: domain types, market/trading/strategy maths, static data, query keys, endpoint definitions, generated design tokens. Pure TypeScript \u2014 consumed by the mobile and web apps.",
   "repository": "github:wrk-singha/finstocks-core",
   "packageManager": "npm@11.19.0",
   "engines": {

@@ -8,10 +8,10 @@ import {
   capBand,
   DEFAULTS,
   type Filters,
-  mapSector,
   sortStocks,
   toBackendFilters,
 } from '../screenerFilters.ts';
+import {mapSector} from '../../market/sectors.ts';
 
 const stock = (
   o: Partial<ScreenerStock> & {symbol: string},

@@ -1,0 +1,539 @@
+import {formatCurrency, formatNumber} from '../format/index.ts';
+import type {OptionChainRow, OptionOrderDraft} from '../types/fno.ts';
+import {daysToExpiry} from './optionStructures.ts';
+
+// Broker contract symbol from the underlying, expiry token, strike and side
+// (e.g. NIFTY24JUL21000CE). Expiry is stripped to alphanumerics.
+export function buildOptionContractSymbol(
+  underlying: string,
+  expiry: string | undefined,
+  strike: number,
+  side: 'CE' | 'PE',
+): string {
+  const base = underlying.toUpperCase();
+  const expiryToken = expiry
+    ? expiry.toUpperCase().replace(/[^A-Z0-9]/g, '')
+    : '';
+  return `${base}${expiryToken}${strike}${side}`;
+}
+
+// Chronological, falling back to lexical for any non-date key so a broker-token
+// format can't silently invert nearest/furthest.
+export const byExpiryDate = (a: string, b: string): number => {
+  const ta = Date.parse(a);
+  const tb = Date.parse(b);
+  if (!isNaN(ta) && !isNaN(tb)) return ta - tb;
+  return a < b ? -1 : a > b ? 1 : 0;
+};
+
+/**
+ * The expiry a terminal should open on. Picking the first of a sorted list is
+ * not the same thing: that list is a union of the socket's expiries and the
+ * REST fallback's, so it grows as they arrive and its head changes under a leg
+ * that has already started loading — one contract fetched, then another. The
+ * nearest expiry still ahead is the same answer whichever source lands first.
+ */
+export const nearestExpiry = (
+  expiries: string[],
+  now = Date.now(),
+): string | undefined => {
+  if (expiries.length === 0) return undefined;
+  const sorted = [...expiries].sort(byExpiryDate);
+  const startOfToday = new Date(now).setHours(0, 0, 0, 0);
+  // Falls back to the furthest listed rather than nothing: an all-past listing
+  // is stale data, and blanking the terminal is worse than the last contract.
+  return (
+    sorted.find(e => {
+      const t = Date.parse(e);
+      return isNaN(t) || t >= startOfToday;
+    }) ?? sorted[sorted.length - 1]
+  );
+};
+
+const expiryLabelFormatter = new Intl.DateTimeFormat('en-IN', {
+  day: '2-digit',
+  month: 'short',
+});
+
+// Expiry token → "18 Aug" for the chain header and basket legs. Broker expiry
+// formats vary, so a token that isn't a parseable date passes through as-is
+// rather than becoming "Invalid Date".
+export const formatExpiryLabel = (expiry: string | undefined): string => {
+  if (!expiry) return '—';
+  const parsed = Date.parse(expiry);
+  if (Number.isNaN(parsed)) return expiry;
+  return (
+    expiryLabelFormatter
+      .format(new Date(parsed))
+      // "Sept" is the only four-letter short month Intl emits, so it alone
+      // breaks the three-letter rhythm of an expiry column.
+      .replace('Sept', 'Sep')
+  );
+};
+
+/**
+ * How a contract is named to a human: "NIFTY 18 Aug 24550 Call". The broker
+ * symbol (`buildOptionContractSymbol`) is what goes on the order; this is what
+ * goes on the ticket above it.
+ */
+export const optionContractLabel = (
+  underlying: string,
+  expiry: string | undefined,
+  strike: number,
+  right: 'CE' | 'PE',
+): string =>
+  [
+    underlying.toUpperCase(),
+    expiry ? formatExpiryLabel(expiry) : '',
+    formatNumber(strike),
+    right === 'CE' ? 'Call' : 'Put',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+const trimZeros = (s: string): string =>
+  s.includes('.') ? s.replace(/\.?0+$/, '') : s;
+
+// Open interest is a contract count, not a rupee figure, so `formatCurrency` and
+// `formatCroreCompact` (which expects a value already denominated in crore) do
+// not fit. Indian market convention: L = lakh (1e5), Cr = crore (1e7).
+export const formatOi = (value: number, decimals = 2): string => {
+  const sign = value < 0 ? '-' : '';
+  const abs = Math.abs(value);
+  if (abs >= 1e7) return `${sign}${trimZeros((abs / 1e7).toFixed(decimals))}Cr`;
+  if (abs >= 1e5) return `${sign}${trimZeros((abs / 1e5).toFixed(decimals))}L`;
+  if (abs >= 1e3) return `${sign}${trimZeros((abs / 1e3).toFixed(1))}K`;
+  return `${sign}${abs.toFixed(0)}`;
+};
+
+// IV arrives as a fraction (0.0943 = 9.43%); 0 means the side has not quoted
+// yet. Two decimals because a percentage point of IV is real money on a
+// premium, and the "%" so the column can never be misread as a price.
+export const formatIv = (iv: number | null): string =>
+  iv != null && iv > 0 ? `${(iv * 100).toFixed(2)}%` : '—';
+
+// Option premium. Always two decimals: rounding a ₹1,240.50 premium to ₹1,241
+// above a threshold hides paise the user is actually paying.
+export const formatPremium = (ltp: number | null): string =>
+  ltp != null && ltp > 0 ? formatCurrency(ltp, 2) : '—';
+
+export interface ChainSentiment {
+  /** Put/Call OI ratio over the whole chain (Σ pe oi / Σ ce oi). Null when call
+   *  OI is empty (no fabrication). */
+  pcr: number | null;
+  /** ATM straddle premium in points (ce ltp + pe ltp at the ATM strike) — the
+   *  market's own expected move on the underlying by expiry. */
+  expectedMove: number | null;
+  /** ATM implied volatility as a fraction (e.g. 0.12), averaged over whichever
+   *  of the ATM call/put IV are present. */
+  atmIv: number | null;
+  callOi: number;
+  putOi: number;
+}
+
+/**
+ * Single source of truth for the chain-derived sentiment vitals shared by the
+ * terminal header and the Market F&O panel. Every value traces to streamed OI /
+ * LTP / IV; anything the chain can't support is null.
+ *
+ * `atmStrike` is the fallback pivot for a snapshot whose rows carry no `isAtm`
+ * flag (the REST fallback chain).
+ */
+export function computeChainSentiment(
+  rows: OptionChainRow[],
+  atmStrike?: number,
+): ChainSentiment {
+  if (rows.length === 0)
+    return {pcr: null, expectedMove: null, atmIv: null, callOi: 0, putOi: 0};
+
+  let callOi = 0;
+  let putOi = 0;
+  for (const r of rows) {
+    callOi += r.ceOi ?? 0;
+    putOi += r.peOi ?? 0;
+  }
+
+  // drift resolved 2026-09-13: the web only honoured `isAtm`; the mobile's
+  // `atmStrike` fallback wins because the REST fallback chain flags no row.
+  const atm =
+    rows.find(r => r.isAtm) ??
+    (atmStrike != null ? rows.find(r => r.strike === atmStrike) : undefined) ??
+    null;
+  const expectedMove =
+    atm?.ceLtp != null && atm.peLtp != null && atm.ceLtp > 0 && atm.peLtp > 0
+      ? atm.ceLtp + atm.peLtp
+      : null;
+
+  const ivs: number[] = [];
+  if (atm) {
+    if (atm.ceIv != null && atm.ceIv > 0) ivs.push(atm.ceIv);
+    if (atm.peIv != null && atm.peIv > 0) ivs.push(atm.peIv);
+  }
+  const atmIv = ivs.length ? ivs.reduce((a, b) => a + b, 0) / ivs.length : null;
+
+  return {
+    pcr: callOi > 0 ? putOi / callOi : null,
+    expectedMove,
+    atmIv,
+    callOi,
+    putOi,
+  };
+}
+
+export interface ExpiryPickerOption {
+  value: string;
+  label: string;
+  /** "N DTE" for a live expiry; absent once past. */
+  hint?: string;
+}
+
+// Expiry rows for a picker: the date, plus how many days away it is. Two
+// contracts on the same underlying differ mainly by time left, so the DTE is
+// what the choice is actually made on.
+export const expiryPickerOptions = (
+  expiries: string[],
+  now: number = Date.now(),
+): ExpiryPickerOption[] =>
+  expiries.map(expiry => {
+    const dte = daysToExpiry(expiry, now);
+    const option: ExpiryPickerOption = {
+      value: expiry,
+      label: formatExpiryLabel(expiry),
+    };
+    // Today's expiry is "0 DTE" to a trader, but a past one is not worth a
+    // negative count — those are filtered upstream anyway.
+    if (dte != null && dte >= 0) option.hint = `${dte} DTE`;
+    return option;
+  });
+
+// The strikes worth rendering as a chain. The feed sends 0, not null, for a
+// contract that has never traded, and the ladder runs thousands of points past
+// the money on both sides — keeping those pads the chain with hundreds of dead
+// rows and pushes the money off the opening screen.
+export function tradableChainRows(rows: OptionChainRow[]): OptionChainRow[] {
+  const quoted = rows.filter(r => (r.ceLtp ?? 0) > 0 || (r.peLtp ?? 0) > 0);
+  // Before the first trade of the session every strike is 0; showing the raw
+  // ladder beats showing nothing.
+  return quoted.length > 0
+    ? quoted
+    : rows.filter(r => r.ceLtp != null || r.peLtp != null);
+}
+
+// The `windowSize` strikes (that carry OI) nearest `pivot`, preserving the
+// stream's ascending-strike order. Used by the OI panels to focus on the strikes
+// around the ATM, where the OI that matters sits.
+export function selectAtmWindow(
+  rows: OptionChainRow[],
+  pivot: number,
+  windowSize: number,
+): OptionChainRow[] {
+  const withOi = rows.filter(r => r.ceOi != null || r.peOi != null);
+  if (withOi.length === 0) return [];
+
+  let centre = 0;
+  let centreGap = Infinity;
+  withOi.forEach((row, i) => {
+    const gap = Math.abs(row.strike - pivot);
+    if (gap < centreGap) {
+      centreGap = gap;
+      centre = i;
+    }
+  });
+
+  const half = Math.floor(windowSize / 2);
+  let start = Math.max(0, centre - half);
+  const end = Math.min(withOi.length, start + windowSize);
+  start = Math.max(0, end - windowSize);
+  return withOi.slice(start, end);
+}
+
+// Max Pain: the strike at which option writers owe the least total intrinsic
+// value if the underlying expired there. Derived purely from the per-strike
+// open interest already streamed — no new data.
+//
+//   totalPain(K) = Σ over strikes s < K:  CE_OI[s] * (K - s)   // ITM calls
+//                + Σ over strikes s > K:  PE_OI[s] * (s - K)   // ITM puts
+//   maxPainStrike = argmin over all strikes K of totalPain(K)
+//
+// Missing or non-positive OI on a strike contributes 0. Returns null when the
+// chain is empty or carries no real OI (caller renders no Max Pain marker).
+export function computeMaxPain(rows: OptionChainRow[]): number | null {
+  if (rows.length === 0) return null;
+
+  const strikes = rows.map(r => ({
+    strike: r.strike,
+    ceOi: r.ceOi != null && r.ceOi > 0 ? r.ceOi : 0,
+    peOi: r.peOi != null && r.peOi > 0 ? r.peOi : 0,
+  }));
+
+  // An all-zero chain has no writer pain to minimise; don't guess a strike.
+  if (!strikes.some(s => s.ceOi > 0 || s.peOi > 0)) return null;
+
+  let bestStrike: number | null = null;
+  let bestPain = Infinity;
+
+  for (const {strike: k} of strikes) {
+    let pain = 0;
+    for (const s of strikes) {
+      if (s.strike < k) pain += s.ceOi * (k - s.strike);
+      else if (s.strike > k) pain += s.peOi * (s.strike - k);
+    }
+    if (pain < bestPain) {
+      bestPain = pain;
+      bestStrike = k;
+    }
+  }
+
+  return bestStrike;
+}
+
+/**
+ * Why the payoff beside an order pad has nothing to draw. The chart sees one
+ * empty legs array whether the size or the price is missing, so only the draft
+ * can name the field the trader still has to fill. `quoted` is whether the
+ * contract has a price at all — without one, waiting is the honest message.
+ */
+export function payoffGap(
+  draft: OptionOrderDraft | null,
+  quoted: boolean,
+): string | undefined {
+  if (!draft) return undefined;
+  if (draft.price == null || draft.price <= 0) {
+    return quoted
+      ? 'Please enter a valid limit price'
+      : 'Waiting for a quote on this contract';
+  }
+  if (draft.qty <= 0) return "Enter a quantity to see this trade's payoff";
+  return undefined;
+}
+
+/** One strike's worth of the OI ladder: the two sides drawn against a shared peak. */
+export interface OiLadderBar {
+  strike: number;
+  callOi: number;
+  putOi: number;
+  /** 0–1 against the ladder's heaviest single-side OI, so both sides share a scale. */
+  callShare: number;
+  putShare: number;
+}
+
+export interface PositioningLadder {
+  bars: OiLadderBar[];
+  /** Strike bounds the ladder is plotted across, for positioning spot/max-pain rules. */
+  min: number;
+  max: number;
+}
+
+/**
+ * The strikes worth plotting as a histogram: spot ±`spanPct`, widened to include
+ * the heaviest call and put walls so a distant wall still appears — compressed at
+ * the edge rather than dropped, or left to flatten every bar near the money.
+ *
+ * Strike intervals differ per underlying (50 on NIFTY, 100 on BANKNIFTY, arbitrary
+ * on stocks), so the window is taken in percent of spot rather than in strike
+ * count — the plotted range then means the same thing whichever symbol is open.
+ */
+export function buildOiLadder(
+  rows: OptionChainRow[],
+  spot: number | null,
+  walls: {support?: number | null; resistance?: number | null} = {},
+  spanPct = 0.04,
+): PositioningLadder | null {
+  if (rows.length === 0 || spot == null || spot <= 0) return null;
+
+  let lo = spot * (1 - spanPct);
+  let hi = spot * (1 + spanPct);
+  for (const wall of [walls.support, walls.resistance]) {
+    if (wall == null) continue;
+    lo = Math.min(lo, wall);
+    hi = Math.max(hi, wall);
+  }
+
+  const bars = rows
+    .filter(r => r.strike >= lo && r.strike <= hi)
+    .map(r => ({
+      strike: r.strike,
+      callOi: Math.max(r.ceOi ?? 0, 0),
+      putOi: Math.max(r.peOi ?? 0, 0),
+    }))
+    .filter(b => b.callOi > 0 || b.putOi > 0);
+
+  const first = bars[0];
+  const last = bars[bars.length - 1];
+  if (bars.length < 3 || first === undefined || last === undefined) return null;
+
+  const peak = Math.max(...bars.map(b => Math.max(b.callOi, b.putOi)));
+  if (peak <= 0) return null;
+
+  return {
+    bars: bars.map(b => ({
+      ...b,
+      callShare: b.callOi / peak,
+      putShare: b.putOi / peak,
+    })),
+    min: first.strike,
+    max: last.strike,
+  };
+}
+
+/** Where `value` sits between `min` and `max`, clamped to 0–1. Null outside a real range. */
+export function positionIn(
+  value: number | null,
+  min: number,
+  max: number,
+): number | null {
+  if (value == null || !(max > min)) return null;
+  return Math.min(Math.max((value - min) / (max - min), 0), 1);
+}
+
+export type PositioningStance = 'bullish' | 'bearish' | 'neutral';
+
+export interface PositioningVerdict {
+  label: string;
+  stance: PositioningStance;
+  /** Plain-language gloss of the label, for readers who don't trade the chain. */
+  leaning: string;
+  /** 0–1 bias meter position: 0 fully call-heavy, 0.5 balanced, 1 fully put-heavy. */
+  bias: number;
+}
+
+/**
+ * The card's headline. PCR is mapped onto a fixed 0.5–1.5 track rather than a
+ * percentile, because the ratio has an absolute meaning — 1.0 is balanced by
+ * construction — and a percentile would need a history the chain doesn't carry.
+ */
+export function positioningVerdict(
+  pcr: number | null,
+): PositioningVerdict | null {
+  if (pcr == null) return null;
+  const bias = Math.min(Math.max((pcr - 0.5) / 1.0, 0), 1);
+  if (pcr >= 1.1)
+    return {
+      label: 'Mildly bullish',
+      stance: 'bullish',
+      leaning: 'towards a rise',
+      bias,
+    };
+  if (pcr <= 0.9)
+    return {
+      label: 'Mildly bearish',
+      stance: 'bearish',
+      leaning: 'towards a fall',
+      bias,
+    };
+  return {label: 'Neutral', stance: 'neutral', leaning: 'neither way', bias};
+}
+
+/** Day-over-day PCR from the previous session's OI the stream already carries. */
+export function pcrDelta(
+  rows: OptionChainRow[],
+  pcr: number | null,
+): number | null {
+  if (pcr == null || rows.length === 0) return null;
+  let prevCall = 0;
+  let prevPut = 0;
+  for (const r of rows) {
+    prevCall += Math.max(r.cePrevOi ?? 0, 0);
+    prevPut += Math.max(r.pePrevOi ?? 0, 0);
+  }
+  if (prevCall <= 0) return null;
+  return pcr - prevPut / prevCall;
+}
+
+export interface IvContext {
+  /** 0–1 position of ATM IV within today's own smile. */
+  position: number;
+  low: number;
+  high: number;
+}
+
+/**
+ * IV needs a reference to be readable, and a true IV rank needs a year of history
+ * the chain has none of. Today's own smile is the honest substitute: it says
+ * whether the money is the cheap part of this chain or already bid up.
+ */
+export function ivContext(
+  rows: OptionChainRow[],
+  atmIv: number | null,
+): IvContext | null {
+  if (atmIv == null || atmIv <= 0) return null;
+  const ivs: number[] = [];
+  for (const r of rows) {
+    if (r.ceIv != null && r.ceIv > 0) ivs.push(r.ceIv);
+    if (r.peIv != null && r.peIv > 0) ivs.push(r.peIv);
+  }
+  if (ivs.length < 4) return null;
+  const low = Math.min(...ivs);
+  const high = Math.max(...ivs);
+  const position = positionIn(atmIv, low, high);
+  if (position == null) return null;
+  return {position, low, high};
+}
+
+const nearestWithin = (value: number, spot: number, pct: number): boolean =>
+  Math.abs(value - spot) / spot <= pct;
+
+/**
+ * What the positioning implies and what would break it — not a re-narration of
+ * the numbers printed above. Every clause names a level, so the sentence is only
+ * useful alongside the ladder rather than a substitute for reading it.
+ */
+export function positioningReadout(p: {
+  verdict: PositioningVerdict | null;
+  spot: number | null;
+  maxPain: number | null;
+  support?: number | null;
+  resistance?: number | null;
+  expectedMove: number | null;
+}): string | null {
+  const {verdict, spot, maxPain, support, resistance, expectedMove} = p;
+  if (!verdict || spot == null || spot <= 0) return null;
+
+  const parts: string[] = [];
+
+  const ceiling = resistance != null && resistance > spot ? resistance : null;
+  const floor = support != null && support < spot ? support : null;
+
+  if (ceiling != null && floor != null) {
+    const room = ceiling - spot;
+    const cushion = spot - floor;
+    parts.push(
+      room < cushion
+        ? `Writers have ${formatNumber(Math.round(room))} points of room to the ${formatNumber(ceiling)} call wall against ${formatNumber(Math.round(cushion))} to the ${formatNumber(floor)} put wall, so the ceiling binds first.`
+        : `The ${formatNumber(floor)} put wall is ${formatNumber(Math.round(cushion))} points below against ${formatNumber(Math.round(room))} to the ${formatNumber(ceiling)} call wall, so the floor is the nearer constraint.`,
+    );
+  } else if (ceiling != null) {
+    parts.push(
+      `Call writers are stacked at ${formatNumber(ceiling)}, ${formatNumber(Math.round(ceiling - spot))} points up — that is the level to clear.`,
+    );
+  } else if (floor != null) {
+    parts.push(
+      `Put writers are defending ${formatNumber(floor)}, ${formatNumber(Math.round(spot - floor))} points down.`,
+    );
+  }
+
+  if (
+    maxPain != null &&
+    nearestWithin(maxPain, spot, 0.01) &&
+    expectedMove != null
+  ) {
+    parts.push(
+      `Max pain at ${formatNumber(maxPain)} sits inside the ±${formatNumber(Math.round(expectedMove))} the straddle prices, so a pin here is the path of least resistance.`,
+    );
+  } else if (maxPain != null) {
+    const dir = maxPain > spot ? 'above' : 'below';
+    parts.push(
+      `Max pain ${formatNumber(Math.round(Math.abs(maxPain - spot)))} points ${dir} pulls against the ${verdict.stance === 'bearish' ? 'downside' : 'upside'}.`,
+    );
+  }
+
+  if (ceiling != null && verdict.stance !== 'neutral') {
+    parts.push(
+      verdict.stance === 'bearish'
+        ? `A close above ${formatNumber(ceiling)} would force those calls to cover and invalidate the lean.`
+        : `Losing ${formatNumber(floor ?? Math.round(spot))} would pull the support out from under it.`,
+    );
+  }
+
+  return parts.length ? parts.join(' ') : null;
+}

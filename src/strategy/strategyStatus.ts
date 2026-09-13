@@ -1,0 +1,96 @@
+/**
+ * Canonical strategy/backtest status helpers. Keeps the terminal-status set in one place so the
+ * chat cards, deploy flow and console can't drift.
+ *
+ * drift resolved 2026-09-13: the mobile copy won - it is the superset (isTerminalStatus, the
+ * readonly TERMINAL_STATUSES) and already housed the backtest-payload helpers the web keeps in
+ * utils/strategy/strategyLogs; the web copy has no function the mobile one lacks.
+ */
+import type {LogPayload, StrategyLog} from '../types/strategyLogs.ts';
+
+/** The fields the status helpers read; both apps' Strategy rows satisfy it. */
+export interface StrategyStatusSource {
+  status?: string | null;
+  is_backtest?: boolean;
+}
+
+export const TERMINAL_STATUSES = [
+  'COMPLETED',
+  'SUCCESS',
+  'FAILED',
+  'ERROR',
+] as const;
+
+export const LIVE_OPEN_STATUSES: readonly string[] = [
+  'RUNNING',
+  'ACTIVE',
+  'PENDING',
+  'WAITING',
+  'PAUSED',
+];
+
+export const BACKTEST_STATUSES: readonly string[] = [
+  'BACKTEST',
+  'BACKTESTING',
+  'BACKTEST_PENDING',
+];
+
+const AWAITING_START_STATUSES: readonly string[] = ['PENDING', 'WAITING'];
+
+/** True once a strategy/backtest has finished running (any terminal status). */
+export function isTerminalStatus(status?: string | null): boolean {
+  return (TERMINAL_STATUSES as readonly string[]).includes(
+    status?.toUpperCase() ?? '',
+  );
+}
+
+export const statusOf = (strategy: StrategyStatusSource): string =>
+  strategy.status?.toUpperCase() ?? '';
+
+export const isInProgress = (strategy: StrategyStatusSource): boolean =>
+  LIVE_OPEN_STATUSES.includes(statusOf(strategy)) ||
+  BACKTEST_STATUSES.includes(statusOf(strategy));
+
+export const isAwaitingStart = (strategy: StrategyStatusSource): boolean =>
+  AWAITING_START_STATUSES.includes(statusOf(strategy));
+
+export const isPaused = (strategy: StrategyStatusSource): boolean =>
+  statusOf(strategy) === 'PAUSED';
+
+/** True while a backtest is queued or actively running (not yet completed/failed). */
+export const isBacktestInProgress = (strategy: StrategyStatusSource): boolean =>
+  statusOf(strategy) === 'BACKTEST_PENDING' ||
+  (strategy.is_backtest === true && isInProgress(strategy));
+
+export const isCompletedBacktest = (strategy: StrategyStatusSource): boolean =>
+  strategy.is_backtest === true &&
+  ['COMPLETED', 'SUCCESS'].includes(statusOf(strategy));
+
+/**
+ * Matched on payload shape, not `log_level`: the backend writes the results row
+ * at level "info" (backend-go getlogs.go - backtests surface info logs), never
+ * the "BACKTEST_RESULT" label the LogLevel set suggests. trades/execution_log
+ * are always arrays on a real results log - check presence, not length, so a
+ * genuine 0-trade backtest still matches.
+ */
+export const hasResultPayload = (
+  payload: LogPayload | null | undefined,
+): boolean =>
+  !!payload &&
+  (payload.trades !== undefined ||
+    payload.execution_log !== undefined ||
+    payload.final_balance !== undefined ||
+    payload.initial_balance !== undefined);
+
+/**
+ * Status (from the trade-status poll) and this results payload (a separate
+ * strategy_logs row) don't land atomically - a backtest can read COMPLETED
+ * before its payload is fetched.
+ */
+export const findBacktestPayloadLog = (
+  strategyId: string,
+  logs: StrategyLog[] | undefined,
+): StrategyLog | undefined =>
+  (logs ?? []).find(
+    l => l.strategy_id === strategyId && hasResultPayload(l.payload),
+  );

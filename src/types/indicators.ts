@@ -203,6 +203,74 @@ export interface TechnicalIndicatorData {
   fractal_down?: boolean | null;
   zigzag_pivot?: number | null;
 
+  /**
+   * Columns the web's GetIndicatorsResponse declares beyond the mobile row: the extended candle
+   * patterns, Heikin Ashi, and the newer moving averages / oscillators the refresher computes.
+   */
+  spinning_top?: boolean | null;
+  long_white_candle?: boolean | null;
+  long_black_candle?: boolean | null;
+  bullish_pin_bar?: boolean | null;
+  bearish_pin_bar?: boolean | null;
+  belt_hold_bullish?: boolean | null;
+  belt_hold_bearish?: boolean | null;
+  harami_cross_bullish?: boolean | null;
+  harami_cross_bearish?: boolean | null;
+  kicker_bullish?: boolean | null;
+  kicker_bearish?: boolean | null;
+  doji_star_bullish?: boolean | null;
+  doji_star_bearish?: boolean | null;
+  on_neck?: boolean | null;
+  counter_attack_bullish?: boolean | null;
+  counter_attack_bearish?: boolean | null;
+  separating_lines_bullish?: boolean | null;
+  separating_lines_bearish?: boolean | null;
+  matching_low?: boolean | null;
+  matching_high?: boolean | null;
+  morning_doji_star?: boolean | null;
+  evening_doji_star?: boolean | null;
+  three_outside_up?: boolean | null;
+  three_outside_down?: boolean | null;
+  three_line_strike_bullish?: boolean | null;
+  three_line_strike_bearish?: boolean | null;
+  advance_block?: boolean | null;
+  deliberation?: boolean | null;
+  tasuki_gap_up?: boolean | null;
+  tasuki_gap_down?: boolean | null;
+  gap_three_methods_bullish?: boolean | null;
+  gap_three_methods_bearish?: boolean | null;
+  homing_pigeon?: boolean | null;
+  descending_hawk?: boolean | null;
+  ha_bullish_initiation?: boolean | null;
+  ha_bearish_initiation?: boolean | null;
+  ha_bullish_continuation?: boolean | null;
+  ha_bearish_continuation?: boolean | null;
+  ha_doji?: boolean | null;
+  ha_tick_up?: boolean | null;
+  ha_tick_down?: boolean | null;
+  nr4?: boolean | null;
+  nr7?: boolean | null;
+  wr7?: boolean | null;
+
+  sma20?: number | null;
+  sma200?: number | null;
+  macd_12_26_9?: number | null;
+  macd_12_26_signal?: number | null;
+  ichimoku_chikou?: number | null;
+  volume_ma20?: number | null;
+  volume_ma50?: number | null;
+  chandelier_exit_long?: number | null;
+  chandelier_exit_short?: number | null;
+  ha_open?: number | null;
+  ha_high?: number | null;
+  ha_low?: number | null;
+  schaff_trend_cycle?: number | null;
+  wave_trend?: number | null;
+  t3_ma?: number | null;
+  frama?: number | null;
+  random_walk_index?: number | null;
+  accelerator_osc?: number | null;
+
   stock_symbol: string;
   rsi?: number;
   macd?: number;
@@ -221,4 +289,11 @@ export interface TechnicalIndicatorData {
   adx?: number;
   stochastic_k?: number;
   stochastic_d?: number;
+}
+
+/** Request for the technicals endpoint (web interfaces/indicators GetIndicatorsParams). */
+export interface GetIndicatorsParams {
+  stocks: string[];
+  market?: 'IN';
+  interval?: '1m' | '5m' | '15m' | '1d';
 }

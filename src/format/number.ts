@@ -90,8 +90,74 @@ export const withSign = (formatted: string, value: number): string =>
 export const signedCurrency = (value: number, decimals = 0): string =>
   withSign(formatCurrency(value, decimals), value);
 
-/** "+2.4%" / "-0.5%"; an unrepresentable value prints a dash rather than "NaN%". */
-export const signedPct = (value: number, decimals = 1): string =>
-  Number.isFinite(value)
+/**
+ * "+2.4%" / "-0.5%"; an unrepresentable value prints a dash rather than "NaN%".
+ * Guarded because callers pass a nullable return pct: an empty NAV series yields null, and
+ * `null.toFixed` took the whole Net Worth page to the error boundary.
+ */
+// drift resolved 2026-09-13: web accepted null/undefined (→ "—"), mobile only number; web's
+// wider guard won — it is a strict superset and the null case is real (empty NAV series).
+export const signedPct = (
+  value: number | null | undefined,
+  decimals = 1,
+): string =>
+  typeof value === 'number' && Number.isFinite(value)
     ? `${value >= 0 ? '+' : ''}${value.toFixed(decimals)}%`
     : '—';
+
+// drift resolved 2026-09-13: both apps export this helper as `formatCompactINR`; core named it
+// `formatCompactInr`. One implementation, the app-facing spelling aliased so call sites move
+// without a rename.
+export const formatCompactINR = formatCompactInr;
+
+const croreFormatter = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/**
+ * Value already expressed in ₹ crore — grouped with a "Cr" suffix ("1,973,643.47 Cr"). Kept
+ * separate from `formatCroreCompact`: tables that align on a full figure still want the exact
+ * one. en-US grouping is what the fundamentals tables always used.
+ */
+export const formatCrore = (value: number | null | undefined): string =>
+  value == null ? 'N/A' : `${croreFormatter.format(value)} Cr`;
+
+/**
+ * Fundamentals arrive as loose JSON: a number, a pre-formatted string, or one of several
+ * spellings of absent ("null" and "N/A" come through as literal strings). Collapse all of them
+ * to a single "N/A" so a missing figure never renders as the word null. Numbers keep the
+ * runtime's default locale, as both apps always did.
+ */
+export const formatValue = (
+  value: string | number | null | undefined,
+): string => {
+  if (value == null || value === 'null' || value === 'N/A') return 'N/A';
+  return typeof value === 'number' ? value.toLocaleString() : value;
+};
+
+/**
+ * A strategy's budget is sized either by rupee AMOUNT or by share QTY (budget_config.mode).
+ * Format the raw value per its mode so QTY strategies read as a share count instead of being
+ * mislabelled with a ₹ sign.
+ */
+export const formatAllocation = (
+  value: number | null | undefined,
+  mode?: string,
+  decimals = 0,
+): string =>
+  mode?.toUpperCase() === 'QTY'
+    ? `${formatNumber(value ?? 0)} qty`
+    : formatCurrency(value, decimals);
+
+/** `value` held inside `[min, max]`. */
+export const clamp = (value: number, min: number, max: number): number =>
+  Math.max(min, Math.min(max, value));
+
+/** Abbreviated rupee magnitude (T/B/M) for market cap and revenue figures. */
+export const formatMarketCap = (value: number): string => {
+  if (value >= 1e12) return `₹${(value / 1e12).toFixed(2)}T`;
+  if (value >= 1e9) return `₹${(value / 1e9).toFixed(2)}B`;
+  if (value >= 1e6) return `₹${(value / 1e6).toFixed(2)}M`;
+  return `₹${value.toFixed(2)}`;
+};

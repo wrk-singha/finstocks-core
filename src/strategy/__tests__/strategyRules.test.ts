@@ -1,0 +1,165 @@
+import assert from 'node:assert/strict';
+import {test} from 'node:test';
+
+import type {ScreenerStrategy} from '../../types/screener.ts';
+import {
+  buildConsoleRules,
+  buildConsoleRulesDraft,
+  buildScreenerStrategySpec,
+  buildStrategyRules,
+} from '../strategyRules.ts';
+import {strategy, UUID_A} from './fixtures.ts';
+
+const base = strategy({
+  strategy_id: UUID_A,
+  symbol: 'CUSTOM_LIST',
+  original_query: 'Buy when RSI < 30. Exit when RSI > 70',
+  take_profit: 5,
+  stop_loss: 2,
+  budget_config: {val: 50000, mode: 'AMOUNT'},
+  timeframe: '15m',
+  rules: {
+    entry: [],
+    exit: [],
+    nlp_triggers: [{id: '1', summary: 'Exit on bad news'}],
+  },
+});
+
+test('buildStrategyRules compiles the deploy card rows from real fields only', () => {
+  assert.deepEqual(
+    buildStrategyRules(base, {mode: 'LIVE', brokerName: 'Zerodha'}),
+    [
+      {k: 'Universe', v: 'Custom list'},
+      {k: 'Entry rule', v: 'RSI < 30'},
+      {k: 'Exit rule', v: 'TP +5% · SL −2% · Exit on bad news'},
+      {k: 'Position size', v: '₹50,000'},
+      {k: 'Timeframe', v: '15m'},
+      {k: 'Execution', v: 'Zerodha'},
+    ],
+  );
+});
+
+test('buildStrategyRules: overrides, empty overrides, intraday, QTY and mock execution', () => {
+  const rows = buildStrategyRules(
+    strategy({
+      ...base,
+      is_intraday: true,
+      budget_config: {val: 5, mode: 'QTY'},
+      take_profit: null,
+      stop_loss: null,
+      rules: null,
+      original_query: '',
+    }),
+    {
+      mode: 'MOCK',
+      symbolOverride: '',
+      timeframeOverride: '',
+      capitalOverride: 1000,
+      entryOverride: 'EMA 9 crosses above EMA 21',
+    },
+  );
+  assert.deepEqual(rows, [
+    {k: 'Universe', v: 'Custom list'},
+    {k: 'Entry rule', v: 'EMA 9 crosses above EMA 21'},
+    {k: 'Position size', v: '1,000 qty'},
+    {k: 'Timeframe', v: 'Intraday · square off same day'},
+    {k: 'Execution', v: 'Simulated — no broker'},
+  ]);
+  assert.equal(
+    buildStrategyRules(base, {mode: 'LIVE'}).at(-1)?.v,
+    'Connected broker',
+  );
+  assert.equal(
+    buildStrategyRules(base, {mode: 'LIVE', symbolOverride: 'INFY'})[0]?.v,
+    'INFY',
+  );
+});
+
+const pick: ScreenerStrategy = {
+  id: 7,
+  name: 'EMA cross',
+  description:
+    'Buy when price crosses above EMA 20. Sell when it crosses below.',
+  symbol: 'NIFTY100',
+  is_premium: false,
+  is_intraday: true,
+  todays_symbol: 'TCS',
+  created_at: '2026-01-01',
+};
+
+test('buildScreenerStrategySpec previews a pick that has no strategy row yet', () => {
+  assert.deepEqual(
+    buildScreenerStrategySpec(pick, {mode: 'LIVE', capital: 10000}),
+    [
+      {k: 'Universe', v: 'TCS'},
+      {k: 'Entry rule', v: 'price crosses above EMA 20'},
+      {k: 'Exit rule', v: 'it crosses below.'},
+      {k: 'Position size', v: '₹10,000.00'},
+      {k: 'Timeframe', v: 'Intraday · square off same day'},
+      {k: 'Execution', v: 'Connected broker'},
+    ],
+  );
+});
+
+test('buildConsoleRules projects the model into read-only rows, sized per budget mode', () => {
+  const qty = buildConsoleRules(
+    strategy({
+      ...base,
+      symbol: 'NIFTY2681824400PE',
+      budget_config: {val: 2, mode: 'QTY'},
+      timeframe: '1d',
+      is_intraday: true,
+      rules: null,
+    }),
+    100000,
+  );
+  assert.deepEqual(qty, {
+    universe: 'NIFTY',
+    timeframe: '1D',
+    entry: 'Buy when RSI < 30. Exit when RSI > 70',
+    takeProfit: '+5%',
+    stopLoss: '-2%',
+    timeExit: 'Square off same day',
+    capital: '2 qty',
+    sizingMethod: 'QTY',
+    fsm: null,
+  });
+  const amount = buildConsoleRules(base, 100000);
+  assert.equal(amount.universe, 'Custom list');
+  assert.equal(amount.capital, '₹1,00,000');
+  assert.equal(amount.sizingMethod, 'Fixed amount');
+  assert.equal(amount.timeExit, undefined);
+  assert.deepEqual(amount.fsm, base.rules);
+});
+
+test('buildConsoleRulesDraft preserves the sizing mode and total pool', () => {
+  const normalize = (raw?: string | null) => (raw ?? '1d').toUpperCase();
+  const draft = buildConsoleRulesDraft(
+    strategy({
+      ...base,
+      budget_config: {val: 1, mode: 'RISK_PERCENT', total: 500000},
+      is_parent: true,
+    }),
+    100000,
+    normalize,
+  );
+  assert.deepEqual(draft, {
+    capital: 1,
+    sizingMode: 'RISK_PERCENT',
+    totalCapital: 500000,
+    entryQuery: 'Buy when RSI < 30. Exit when RSI > 70',
+    symbol: 'CUSTOM_LIST',
+    timeframe: '15M',
+    rawFSM: base.fsm,
+    strategyId: UUID_A,
+    isParent: true,
+  });
+  assert.equal(
+    buildConsoleRulesDraft(base, 100000, normalize).sizingMode,
+    'AMOUNT',
+  );
+  assert.equal(
+    'totalCapital' in buildConsoleRulesDraft(base, 100000, normalize),
+    false,
+  );
+});

@@ -12,6 +12,11 @@ export type RequestInit = {
   readonly headers?: Readonly<Record<string, string>>;
   /** Milliseconds; the host applies its default when absent. */
   readonly timeoutMs?: number;
+  /** Sent as `Idempotency-Key`: every order request carries one so a retry cannot place twice. */
+  readonly idempotencyKey?: string;
+  /** Never attach the bearer (pre-login endpoints such as login and waitlist). */
+  readonly anonymous?: boolean;
+  readonly signal?: AbortSignal;
 };
 
 export type HttpClient = {

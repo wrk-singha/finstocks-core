@@ -2,12 +2,19 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
 import {
+  clamp,
+  formatAllocation,
+  formatCompactINR,
   formatCompactInr,
+  formatCrore,
   formatCroreCompact,
   formatCurrency,
   formatNumber,
   formatPercent,
   formatQuantity,
+  formatValue,
+  signedCurrency,
+  signedPct,
   withSign,
 } from '../number.ts';
 
@@ -58,4 +65,50 @@ test('withSign only adds a plus', () => {
   assert.equal(withSign('12.35%', 12.35), '+12.35%');
   assert.equal(withSign('-0.50%', -0.5), '-0.50%');
   assert.equal(withSign('0.00%', 0), '0.00%');
+});
+
+test('signedCurrency and signedPct show direction, dash when unrepresentable', () => {
+  assert.equal(signedCurrency(1240), '+₹1,240');
+  assert.equal(signedCurrency(-1240.5, 2), '-₹1,240.50');
+  assert.equal(signedPct(2.44), '+2.4%');
+  assert.equal(signedPct(-0.5), '-0.5%');
+  assert.equal(signedPct(0, 2), '+0.00%');
+  assert.equal(signedPct(null), '—');
+  assert.equal(signedPct(undefined), '—');
+  assert.equal(signedPct(Number.NaN), '—');
+});
+
+test('formatCompactINR is the same formatter under the app-facing name', () => {
+  assert.equal(formatCompactINR, formatCompactInr);
+  assert.equal(formatCompactINR(5_00_000), '₹5L');
+});
+
+test('formatCrore keeps the exact grouped figure', () => {
+  assert.equal(formatCrore(1973643.47), '1,973,643.47 Cr');
+  assert.equal(formatCrore(12), '12.00 Cr');
+  assert.equal(formatCrore(null), 'N/A');
+  assert.equal(formatCrore(undefined), 'N/A');
+});
+
+test('formatValue collapses every spelling of absent to N/A', () => {
+  assert.equal(formatValue(null), 'N/A');
+  assert.equal(formatValue(undefined), 'N/A');
+  assert.equal(formatValue('null'), 'N/A');
+  assert.equal(formatValue('N/A'), 'N/A');
+  assert.equal(formatValue('12.5x'), '12.5x');
+  assert.equal(formatValue(42), '42');
+});
+
+test('formatAllocation reads QTY budgets as a share count', () => {
+  assert.equal(formatAllocation(1500, 'QTY'), '1,500 qty');
+  assert.equal(formatAllocation(1500, 'qty'), '1,500 qty');
+  assert.equal(formatAllocation(150000, 'AMOUNT'), '₹1,50,000');
+  assert.equal(formatAllocation(150000), '₹1,50,000');
+  assert.equal(formatAllocation(null, undefined, 2), '₹0.00');
+});
+
+test('clamp holds a value inside its bounds', () => {
+  assert.equal(clamp(5, 0, 10), 5);
+  assert.equal(clamp(-1, 0, 10), 0);
+  assert.equal(clamp(11, 0, 10), 10);
 });

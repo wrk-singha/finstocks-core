@@ -1,0 +1,3 @@
+{
+  "*.ts": "pnpm -s exec prettier --write"
+}

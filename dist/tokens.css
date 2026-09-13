@@ -19,15 +19,15 @@
   --color-edge-primary: #e0e0e0;
   --color-edge-secondary: #d0d0d0;
   --color-edge-subtle: #f0f0f0;
-  --color-edge-hairline: rgba(0,0,0,0.1);
+  --color-edge-hairline: rgba(0, 0, 0, 0.1);
   --color-edge-focus: #9126eb;
-  --color-overlay-scrim: rgba(0,0,0,0.4);
+  --color-overlay-scrim: rgba(0, 0, 0, 0.4);
   --color-overlay-divider: #e8e8e8;
-  --color-wash-chipIdle: rgba(0,0,0,0.03);
-  --color-wash-tile: rgba(0,0,0,0.04);
-  --color-wash-tileFill: rgba(0,0,0,0.025);
-  --color-wash-surface: rgba(0,0,0,0.02);
-  --color-wash-surfaceEdge: rgba(0,0,0,0.08);
+  --color-wash-chipIdle: rgba(0, 0, 0, 0.03);
+  --color-wash-tile: rgba(0, 0, 0, 0.04);
+  --color-wash-tileFill: rgba(0, 0, 0, 0.025);
+  --color-wash-surface: rgba(0, 0, 0, 0.02);
+  --color-wash-surfaceEdge: rgba(0, 0, 0, 0.08);
   --color-status-success: #10b981;
   --color-status-error: #dc2626;
   --color-status-errorStrong: #b91c1c;
@@ -54,7 +54,7 @@
   --color-brand-hover: #a855f7;
   --color-brand-arc: #9126eb;
   --color-shadow-native: #000000;
-  --color-shadow-web: rgba(0,0,0,0.08);
+  --color-shadow-web: rgba(0, 0, 0, 0.08);
   --space-0: 0;
   --space-1: 2;
   --space-2: 4;
@@ -111,7 +111,7 @@
   --press-icon: 0.9;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme='light']) {
     --color-surface-base: #0a0b0d;
     --color-surface-raised: #0d0e10;
     --color-surface-sunken: #141518;
@@ -130,16 +130,16 @@
     --color-ink-inverse: #0a0b0d;
     --color-edge-primary: #1c1d20;
     --color-edge-secondary: #26272b;
-    --color-edge-subtle: rgba(255,255,255,0.06);
-    --color-edge-hairline: rgba(255,255,255,0.07);
+    --color-edge-subtle: rgba(255, 255, 255, 0.06);
+    --color-edge-hairline: rgba(255, 255, 255, 0.07);
     --color-edge-focus: #cdb9f8;
-    --color-overlay-scrim: rgba(0,0,0,0.7);
+    --color-overlay-scrim: rgba(0, 0, 0, 0.7);
     --color-overlay-divider: #1c1d20;
-    --color-wash-chipIdle: rgba(255,255,255,0.03);
-    --color-wash-tile: rgba(255,255,255,0.04);
-    --color-wash-tileFill: rgba(255,255,255,0.03);
+    --color-wash-chipIdle: rgba(255, 255, 255, 0.03);
+    --color-wash-tile: rgba(255, 255, 255, 0.04);
+    --color-wash-tileFill: rgba(255, 255, 255, 0.03);
     --color-wash-surface: #141518;
-    --color-wash-surfaceEdge: rgba(255,255,255,0.07);
+    --color-wash-surfaceEdge: rgba(255, 255, 255, 0.07);
     --color-status-success: #34d399;
     --color-status-error: #f28b82;
     --color-status-errorStrong: #e0736b;
@@ -166,10 +166,10 @@
     --color-brand-hover: #ddd6fe;
     --color-brand-arc: #9781c4;
     --color-shadow-native: #000000;
-    --color-shadow-web: rgba(0,0,0,0.55);
+    --color-shadow-web: rgba(0, 0, 0, 0.55);
   }
 }
-:root[data-theme="dark"] {
+:root[data-theme='dark'] {
   --color-surface-base: #0a0b0d;
   --color-surface-raised: #0d0e10;
   --color-surface-sunken: #141518;
@@ -188,16 +188,16 @@
   --color-ink-inverse: #0a0b0d;
   --color-edge-primary: #1c1d20;
   --color-edge-secondary: #26272b;
-  --color-edge-subtle: rgba(255,255,255,0.06);
-  --color-edge-hairline: rgba(255,255,255,0.07);
+  --color-edge-subtle: rgba(255, 255, 255, 0.06);
+  --color-edge-hairline: rgba(255, 255, 255, 0.07);
   --color-edge-focus: #cdb9f8;
-  --color-overlay-scrim: rgba(0,0,0,0.7);
+  --color-overlay-scrim: rgba(0, 0, 0, 0.7);
   --color-overlay-divider: #1c1d20;
-  --color-wash-chipIdle: rgba(255,255,255,0.03);
-  --color-wash-tile: rgba(255,255,255,0.04);
-  --color-wash-tileFill: rgba(255,255,255,0.03);
+  --color-wash-chipIdle: rgba(255, 255, 255, 0.03);
+  --color-wash-tile: rgba(255, 255, 255, 0.04);
+  --color-wash-tileFill: rgba(255, 255, 255, 0.03);
   --color-wash-surface: #141518;
-  --color-wash-surfaceEdge: rgba(255,255,255,0.07);
+  --color-wash-surfaceEdge: rgba(255, 255, 255, 0.07);
   --color-status-success: #34d399;
   --color-status-error: #f28b82;
   --color-status-errorStrong: #e0736b;
@@ -224,5 +224,5 @@
   --color-brand-hover: #ddd6fe;
   --color-brand-arc: #9781c4;
   --color-shadow-native: #000000;
-  --color-shadow-web: rgba(0,0,0,0.55);
+  --color-shadow-web: rgba(0, 0, 0, 0.55);
 }

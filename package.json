@@ -1,6 +1,6 @@
 {
   "name": "@finstocks/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "sideEffects": false,
@@ -8,7 +8,7 @@
     "tokens:build": "node tokens/scripts/build.mjs",
     "tokens:check": "node tokens/scripts/build.mjs --check",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test tokens/test/",
+    "test": "node --test 'tokens/test/**/*.test.mjs'",
     "check": "pnpm run tokens:check && pnpm run typecheck && pnpm run test",
     "prepare": "husky"
   },

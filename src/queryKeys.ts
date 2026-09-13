@@ -26,6 +26,11 @@ export const queryKeys = {
   /** ["user"] */
   user: () => ['user'],
 
+  auth: {
+    /** ["auth", "reset-token", token] — the emailed reset link, checked before the form shows. */
+    resetToken: (token: string) => ['auth', 'reset-token', token],
+  },
+
   /**
    * ["chats", "list"] — the paginated chat list (infinite query).
    * Deliberately NOT the bare ["chats"]: AuthContext still warms that exact

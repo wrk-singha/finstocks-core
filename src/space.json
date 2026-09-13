@@ -1,0 +1,56 @@
+{
+  "$schema": "2-pt grid indexed numerically (t.space[6] = 12), derived from the current app's padding/margin/gap histogram (12, 8, 10, 6, 16, 4, 14, 2, 20, 24, 32). Radii 3/9/10 fold into neighbours.",
+  "space": {
+    "0": 0,
+    "1": 2,
+    "2": 4,
+    "3": 6,
+    "4": 8,
+    "5": 10,
+    "6": 12,
+    "7": 14,
+    "8": 16,
+    "10": 20,
+    "12": 24,
+    "16": 32,
+    "20": 40
+  },
+  "radius": {"xs": 4, "sm": 6, "md": 8, "lg": 12, "xl": 16, "pill": 999},
+  "layout": {"gutter": 20, "tabBar": 70, "phoneMax": 480, "touchMin": 44},
+  "zIndex": {
+    "$description": "A layer that can open FROM another must outrank it: drawer < sheet < modal < popover < confirm < toast.",
+    "base": 0,
+    "sticky": 10,
+    "drawer": 100,
+    "sheet": 200,
+    "modal": 300,
+    "popover": 400,
+    "confirm": 500,
+    "toast": 600
+  },
+  "elevation": {
+    "$description": "Native: shadowColor is the opaque token; opacity/radius/offset here. Android uses elevation. Web uses the rgba shadow token.",
+    "0": {"opacity": 0, "radius": 0, "offsetY": 0, "android": 0, "web": "none"},
+    "1": {
+      "opacity": 0.08,
+      "radius": 2,
+      "offsetY": 1,
+      "android": 1,
+      "web": "0 1px 2px var(--color-shadow-web)"
+    },
+    "2": {
+      "opacity": 0.12,
+      "radius": 6,
+      "offsetY": 2,
+      "android": 3,
+      "web": "0 2px 6px var(--color-shadow-web)"
+    },
+    "3": {
+      "opacity": 0.16,
+      "radius": 12,
+      "offsetY": 4,
+      "android": 6,
+      "web": "0 4px 12px var(--color-shadow-web)"
+    }
+  }
+}

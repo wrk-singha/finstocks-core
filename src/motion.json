@@ -1,0 +1,41 @@
+{
+  "$schema": "Ported 1:1 from finstocks-app constants/motion.ts, which already mirrored the web keyframes 1:1 — this file makes that one source. Durations in ms; easings as cubic-bezier control points.",
+  "duration": {"fast": 120, "base": 180, "slow": 240},
+  "entrance": {
+    "fadeIn": 600,
+    "scrimIn": 200,
+    "fadeUp": 250,
+    "logEntry": 400,
+    "paneIn": 280,
+    "sheetIn": 220,
+    "slideDown": 160,
+    "menuIn": 160,
+    "messageIn": 350,
+    "chartDraw": 620,
+    "scaleIn": 200
+  },
+  "glow": {
+    "$description": "One-shot attention glow: decay ~2x the attack so the pull is quick and the release unhurried.",
+    "attack": 280,
+    "decay": 520
+  },
+  "loop": {
+    "$description": "Continuous loops never settle, so they are tuned to read as ambient.",
+    "breathe": 1000,
+    "spin": 2400
+  },
+  "easing": {
+    "standard": [0.4, 0, 0.2, 1],
+    "out": [0, 0, 0.58, 1],
+    "ease": [0.25, 0.1, 0.25, 1],
+    "emphasized": [0.2, 0.8, 0.2, 1]
+  },
+  "pressScale": {
+    "$description": "Compress is inversely proportional to the target: 3% reads as a firm tap on a 36px button, a 320px card caving in, invisible on a 24px glyph.",
+    "row": 0.99,
+    "card": 0.98,
+    "standard": 0.97,
+    "compact": 0.95,
+    "icon": 0.9
+  }
+}

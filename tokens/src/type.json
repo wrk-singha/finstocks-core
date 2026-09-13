@@ -1,0 +1,38 @@
+{
+  "$schema": "Type roles replace ad-hoc fontSize literals. Sizes derived from the current app's fontSize histogram (12, 11, 13, 10, 14, 15, 16, 17, 18, 26). Space Grotesk ships as four FAMILIES, not weights: the kit resolves a weight to a family and strips fontWeight so no platform synthesises a second bold.",
+  "family": {
+    "regular": "SpaceGrotesk_400Regular",
+    "medium": "SpaceGrotesk_500Medium",
+    "semibold": "SpaceGrotesk_600SemiBold",
+    "bold": "SpaceGrotesk_700Bold",
+    "webStack": "'Space Grotesk', system-ui, sans-serif",
+    "mono": {
+      "ios": "Menlo",
+      "android": "monospace",
+      "web": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+    }
+  },
+  "weightToFamily": {
+    "$description": "Thresholds from the current Text.tsx: <450 regular, <550 medium, <650 semibold, else bold.",
+    "regular": 450,
+    "medium": 550,
+    "semibold": 650
+  },
+  "role": {
+    "display": {"size": 26, "lineHeight": 32, "weight": 700},
+    "h1": {"size": 20, "lineHeight": 26, "weight": 600},
+    "h2": {"size": 17, "lineHeight": 22, "weight": 600},
+    "h3": {"size": 15, "lineHeight": 20, "weight": 600},
+    "body": {"size": 14, "lineHeight": 20, "weight": 400},
+    "bodySm": {"size": 13, "lineHeight": 18, "weight": 400},
+    "label": {"size": 12, "lineHeight": 16, "weight": 500},
+    "caption": {"size": 11, "lineHeight": 14, "weight": 400},
+    "micro": {"size": 10, "lineHeight": 12, "weight": 500}
+  },
+  "maxFontScale": {
+    "$description": "Trading controls have fixed heights; NIFTY2026090823900PE cannot wrap. 1.3 honours the smaller accessibility steps; money values clamp lower.",
+    "default": 1.3,
+    "money": 1.15
+  },
+  "tabularByDefault": true
+}

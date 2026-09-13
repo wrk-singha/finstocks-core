@@ -1,3 +1,1 @@
-{
-  "*.ts": "pnpm -s exec prettier --write"
-}
+{"*.{ts,json,md,yml,yaml}": "prettier --write"}

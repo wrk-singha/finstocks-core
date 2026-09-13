@@ -3,3 +3,22 @@
 // Modules are added in phase 2 (see docs/migration/SHARED-CORE.md): types, market, trading,
 // strategy, screener, data, format, queryKeys, api, events, tokens (generated).
 export const CORE_PACKAGE = '@finstocks/core' as const;
+export {
+  color,
+  colorLight,
+  colorDark,
+  type,
+  space,
+  radius,
+  layout,
+  zIndex,
+  elevation,
+  motion,
+} from './tokens';
+export type {
+  ColorScheme,
+  ColorTokens,
+  TypeRole,
+  SpaceStep,
+  RadiusStep,
+} from './tokens';

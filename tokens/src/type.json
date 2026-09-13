@@ -1,10 +1,11 @@
 {
   "$schema": "Type roles replace ad-hoc fontSize literals. Sizes derived from the current app's fontSize histogram (12, 11, 13, 10, 14, 15, 16, 17, 18, 26). Space Grotesk ships as four FAMILIES, not weights: the kit resolves a weight to a family and strips fontWeight so no platform synthesises a second bold.",
   "family": {
-    "regular": "SpaceGrotesk_400Regular",
-    "medium": "SpaceGrotesk_500Medium",
-    "semibold": "SpaceGrotesk_600SemiBold",
-    "bold": "SpaceGrotesk_700Bold",
+    "$description": "The four Space Grotesk faces by their PostScript names (SpaceGrotesk-Regular …). iOS resolves a fontFamily by PostScript name and Android by the file name under assets/fonts, so the bundled TTFs are named the same way; the old expo-font keys (SpaceGrotesk_400Regular) were registration aliases, not font names.",
+    "regular": "SpaceGrotesk-Regular",
+    "medium": "SpaceGrotesk-Medium",
+    "semibold": "SpaceGrotesk-SemiBold",
+    "bold": "SpaceGrotesk-Bold",
     "webStack": "'Space Grotesk', system-ui, sans-serif",
     "mono": {
       "ios": "Menlo",

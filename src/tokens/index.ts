@@ -195,11 +195,12 @@ export type ColorTokens = typeof colorLight;
 export const color = {light: colorLight, dark: colorDark} as const;
 
 export const type = {
+  /** The four Space Grotesk faces by their PostScript names (SpaceGrotesk-Regular …). iOS resolves a fontFamily by PostScript name and Android by the file name under assets/fonts, so the bundled TTFs are named the same way; the old expo-font keys (SpaceGrotesk_400Regular) were registration aliases, not font names. */
   family: {
-    regular: 'SpaceGrotesk_400Regular',
-    medium: 'SpaceGrotesk_500Medium',
-    semibold: 'SpaceGrotesk_600SemiBold',
-    bold: 'SpaceGrotesk_700Bold',
+    regular: 'SpaceGrotesk-Regular',
+    medium: 'SpaceGrotesk-Medium',
+    semibold: 'SpaceGrotesk-SemiBold',
+    bold: 'SpaceGrotesk-Bold',
     webStack: "'Space Grotesk', system-ui, sans-serif",
     mono: {
       ios: 'Menlo',

@@ -47,3 +47,12 @@ export function extractUnderlyingSymbol(stockSymbol: string): string {
   const match = /^([A-Z]+)\s*\d/.exec(normalizedSymbol);
   return match?.[1] ?? normalizedSymbol;
 }
+
+/**
+ * The FinStocks logo bucket's URL for a symbol, keyed by its underlying ("RELIANCE-EQ" → RELIANCE,
+ * "NIFTY BANK" → BANKNIFTY). The bucket has no manifest: a miss is a 404 the caller remembers.
+ */
+export function stockLogoUrl(stockSymbol: string): string {
+  const underlying = extractUnderlyingSymbol(stockSymbol) || stockSymbol;
+  return `https://storage.googleapis.com/finstocks_stock_logos/${underlying}.webp`;
+}

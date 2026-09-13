@@ -31,6 +31,26 @@ export const queryKeys = {
     resetToken: (token: string) => ['auth', 'reset-token', token],
   },
 
+  orders: {
+    /** ["orders", "pending-trade"] — the agent's current unresponded trade proposal. */
+    pendingTrade: () => ['orders', 'pending-trade'],
+  },
+
+  brokers: {
+    /** ["brokers", "reserved-ip"] — the account's outbound IP, one per account whatever the broker. */
+    reservedIp: () => ['brokers', 'reserved-ip'],
+    /** ["brokers", "zerodha-exchange", requestToken] — one entry per single-use Kite token. */
+    zerodhaExchange: (requestToken: string) => [
+      'brokers',
+      'zerodha-exchange',
+      requestToken,
+    ],
+    /** ["brokers", "upstox-exchange", code] — one entry per single-use Upstox code. */
+    upstoxExchange: (code: string) => ['brokers', 'upstox-exchange', code],
+    /** ["brokers", "oauth-confirm"] — the redirect screen's re-check of the profile. */
+    oauthConfirm: () => ['brokers', 'oauth-confirm'],
+  },
+
   /**
    * ["chats", "list"] — the paginated chat list (infinite query).
    * Deliberately NOT the bare ["chats"]: AuthContext still warms that exact
@@ -46,6 +66,12 @@ export const queryKeys = {
    * prefetch. Pin mutations invalidate `chats()` and `chatsPinned()` by name.
    */
   chatsPinned: () => ['chats', 'pinned'],
+
+  /**
+   * ["chats", "surface", surface] — one surface's recent threads (terminal dock, console
+   * assistant). Beside `chats()` = ["chats", "list"], so a surface called "list" cannot collide.
+   */
+  chatsSurface: (surface: string) => ['chats', 'surface', surface],
 
   /**
    * ["chats", "search", query, surface, category] — server-side title search.

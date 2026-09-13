@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {extractUnderlyingSymbol, isFnOSymbol} from '../symbols.ts';
+import {
+  extractUnderlyingSymbol,
+  isFnOSymbol,
+  stockLogoUrl,
+} from '../symbols.ts';
 
 test('contracts, index spellings and exchange suffixes reduce to the underlying', () => {
   assert.equal(extractUnderlyingSymbol('NIFTY24JUL22000CE'), 'NIFTY');
@@ -23,4 +27,15 @@ test('F&O detection is anchored on the contract suffix', () => {
   assert.equal(isFnOSymbol('BSE500IETF'), false);
   assert.equal(isFnOSymbol('RELIANCE'), false);
   assert.equal(isFnOSymbol(undefined), false);
+});
+
+test('stockLogoUrl points at the logo bucket by underlying', () => {
+  assert.equal(
+    stockLogoUrl('RELIANCE-EQ'),
+    'https://storage.googleapis.com/finstocks_stock_logos/RELIANCE.webp',
+  );
+  assert.equal(
+    stockLogoUrl('NIFTY BANK'),
+    'https://storage.googleapis.com/finstocks_stock_logos/BANKNIFTY.webp',
+  );
 });

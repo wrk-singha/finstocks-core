@@ -113,7 +113,7 @@ export type {
   StockSignal,
 } from './stockSignals.ts';
 
-export {extractUnderlyingSymbol, isFnOSymbol} from './symbols.ts';
+export {extractUnderlyingSymbol, isFnOSymbol, stockLogoUrl} from './symbols.ts';
 
 export {
   buildOscillators,

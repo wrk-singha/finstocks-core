@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.2"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.3"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,9 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.3** — `stockLogoUrl(symbol)` (the logo bucket by underlying) and query keys the mobile ports
+  kept locally: `orders.pendingTrade`, `brokers.{reservedIp, zerodhaExchange, upstoxExchange,
+oauthConfirm}` and `chatsSurface(surface)`.
 - **v0.2.2** — `queryKeys.auth.resetToken(token)`: the emailed reset link is checked before the
   form shows (mobile auth port).
 - **v0.2.1** — `newWatchlistId` reads `crypto` through `globalThis` with a local type: the bare

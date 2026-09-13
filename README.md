@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.0"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.1"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,8 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.1** — `newWatchlistId` reads `crypto` through `globalThis` with a local type: the bare
+  global is not in React Native's type library and broke the mobile app's typecheck.
 - **v0.2.0** — phase 2: the whole shared core. Types (union of both apps), market/trading/
   strategy/screener/portfolio maths, static data, the formatting union, the query-key factory
   and the endpoint definitions over `HttpClient`. 407 tests (297 in src). Every place the two apps disagreed

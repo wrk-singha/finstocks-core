@@ -4,10 +4,16 @@ import type {Watchlist, WatchlistAlertSetup} from '../types/watchlist.ts';
 // drift resolved 2026-09-13: the mobile always minted the `wl_` id; the web
 // prefers `crypto.randomUUID` with the same fallback, which wins because
 // Hermes lacks randomUUID and the fallback is what it gets either way.
+// Read through `globalThis` and typed locally: `crypto` is not in React Native's type library,
+// and core must compile inside every consumer's program.
+const randomUuid = (): string | null =>
+  (
+    globalThis as {crypto?: {randomUUID?: () => string}}
+  ).crypto?.randomUUID?.() ?? null;
+
 export const newWatchlistId = (): string =>
-  typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `wl_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  randomUuid() ??
+  `wl_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
 // How people open a request. Stripped for the card's title, because "Tell me
 // when Reliance breaks out" reads better on a card as "Reliance breaks out" —

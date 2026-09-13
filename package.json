@@ -1,6 +1,6 @@
 {
   "name": "@finstocks/core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "sideEffects": false,
@@ -9,14 +9,11 @@
     "tokens:check": "node tokens/scripts/build.mjs --check",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "node --test 'tokens/test/**/*.test.mjs'",
-    "check": "pnpm run tokens:check && pnpm run typecheck && pnpm run test",
-    "prepare": "husky"
+    "check": "pnpm run tokens:check && pnpm run typecheck && pnpm run test"
   },
   "devDependencies": {
     "typescript": "^5.9.2",
-    "prettier": "^3.9.6",
-    "husky": "^9.1.7",
-    "lint-staged": "^17.5.1"
+    "prettier": "^3.9.6"
   },
   "exports": {
     ".": "./src/index.ts",

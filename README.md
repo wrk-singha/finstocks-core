@@ -24,6 +24,12 @@ pnpm check          # tokens:check + typecheck + tests
 pnpm tokens:build   # after editing tokens/src/*.json — commit the outputs
 ```
 
+## No install-time scripts
+
+This package is installed from git by its consumers, and pnpm runs a git dependency's `prepare`
+script as a build step. So: **no `prepare`/`postinstall` here, ever** — formatting is checked in CI,
+not by a pre-commit hook.
+
 ## Releasing
 
 Bump `version`, commit, tag `vX.Y.Z`, push with tags. Consumers pin the tag.

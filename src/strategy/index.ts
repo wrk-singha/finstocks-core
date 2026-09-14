@@ -73,3 +73,8 @@ export {
   TERMINAL_STATUSES,
 } from './strategyStatus.ts';
 export type {StrategyStatusSource} from './strategyStatus.ts';
+export {
+  normalizeStrategyTimeframe,
+  STRATEGY_TIMEFRAMES,
+} from './strategyTimeframes.ts';
+export type {StrategyTimeframe} from './strategyTimeframes.ts';

@@ -281,6 +281,22 @@ export const queryKeys = {
     ],
     /** ["fno-expiries", underlying] */
     expiries: (underlying: string) => ['fno-expiries', underlying],
+    /** ["fno-top-traded"] — the most traded futures contracts today */
+    topTraded: () => ['fno-top-traded'],
+  },
+
+  /** ["stockScore", symbol] — one stock's FinStocks score and pillars */
+  stockScore: (symbol: string | null) => ['stockScore', symbol],
+
+  portfolioAnalysis: {
+    /** ["portfolioAnalysis"] — every mode and segment (pull-to-refresh) */
+    all: () => ['portfolioAnalysis'],
+    /** ["portfolioAnalysis", mode, segment] — one book's AI analysis */
+    detail: (mode: 'SIMULATION' | 'LIVE', segment: 'equity' | 'fno') => [
+      'portfolioAnalysis',
+      mode,
+      segment,
+    ],
   },
 
   /** ["watchlists"] — the account's saved watches (drafts + active) */

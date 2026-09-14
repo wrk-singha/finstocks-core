@@ -136,7 +136,7 @@ export type StrategyStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
 
 export interface UpdateFsmOverrides {
   timeframe?: string;
-  budget_config?: {mode: string; val: number};
+  budget_config?: {mode: string; val: number; total?: number};
   symbol?: string;
 }
 

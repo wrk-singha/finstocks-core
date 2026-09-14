@@ -176,7 +176,8 @@ export interface ReserveIpAddressResponse {
  */
 export interface RedeployOverrides {
   original_query?: string;
-  budget_config?: {mode: string; val: number};
+  /** `total` is the pool PERCENT/RISK_PERCENT sizing is measured against; carried through untouched. */
+  budget_config?: {mode: string; val: number; total?: number};
   symbol?: string;
   timeframe?: string;
 }

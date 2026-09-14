@@ -27,6 +27,12 @@ export {
   EQUITY_CHART_W,
 } from './backtestStats.ts';
 export type {BacktestStatItem, EquityPath, StatTone} from './backtestStats.ts';
+export {buildSweepCurves, prepareSweep} from './backtestSweep.ts';
+export type {
+  PreparedVariant,
+  SweepCurve,
+  SweepSeries,
+} from './backtestSweep.ts';
 export {
   chartSymbolFor,
   strategyMeta,

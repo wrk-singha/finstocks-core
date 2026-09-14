@@ -19,6 +19,7 @@ import {
   payoffGap,
   pcrDelta,
   positionIn,
+  positioningFacts,
   positioningReadout,
   positioningVerdict,
   selectAtmWindow,
@@ -276,4 +277,185 @@ test('the readout names both walls and the nearer constraint', () => {
     }),
     null,
   );
+});
+
+const positioningCases = {
+  ceilingBinds: {
+    verdict: positioningVerdict(0.7),
+    spot: 24100,
+    maxPain: 24100,
+    support: 23800,
+    resistance: 24200,
+    expectedMove: 200,
+  },
+  floorNearer: {
+    verdict: positioningVerdict(1.3),
+    spot: 24100,
+    maxPain: 24500,
+    support: 24000,
+    resistance: 24400,
+    expectedMove: 180,
+  },
+  equalRoom: {
+    verdict: positioningVerdict(1.0),
+    spot: 24100,
+    maxPain: null,
+    support: 24000,
+    resistance: 24200,
+    expectedMove: null,
+  },
+  callOnlyBearish: {
+    verdict: positioningVerdict(0.7),
+    spot: 24100.4,
+    maxPain: 23700,
+    resistance: 24350,
+    expectedMove: 150,
+  },
+  callOnlyBullish: {
+    verdict: positioningVerdict(1.3),
+    spot: 24100.6,
+    maxPain: 24050,
+    resistance: 24350,
+    expectedMove: 150.5,
+  },
+  putOnly: {
+    verdict: positioningVerdict(1.3),
+    spot: 24100,
+    maxPain: 24300,
+    support: 23850,
+    resistance: 24000,
+    expectedMove: 150,
+  },
+  pinNoMove: {
+    verdict: positioningVerdict(0.7),
+    spot: 24100,
+    maxPain: 24120,
+    expectedMove: null,
+  },
+  pullBelowNeutral: {
+    verdict: positioningVerdict(1.0),
+    spot: 24100,
+    maxPain: 23500,
+    expectedMove: 100,
+  },
+  noWalls: {
+    verdict: positioningVerdict(1.3),
+    spot: 24100,
+    maxPain: null,
+    support: null,
+    resistance: null,
+    expectedMove: 100,
+  },
+  nullVerdict: {verdict: null, spot: 1, maxPain: null, expectedMove: null},
+  zeroSpot: {
+    verdict: positioningVerdict(1.3),
+    spot: 0,
+    maxPain: 1,
+    expectedMove: 1,
+  },
+  nullSpot: {
+    verdict: positioningVerdict(1.3),
+    spot: null,
+    maxPain: 1,
+    expectedMove: 1,
+  },
+};
+
+test('positioning facts: both walls, the pin and the bearish invalidation', () => {
+  assert.deepEqual(positioningFacts(positioningCases.ceilingBinds), [
+    {
+      kind: 'ceilingBindsFirst',
+      ceiling: 24200,
+      floor: 23800,
+      room: 100,
+      cushion: 300,
+    },
+    {kind: 'maxPainPin', maxPain: 24100, expectedMove: 200},
+    {kind: 'ceilingInvalidates', ceiling: 24200},
+  ]);
+  assert.deepEqual(positioningFacts(positioningCases.floorNearer), [
+    {
+      kind: 'floorNearer',
+      ceiling: 24400,
+      floor: 24000,
+      room: 300,
+      cushion: 100,
+    },
+    {kind: 'maxPainPull', distance: 400, direction: 'above', side: 'upside'},
+    {kind: 'supportInvalidates', level: 24000, source: 'putWall'},
+  ]);
+  // Level walls read as the floor being nearer; a neutral lean has nothing to invalidate.
+  assert.deepEqual(positioningFacts(positioningCases.equalRoom), [
+    {
+      kind: 'floorNearer',
+      ceiling: 24200,
+      floor: 24000,
+      room: 100,
+      cushion: 100,
+    },
+  ]);
+});
+
+test('positioning facts: one wall, rounded distances, and spot as the fallback support', () => {
+  assert.deepEqual(positioningFacts(positioningCases.callOnlyBearish), [
+    {kind: 'callWallOnly', ceiling: 24350, distance: 250},
+    {kind: 'maxPainPull', distance: 400, direction: 'below', side: 'downside'},
+    {kind: 'ceilingInvalidates', ceiling: 24350},
+  ]);
+  assert.deepEqual(positioningFacts(positioningCases.callOnlyBullish), [
+    {kind: 'callWallOnly', ceiling: 24350, distance: 249},
+    {kind: 'maxPainPin', maxPain: 24050, expectedMove: 151},
+    {kind: 'supportInvalidates', level: 24101, source: 'spot'},
+  ]);
+  // A resistance below spot is not a ceiling, so only the put wall speaks.
+  assert.deepEqual(positioningFacts(positioningCases.putOnly), [
+    {kind: 'putWallOnly', floor: 23850, distance: 250},
+    {kind: 'maxPainPin', maxPain: 24300, expectedMove: 150},
+  ]);
+});
+
+test('positioning facts: max pain near spot without a straddle price is a pull', () => {
+  assert.deepEqual(positioningFacts(positioningCases.pinNoMove), [
+    {kind: 'maxPainPull', distance: 20, direction: 'above', side: 'downside'},
+  ]);
+  assert.deepEqual(positioningFacts(positioningCases.pullBelowNeutral), [
+    {kind: 'maxPainPull', distance: 600, direction: 'below', side: 'upside'},
+  ]);
+});
+
+test('positioning facts are empty with no walls, no verdict or no usable spot', () => {
+  assert.deepEqual(positioningFacts(positioningCases.noWalls), []);
+  assert.deepEqual(positioningFacts(positioningCases.nullVerdict), []);
+  assert.deepEqual(positioningFacts(positioningCases.zeroSpot), []);
+  assert.deepEqual(positioningFacts(positioningCases.nullSpot), []);
+});
+
+// Recorded from the v0.2.4 implementation before positioningReadout was rebuilt on positioningFacts.
+test('positioning readout reads exactly as v0.2.4 did', () => {
+  const readouts = Object.fromEntries(
+    Object.entries(positioningCases).map(([name, input]) => [
+      name,
+      positioningReadout(input),
+    ]),
+  );
+  assert.deepEqual(readouts, {
+    ceilingBinds:
+      'Writers have 100 points of room to the 24,200 call wall against 300 to the 23,800 put wall, so the ceiling binds first. Max pain at 24,100 sits inside the ±200 the straddle prices, so a pin here is the path of least resistance. A close above 24,200 would force those calls to cover and invalidate the lean.',
+    floorNearer:
+      'The 24,000 put wall is 100 points below against 300 to the 24,400 call wall, so the floor is the nearer constraint. Max pain 400 points above pulls against the upside. Losing 24,000 would pull the support out from under it.',
+    equalRoom:
+      'The 24,000 put wall is 100 points below against 100 to the 24,200 call wall, so the floor is the nearer constraint.',
+    callOnlyBearish:
+      'Call writers are stacked at 24,350, 250 points up — that is the level to clear. Max pain 400 points below pulls against the downside. A close above 24,350 would force those calls to cover and invalidate the lean.',
+    callOnlyBullish:
+      'Call writers are stacked at 24,350, 249 points up — that is the level to clear. Max pain at 24,050 sits inside the ±151 the straddle prices, so a pin here is the path of least resistance. Losing 24,101 would pull the support out from under it.',
+    putOnly:
+      'Put writers are defending 23,850, 250 points down. Max pain at 24,300 sits inside the ±150 the straddle prices, so a pin here is the path of least resistance.',
+    pinNoMove: 'Max pain 20 points above pulls against the downside.',
+    pullBelowNeutral: 'Max pain 600 points below pulls against the upside.',
+    noWalls: null,
+    nullVerdict: null,
+    zeroSpot: null,
+    nullSpot: null,
+  });
 });

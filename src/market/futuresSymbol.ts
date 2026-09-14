@@ -85,19 +85,44 @@ export const underlyingOf = (symbol: string): string =>
 export const futuresPath = (symbol: string): string =>
   `/futures/${encodeURIComponent(symbol.trim().toUpperCase())}`;
 
+export interface FuturesTitleParts {
+  underlying: string;
+  /** Expiry day of the month; null when the caller has no expiry date. */
+  day: number | null;
+  /** 0–11 into JAN…DEC. */
+  monthIndex: number;
+}
+
 /**
- * "JINDALSTEL 25 Aug Fut" — the exchange symbol has no expiry day, so the day
- * is supplied by the caller when the chain reports it and omitted otherwise
- * rather than guessed to the month end.
+ * The facts behind a futures title. The exchange symbol has no expiry day, so
+ * the day is supplied by the caller when the chain reports it and left null
+ * otherwise rather than guessed to the month end.
+ */
+export function futuresTitleParts(
+  parsed: ParsedFuturesSymbol,
+  expiryDate?: string | null,
+): FuturesTitleParts {
+  const day = expiryDate ? new Date(expiryDate).getDate() : Number.NaN;
+  return {
+    underlying: parsed.underlying,
+    day: Number.isNaN(day) ? null : day,
+    monthIndex: MONTHS.indexOf(parsed.monthLabel as MonthLabel),
+  };
+}
+
+/**
+ * "JINDALSTEL 25 Aug Fut", or "JINDALSTEL Aug Fut" without an expiry day.
+ * English for the web app; mobile renders `futuresTitleParts`.
  */
 export function futuresTitle(
   parsed: ParsedFuturesSymbol,
   expiryDate?: string | null,
 ): string {
-  const month =
-    parsed.monthLabel.charAt(0) + parsed.monthLabel.slice(1).toLowerCase();
-  const day = expiryDate ? new Date(expiryDate).getDate() : null;
-  return day
-    ? `${parsed.underlying} ${day} ${month} Fut`
-    : `${parsed.underlying} ${month} Fut`;
+  const {underlying, day, monthIndex} = futuresTitleParts(parsed, expiryDate);
+  // A hand-built label outside the exchange months still titles as before.
+  const label = MONTHS[monthIndex] ?? parsed.monthLabel;
+  const month = label.charAt(0) + label.slice(1).toLowerCase();
+  return day === null
+    ? `${underlying} ${month} Fut`
+    : `${underlying} ${day} ${month} Fut`;
 }

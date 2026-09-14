@@ -9,6 +9,7 @@ import {
   ivRead,
   legPayoff,
   marginUnlockPct,
+  needsCondition,
   needsSentence,
   nextIndexExpiry,
   payoffAt,
@@ -205,4 +206,83 @@ test('index expiries follow the Tuesday weekly/monthly cadence', () => {
     nextIndexExpiry('NIFTY', new Date('2026-11-18T05:00:00Z')),
     '2026-11-23',
   );
+});
+
+const structures = {
+  bullCall: bullCallSpread,
+  bearPut: [leg('buy', 'PE', 24000, 100), leg('sell', 'PE', 23900, 50)],
+  shortStrangle: [leg('sell', 'PE', 23800, 40), leg('sell', 'CE', 24200, 40)],
+  longStrangle: [leg('buy', 'PE', 23800, 40), leg('buy', 'CE', 24200, 40)],
+  longFuture: [leg('buy', 'FUT', 0, 24000)],
+  nakedPut: [leg('sell', 'PE', 23000, 12.5)],
+};
+const needsFor = (legs: OptionLeg[]) =>
+  needsCondition({...idea, legs}, structureMath(legs, LOT));
+const near = (actual: number | null | undefined, expected: number) => {
+  assert.ok(
+    actual != null && Math.abs(actual - expected) < 1e-3,
+    `${String(actual)} ≉ ${expected}`,
+  );
+};
+
+test('needs condition: one breakeven is above or below, with no high side', () => {
+  const above = needsFor(structures.bullCall);
+  assert.ok(above);
+  assert.equal(above.kind, 'above');
+  assert.equal(above.underlying, 'NIFTY');
+  assert.equal(above.low, 24050);
+  near(above.lowMovePct, 0.2083);
+  assert.equal(above.high, null);
+  assert.equal(above.highMovePct, null);
+
+  const below = needsFor(structures.bearPut);
+  assert.ok(below);
+  assert.equal(below.kind, 'below');
+  assert.equal(below.low, 23950);
+  near(below.lowMovePct, -0.2083);
+
+  // Rounded level, unrounded move: 22,987.5 prints as 22,988 but the move is measured from 22,987.5.
+  const nakedPut = needsFor(structures.nakedPut);
+  assert.ok(nakedPut);
+  assert.equal(nakedPut.kind, 'above');
+  assert.equal(nakedPut.low, 22988);
+  near(nakedPut.lowMovePct, ((22987.5 - 24000) / 24000) * 100);
+});
+
+test('needs condition: two breakevens are between or outside', () => {
+  const between = needsFor(structures.shortStrangle);
+  assert.ok(between);
+  assert.equal(between.kind, 'between');
+  assert.equal(between.low, 23720);
+  assert.equal(between.high, 24280);
+  near(between.lowMovePct, -1.1667);
+  near(between.highMovePct, 1.1667);
+
+  const outside = needsFor(structures.longStrangle);
+  assert.equal(outside?.kind, 'outside');
+  assert.equal(outside.low, 23720);
+  assert.equal(outside.high, 24280);
+});
+
+test('needs condition is null without a breakeven', () => {
+  const m = structureMath(bullCallSpread, LOT);
+  assert.equal(needsCondition(idea, {...m, breakevens: []}), null);
+});
+
+// Recorded from the v0.2.4 implementation before needsSentence was rebuilt on needsCondition.
+test('needs sentence words every shape exactly as v0.2.4 did', () => {
+  const words = Object.fromEntries(
+    Object.entries(structures).map(([name, legs]) => [
+      name,
+      needsSentence({...idea, legs}, structureMath(legs, LOT)),
+    ]),
+  );
+  assert.deepEqual(words, {
+    bullCall: 'NIFTY above 24,050 (+0.2%)',
+    bearPut: 'NIFTY below 23,950 (-0.2%)',
+    shortStrangle: 'NIFTY between 23,720 (-1.2%) and 24,280 (+1.2%)',
+    longStrangle: 'NIFTY outside 23,720 (-1.2%) – 24,280 (+1.2%)',
+    longFuture: 'NIFTY above 24,000 (+0.0%)',
+    nakedPut: 'NIFTY above 22,988 (-4.2%)',
+  });
 });

@@ -389,9 +389,13 @@ export function positionIn(
 export type PositioningStance = 'bullish' | 'bearish' | 'neutral';
 
 export interface PositioningVerdict {
+  /** English for web; mobile maps `stance`. */
   label: string;
   stance: PositioningStance;
-  /** Plain-language gloss of the label, for readers who don't trade the chain. */
+  /**
+   * Plain-language gloss of the label, for readers who don't trade the chain.
+   * English for web; mobile maps `stance`.
+   */
   leaning: string;
   /** 0–1 bias meter position: 0 fully call-heavy, 0.5 balanced, 1 fully put-heavy. */
   bias: number;
@@ -473,23 +477,79 @@ export function ivContext(
 const nearestWithin = (value: number, spot: number, pct: number): boolean =>
   Math.abs(value - spot) / spot <= pct;
 
-/**
- * What the positioning implies and what would break it — not a re-narration of
- * the numbers printed above. Every clause names a level, so the sentence is only
- * useful alongside the ladder rather than a substitute for reading it.
- */
-export function positioningReadout(p: {
+export interface PositioningInput {
   verdict: PositioningVerdict | null;
   spot: number | null;
   maxPain: number | null;
   support?: number | null;
   resistance?: number | null;
   expectedMove: number | null;
-}): string | null {
-  const {verdict, spot, maxPain, support, resistance, expectedMove} = p;
-  if (!verdict || spot == null || spot <= 0) return null;
+}
 
-  const parts: string[] = [];
+/**
+ * One sentence of the positioning readout, as the numbers it names. Wall and
+ * max-pain levels are the strikes as given; distances and the straddle's
+ * expected move are rounded to whole points, as the sentence prints them.
+ */
+export type PositioningFact =
+  | {
+      /** Both walls bracket spot and the call wall is nearer. */
+      kind: 'ceilingBindsFirst';
+      ceiling: number;
+      floor: number;
+      /** Points from spot up to the call wall. */
+      room: number;
+      /** Points from spot down to the put wall. */
+      cushion: number;
+    }
+  | {
+      /** Both walls bracket spot and the put wall is nearer, or they are level. */
+      kind: 'floorNearer';
+      ceiling: number;
+      floor: number;
+      room: number;
+      cushion: number;
+    }
+  | {kind: 'callWallOnly'; ceiling: number; distance: number}
+  | {kind: 'putWallOnly'; floor: number; distance: number}
+  | {
+      /** Max pain within 1% of spot, inside the straddle's priced move. */
+      kind: 'maxPainPin';
+      maxPain: number;
+      expectedMove: number;
+    }
+  | {
+      kind: 'maxPainPull';
+      distance: number;
+      /** Where max pain sits relative to spot. */
+      direction: 'above' | 'below';
+      /** The side of the lean it pulls against. */
+      side: 'upside' | 'downside';
+    }
+  | {
+      /** Bearish lean under a call wall: a close above it breaks the lean. */
+      kind: 'ceilingInvalidates';
+      ceiling: number;
+    }
+  | {
+      /** Bullish lean under a call wall: losing this level breaks the lean. */
+      kind: 'supportInvalidates';
+      level: number;
+      /** The put wall when there is one, otherwise spot rounded to a point. */
+      source: 'putWall' | 'spot';
+    };
+
+/**
+ * What the positioning implies and what would break it — not a re-narration of
+ * the numbers printed above. Every fact names a level, so the readout is only
+ * useful alongside the ladder rather than a substitute for reading it. In
+ * reading order; empty without a verdict, a usable spot, or anything to say.
+ */
+export function positioningFacts(p: PositioningInput): PositioningFact[] {
+  const {verdict, spot, maxPain, support, resistance, expectedMove} = p;
+  if (!verdict || spot == null || spot <= 0) return [];
+
+  const facts: PositioningFact[] = [];
 
   const ceiling = resistance != null && resistance > spot ? resistance : null;
   const floor = support != null && support < spot ? support : null;
@@ -497,19 +557,25 @@ export function positioningReadout(p: {
   if (ceiling != null && floor != null) {
     const room = ceiling - spot;
     const cushion = spot - floor;
-    parts.push(
-      room < cushion
-        ? `Writers have ${formatNumber(Math.round(room))} points of room to the ${formatNumber(ceiling)} call wall against ${formatNumber(Math.round(cushion))} to the ${formatNumber(floor)} put wall, so the ceiling binds first.`
-        : `The ${formatNumber(floor)} put wall is ${formatNumber(Math.round(cushion))} points below against ${formatNumber(Math.round(room))} to the ${formatNumber(ceiling)} call wall, so the floor is the nearer constraint.`,
-    );
+    facts.push({
+      kind: room < cushion ? 'ceilingBindsFirst' : 'floorNearer',
+      ceiling,
+      floor,
+      room: Math.round(room),
+      cushion: Math.round(cushion),
+    });
   } else if (ceiling != null) {
-    parts.push(
-      `Call writers are stacked at ${formatNumber(ceiling)}, ${formatNumber(Math.round(ceiling - spot))} points up — that is the level to clear.`,
-    );
+    facts.push({
+      kind: 'callWallOnly',
+      ceiling,
+      distance: Math.round(ceiling - spot),
+    });
   } else if (floor != null) {
-    parts.push(
-      `Put writers are defending ${formatNumber(floor)}, ${formatNumber(Math.round(spot - floor))} points down.`,
-    );
+    facts.push({
+      kind: 'putWallOnly',
+      floor,
+      distance: Math.round(spot - floor),
+    });
   }
 
   if (
@@ -517,23 +583,65 @@ export function positioningReadout(p: {
     nearestWithin(maxPain, spot, 0.01) &&
     expectedMove != null
   ) {
-    parts.push(
-      `Max pain at ${formatNumber(maxPain)} sits inside the ±${formatNumber(Math.round(expectedMove))} the straddle prices, so a pin here is the path of least resistance.`,
-    );
+    facts.push({
+      kind: 'maxPainPin',
+      maxPain,
+      expectedMove: Math.round(expectedMove),
+    });
   } else if (maxPain != null) {
-    const dir = maxPain > spot ? 'above' : 'below';
-    parts.push(
-      `Max pain ${formatNumber(Math.round(Math.abs(maxPain - spot)))} points ${dir} pulls against the ${verdict.stance === 'bearish' ? 'downside' : 'upside'}.`,
-    );
+    facts.push({
+      kind: 'maxPainPull',
+      distance: Math.round(Math.abs(maxPain - spot)),
+      direction: maxPain > spot ? 'above' : 'below',
+      side: verdict.stance === 'bearish' ? 'downside' : 'upside',
+    });
   }
 
   if (ceiling != null && verdict.stance !== 'neutral') {
-    parts.push(
-      verdict.stance === 'bearish'
-        ? `A close above ${formatNumber(ceiling)} would force those calls to cover and invalidate the lean.`
-        : `Losing ${formatNumber(floor ?? Math.round(spot))} would pull the support out from under it.`,
-    );
+    if (verdict.stance === 'bearish') {
+      facts.push({kind: 'ceilingInvalidates', ceiling});
+    } else {
+      facts.push(
+        floor != null
+          ? {kind: 'supportInvalidates', level: floor, source: 'putWall'}
+          : {
+              kind: 'supportInvalidates',
+              level: Math.round(spot),
+              source: 'spot',
+            },
+      );
+    }
   }
 
-  return parts.length ? parts.join(' ') : null;
+  return facts;
+}
+
+function positioningSentence(fact: PositioningFact): string {
+  switch (fact.kind) {
+    case 'ceilingBindsFirst':
+      return `Writers have ${formatNumber(fact.room)} points of room to the ${formatNumber(fact.ceiling)} call wall against ${formatNumber(fact.cushion)} to the ${formatNumber(fact.floor)} put wall, so the ceiling binds first.`;
+    case 'floorNearer':
+      return `The ${formatNumber(fact.floor)} put wall is ${formatNumber(fact.cushion)} points below against ${formatNumber(fact.room)} to the ${formatNumber(fact.ceiling)} call wall, so the floor is the nearer constraint.`;
+    case 'callWallOnly':
+      return `Call writers are stacked at ${formatNumber(fact.ceiling)}, ${formatNumber(fact.distance)} points up — that is the level to clear.`;
+    case 'putWallOnly':
+      return `Put writers are defending ${formatNumber(fact.floor)}, ${formatNumber(fact.distance)} points down.`;
+    case 'maxPainPin':
+      return `Max pain at ${formatNumber(fact.maxPain)} sits inside the ±${formatNumber(fact.expectedMove)} the straddle prices, so a pin here is the path of least resistance.`;
+    case 'maxPainPull':
+      return `Max pain ${formatNumber(fact.distance)} points ${fact.direction} pulls against the ${fact.side}.`;
+    case 'ceilingInvalidates':
+      return `A close above ${formatNumber(fact.ceiling)} would force those calls to cover and invalidate the lean.`;
+    case 'supportInvalidates':
+      return `Losing ${formatNumber(fact.level)} would pull the support out from under it.`;
+  }
+}
+
+/**
+ * The positioning facts as one paragraph.
+ * English for the web app; mobile renders `positioningFacts`.
+ */
+export function positioningReadout(p: PositioningInput): string | null {
+  const facts = positioningFacts(p);
+  return facts.length ? facts.map(positioningSentence).join(' ') : null;
 }

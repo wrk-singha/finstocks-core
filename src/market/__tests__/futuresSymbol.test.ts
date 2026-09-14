@@ -5,6 +5,7 @@ import {
   buildFuturesSymbol,
   futuresPath,
   futuresTitle,
+  futuresTitleParts,
   isFuturesSymbol,
   parseFuturesSymbol,
   underlyingOf,
@@ -48,4 +49,49 @@ test('the title carries the expiry day only when the chain reported one', () => 
   assert.equal(futuresTitle(parsed, '2026-08-25'), 'JINDALSTEL 25 Aug Fut');
   assert.equal(futuresTitle(parsed), 'JINDALSTEL Aug Fut');
   assert.equal(futuresTitle(parsed, null), 'JINDALSTEL Aug Fut');
+});
+
+test('futures title parts carry the day only when the date is usable', () => {
+  const jindal = parseFuturesSymbol('JINDALSTEL26AUGFUT');
+  assert.ok(jindal);
+  assert.deepEqual(futuresTitleParts(jindal, '2026-08-25'), {
+    underlying: 'JINDALSTEL',
+    day: 25,
+    monthIndex: 7,
+  });
+  for (const missing of [undefined, null, '', 'not-a-date']) {
+    assert.deepEqual(futuresTitleParts(jindal, missing), {
+      underlying: 'JINDALSTEL',
+      day: null,
+      monthIndex: 7,
+    });
+  }
+  const mm = parseFuturesSymbol('M&M26JANFUT');
+  assert.ok(mm);
+  assert.equal(futuresTitleParts(mm).monthIndex, 0);
+});
+
+// Recorded from the v0.2.4 implementation before futuresTitle was rebuilt on futuresTitleParts.
+test('futures title reads exactly as v0.2.4 did', () => {
+  const jindal = parseFuturesSymbol('JINDALSTEL26AUGFUT');
+  const mm = parseFuturesSymbol('M&M26SEPFUT');
+  assert.ok(jindal && mm);
+  assert.deepEqual(
+    [
+      futuresTitle(jindal, '2026-08-25'),
+      futuresTitle(jindal),
+      futuresTitle(jindal, null),
+      futuresTitle(jindal, ''),
+      futuresTitle(jindal, 'not-a-date'),
+      futuresTitle(mm, '2026-09-29'),
+    ],
+    [
+      'JINDALSTEL 25 Aug Fut',
+      'JINDALSTEL Aug Fut',
+      'JINDALSTEL Aug Fut',
+      'JINDALSTEL Aug Fut',
+      'JINDALSTEL Aug Fut',
+      'M&M 29 Sep Fut',
+    ],
+  );
 });

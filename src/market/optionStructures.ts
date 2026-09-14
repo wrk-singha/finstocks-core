@@ -176,37 +176,80 @@ export function riskedAmount(
   return math.maxLoss ?? Math.abs(math.netPremium);
 }
 
+export interface NeedsCondition {
+  /** Where the underlying has to finish for the position to make money. */
+  kind: 'above' | 'below' | 'between' | 'outside';
+  underlying: string;
+  /** Lowest breakeven, rounded to a whole point. */
+  low: number;
+  /** Signed move from spot to the lowest breakeven, in % (unformatted). */
+  lowMovePct: number;
+  /** Highest breakeven, rounded; null for a single-breakeven `above`/`below`. */
+  high: number | null;
+  highMovePct: number | null;
+}
+
 /**
- * The falsifiable sentence: what the underlying has to do, by when, for this
+ * The falsifiable condition: what the underlying has to do, by when, for this
  * position to make money. A structure is otherwise a set of Greeks — this is
  * the form a trader can actually agree or disagree with.
  */
-export function needsSentence(
+export function needsCondition(
   idea: Pick<FnoTradeIdea, 'underlying' | 'legs' | 'lotSize' | 'spot'>,
   math: StructureMath,
-): string | null {
+): NeedsCondition | null {
   const {breakevens} = math;
   const {spot, underlying} = idea;
   const low = breakevens[0];
   const high = breakevens[breakevens.length - 1];
   if (low === undefined || high === undefined) return null;
 
-  const pct = (level: number) => {
-    const move = ((level - spot) / spot) * 100;
-    return `${move >= 0 ? '+' : ''}${move.toFixed(1)}%`;
-  };
-  const at = (level: number) =>
-    `${formatNumber(Math.round(level))} (${pct(level)})`;
+  const movePct = (level: number) => ((level - spot) / spot) * 100;
 
   if (breakevens.length === 1) {
     const profitAbove = payoffAt(idea.legs, low * 1.02, idea.lotSize) > 0;
-    return `${underlying} ${profitAbove ? 'above' : 'below'} ${at(low)}`;
+    return {
+      kind: profitAbove ? 'above' : 'below',
+      underlying,
+      low: Math.round(low),
+      lowMovePct: movePct(low),
+      high: null,
+      highMovePct: null,
+    };
   }
 
   const insideWins = payoffAt(idea.legs, (low + high) / 2, idea.lotSize) > 0;
-  return insideWins
-    ? `${underlying} between ${at(low)} and ${at(high)}`
-    : `${underlying} outside ${at(low)} – ${at(high)}`;
+  return {
+    kind: insideWins ? 'between' : 'outside',
+    underlying,
+    low: Math.round(low),
+    lowMovePct: movePct(low),
+    high: Math.round(high),
+    highMovePct: movePct(high),
+  };
+}
+
+/**
+ * The needs condition as one sentence: "NIFTY above 24,050 (+0.2%)".
+ * English for the web app; mobile renders `needsCondition`.
+ */
+export function needsSentence(
+  idea: Pick<FnoTradeIdea, 'underlying' | 'legs' | 'lotSize' | 'spot'>,
+  math: StructureMath,
+): string | null {
+  const condition = needsCondition(idea, math);
+  if (condition === null) return null;
+  const {kind, underlying, high, highMovePct} = condition;
+
+  const at = (level: number, move: number) =>
+    `${formatNumber(level)} (${move >= 0 ? '+' : ''}${move.toFixed(1)}%)`;
+  const low = at(condition.low, condition.lowMovePct);
+
+  if (high === null || highMovePct === null)
+    return `${underlying} ${kind} ${low}`;
+  return kind === 'between'
+    ? `${underlying} between ${low} and ${at(high, highMovePct)}`
+    : `${underlying} outside ${low} – ${at(high, highMovePct)}`;
 }
 
 export interface CostDrag {
@@ -253,7 +296,10 @@ export type IvStance = 'rich' | 'fair' | 'cheap';
 
 export interface IvRead {
   stance: IvStance;
-  /** Plain-language consequence, not the percentile restated. */
+  /**
+   * Plain-language consequence, not the percentile restated.
+   * English for web; mobile maps `stance`.
+   */
   note: string;
 }
 
@@ -288,6 +334,8 @@ export function marginUnlockPct(idea: FnoTradeIdea): number | null {
  * Serialise a structure into the chat handoff. Every leg is spelled out because
  * a spread placed one leg at a time is a different, riskier trade than the one
  * the card showed.
+ *
+ * English on purpose: this is a prompt for the AI assistant, not UI copy.
  */
 export function describeStructure(idea: FnoTradeIdea, prefix: string): string {
   const legs = idea.legs

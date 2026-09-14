@@ -33,11 +33,12 @@ export {
   FUTURES_SYMBOL_RE,
   futuresPath,
   futuresTitle,
+  futuresTitleParts,
   isFuturesSymbol,
   parseFuturesSymbol,
   underlyingOf,
 } from './futuresSymbol.ts';
-export type {ParsedFuturesSymbol} from './futuresSymbol.ts';
+export type {FuturesTitleParts, ParsedFuturesSymbol} from './futuresSymbol.ts';
 
 export {
   buildOiLadder,
@@ -56,6 +57,7 @@ export {
   payoffGap,
   pcrDelta,
   positionIn,
+  positioningFacts,
   positioningReadout,
   positioningVerdict,
   selectAtmWindow,
@@ -66,6 +68,8 @@ export type {
   ExpiryPickerOption,
   IvContext,
   OiLadderBar,
+  PositioningFact,
+  PositioningInput,
   PositioningLadder,
   PositioningStance,
   PositioningVerdict,
@@ -78,6 +82,7 @@ export {
   ivRead,
   legPayoff,
   marginUnlockPct,
+  needsCondition,
   needsSentence,
   nextIndexExpiry,
   payoffAt,
@@ -90,6 +95,7 @@ export type {
   IvRead,
   IvStance,
   LegChargesFn,
+  NeedsCondition,
   PositionExitState,
   StructureMath,
 } from './optionStructures.ts';

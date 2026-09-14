@@ -4,7 +4,10 @@ export type EntryState = 'in_zone' | 'above_zone' | 'below_zone' | 'unknown';
 
 export interface EntryStatus {
   state: EntryState;
+  /** English for the web app; mobile renders `state` and `driftPct`. */
   label: string;
+  /** Distance from CMP to the nearer zone edge, in %; null when `unknown` or `in_zone`. */
+  driftPct: number | null;
 }
 
 export interface TradeGeometry {
@@ -25,20 +28,23 @@ type SetupFields = Pick<
   'cmp' | 'entry_min' | 'entry_max' | 'stop_loss' | 'target_price'
 >;
 
-// Where CMP sits against the backend's own entry band, so "can I still take
-// this?" is answered with the numbers the pick was written with rather than a
-// tolerance invented here.
+/**
+ * Where CMP sits against the backend's own entry band, so "can I still take
+ * this?" is answered with the numbers the pick was written with rather than a
+ * tolerance invented here.
+ * `label` is English for the web app; mobile renders `state` and `driftPct`.
+ */
 export function entryStatus(reco: SetupFields): EntryStatus {
   const {cmp, entry_min: min} = reco;
   const max = reco.entry_max ?? min;
   if (cmp == null || min == null || max == null) {
-    return {state: 'unknown', label: 'Entry zone unavailable'};
+    return {state: 'unknown', label: 'Entry zone unavailable', driftPct: null};
   }
 
   const low = Math.min(min, max);
   const high = Math.max(min, max);
   if (cmp >= low && cmp <= high)
-    return {state: 'in_zone', label: 'In entry zone'};
+    return {state: 'in_zone', label: 'In entry zone', driftPct: null};
 
   const above = cmp > high;
   const edge = above ? high : low;
@@ -46,6 +52,7 @@ export function entryStatus(reco: SetupFields): EntryStatus {
   return {
     state: above ? 'above_zone' : 'below_zone',
     label: `${drift.toFixed(1)}% ${above ? 'above' : 'below'} entry`,
+    driftPct: drift,
   };
 }
 

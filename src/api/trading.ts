@@ -290,6 +290,19 @@ const logsQuery = (
   );
 };
 
+/**
+ * The OHLCV socket. The symbol list is mandatory upstream (the backend 400s
+ * without it) because an unscoped connection streams every symbol the feed
+ * tracks. Relative to the API root like every path here, so the host builds
+ * the socket URL as `ws(s)://<host>/api` + this path.
+ */
+export const ohlcvStreamPath = (symbols: readonly string[]): string =>
+  `/trading/ohlcv/stream${query({symbols: symbols.join(',')})}`;
+
+/** The underlying's option-chain socket; the JWT goes in-band as the first message. */
+export const premiumStreamPath = (underlying: string): string =>
+  `/fno/stream${query({underlying})}`;
+
 export const tradingApi = (http: HttpClient) => ({
   // drift resolved 2026-09-13: the mobile normalised order_type and the web carried the dead
   // `variant`/`validity` fields (neither Go struct has them); the mobile copy won, plus the

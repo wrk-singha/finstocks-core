@@ -255,6 +255,10 @@ export interface AccordNewsQuery {
   fincode?: string;
 }
 
+/** The order-book socket for one symbol; relative to the API root like the REST paths. */
+export const depthStreamPath = (symbol: string): string =>
+  `/market/depth/stream${query({symbol})}`;
+
 export const marketApi = (http: HttpClient) => ({
   getRecommendations: (params?: RecommendationsQuery) =>
     http.request<MarketRecommendationsResponse>(

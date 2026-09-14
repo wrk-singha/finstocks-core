@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {marketApi} from '../market.ts';
+import {depthStreamPath, marketApi} from '../market.ts';
 import {fakeHttp} from './fakeHttp.ts';
 
 test('market reads build their query strings', async () => {
@@ -99,4 +99,13 @@ test('market mutations', async () => {
       ],
     ],
   );
+});
+
+test('the depth stream path is relative to the API root', () => {
+  assert.equal(depthStreamPath('TCS'), '/market/depth/stream?symbol=TCS');
+  assert.equal(
+    depthStreamPath('NIFTY 50'),
+    '/market/depth/stream?symbol=NIFTY%2050',
+  );
+  assert.equal(depthStreamPath('M&M'), '/market/depth/stream?symbol=M%26M');
 });

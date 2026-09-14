@@ -41,7 +41,9 @@ export {
   futureExpiries,
   graphDataPaths,
   normalizeOrderType,
+  ohlcvStreamPath,
   parseGraphData,
+  premiumStreamPath,
   tradingApi,
   unzipGraphSeries,
   validGraphSymbols,
@@ -64,7 +66,7 @@ export type {
   UpdateFsmOverrides,
 } from './trading.ts';
 
-export {marketApi} from './market.ts';
+export {depthStreamPath, marketApi} from './market.ts';
 export type {
   AccordNewsQuery,
   AccordNewsRow,

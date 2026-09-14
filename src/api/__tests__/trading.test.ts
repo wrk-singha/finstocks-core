@@ -5,7 +5,9 @@ import {
   futureExpiries,
   graphDataPaths,
   normalizeOrderType,
+  ohlcvStreamPath,
   parseGraphData,
+  premiumStreamPath,
   tradingApi,
 } from '../trading.ts';
 import {fakeHttp} from './fakeHttp.ts';
@@ -253,4 +255,14 @@ test('web-only reads', async () => {
   );
   assert.equal(calls[2]?.path, '/trading/fno/index-underlyings');
   assert.equal(idx[0]?.symbol, 'NIFTY');
+});
+
+test('stream paths are relative to the API root and encode their params', () => {
+  assert.equal(
+    ohlcvStreamPath(['NIFTY 50', 'TCS']),
+    '/trading/ohlcv/stream?symbols=NIFTY%2050%2CTCS',
+  );
+  assert.equal(ohlcvStreamPath([]), '/trading/ohlcv/stream?symbols=');
+  assert.equal(premiumStreamPath('NIFTY'), '/fno/stream?underlying=NIFTY');
+  assert.equal(premiumStreamPath('M&M'), '/fno/stream?underlying=M%26M');
 });

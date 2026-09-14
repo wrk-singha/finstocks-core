@@ -13,6 +13,7 @@ import {
   formatBacktestProfitPct,
   getMonthlyData,
   mapTimeframeLabel,
+  picksResetInfo,
   picksResetMessage,
   splitEntryExit,
   strategyHorizon,
@@ -182,5 +183,46 @@ test('formatBacktestProfitPct reads a ₹1L-notional P&L as a percentage', () =>
   assert.equal(
     buildDeployMessage('Deploy RSI dip', '1d'),
     'Deploy RSI dip selected time frame : 1d',
+  );
+});
+
+const wednesdayMorning = new Date('2026-06-10T02:30:00Z');
+const wednesdayNoon = new Date('2026-06-10T06:30:00Z');
+const fridayNoon = new Date('2026-06-12T06:30:00Z');
+
+test('picks reset info names each horizon’s next run', () => {
+  assert.deepEqual(picksResetInfo('longterm'), {kind: 'finalizing'});
+  assert.deepEqual(picksResetInfo('swing'), {kind: 'nextMonday', at: '09:05'});
+  assert.deepEqual(picksResetInfo('intraday', wednesdayMorning), {
+    kind: 'nextBatch',
+    at: '9:05 AM',
+  });
+  assert.deepEqual(picksResetInfo('intraday', wednesdayNoon), {
+    kind: 'nextBatch',
+    at: '9:05 AM tomorrow',
+  });
+  assert.deepEqual(picksResetInfo('intraday', fridayNoon), {
+    kind: 'nextBatch',
+    at: '9:05 AM Monday',
+  });
+});
+
+// Recorded from the v0.2.4 implementation before picksResetMessage was rebuilt on picksResetInfo.
+test('picks reset message reads exactly as v0.2.4 did', () => {
+  assert.deepEqual(
+    [
+      picksResetMessage('longterm'),
+      picksResetMessage('swing'),
+      picksResetMessage('intraday', wednesdayMorning),
+      picksResetMessage('intraday', wednesdayNoon),
+      picksResetMessage('intraday', fridayNoon),
+    ],
+    [
+      "Today's picks are being finalized — check back soon.",
+      "This week's picks are done — the next set lands next Monday at 9:05 AM.",
+      "Today's picks are done — the next set lands at 9:05 AM.",
+      "Today's picks are done — the next set lands at 9:05 AM tomorrow.",
+      "Today's picks are done — the next set lands at 9:05 AM Monday.",
+    ],
   );
 });

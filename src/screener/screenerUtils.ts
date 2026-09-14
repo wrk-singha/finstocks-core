@@ -153,28 +153,58 @@ export function strategyHorizon(strategy: ScreenerStrategy): StrategyHorizon {
 /** When each horizon's picker next runs, in IST wall clock. */
 export const PICKS_RESET_AT = '09:05';
 
+export type PicksResetInfo =
+  | {kind: 'finalizing'}
+  | {kind: 'nextMonday'; at: typeof PICKS_RESET_AT}
+  | {
+      kind: 'nextBatch';
+      /** `formatNextBatch`'s wording: "9:05 AM", "9:05 AM tomorrow", "9:05 AM Monday". */
+      at: string;
+    }
+  | {kind: 'tomorrow'; at: typeof PICKS_RESET_AT};
+
 /**
- * What the empty picks row says. The three horizons refill on their own
- * cadences, so one shared "check back soon" left the two with a known next run
- * looking as open-ended as the one without: intraday repicks every session,
- * swing once a week, and a long-term idea only when a stock qualifies.
+ * When the empty picks row's horizon refills. The three horizons refill on
+ * their own cadences, so one shared "check back soon" left the two with a known
+ * next run looking as open-ended as the one without: intraday repicks every
+ * session, swing once a week, and a long-term idea only when a stock qualifies.
  *
- * The intraday line is market-day aware (`formatNextBatch`) - on a Friday the
+ * The intraday run is market-day aware (`formatNextBatch`) - on a Friday the
  * next set is Monday's, and promising it "tomorrow" would be a promise the
- * picker doesn't keep. `now` is injectable for tests.
+ * picker doesn't keep. `tomorrow` is the fallback when that time can't be
+ * worked out. `now` is injectable for tests.
+ */
+export function picksResetInfo(
+  horizon: StrategyHorizon,
+  now: Date = new Date(),
+): PicksResetInfo {
+  if (horizon === 'longterm') return {kind: 'finalizing'};
+  if (horizon === 'swing') return {kind: 'nextMonday', at: PICKS_RESET_AT};
+  const next = formatNextBatch(PICKS_RESET_AT, now);
+  return next
+    ? {kind: 'nextBatch', at: next}
+    : {kind: 'tomorrow', at: PICKS_RESET_AT};
+}
+
+/**
+ * What the empty picks row says.
+ * English for the web app; mobile renders `picksResetInfo`.
  */
 export function picksResetMessage(
   horizon: StrategyHorizon,
   now: Date = new Date(),
 ): string {
-  if (horizon === 'longterm') {
-    return "Today's picks are being finalized — check back soon.";
+  const info = picksResetInfo(horizon, now);
+  switch (info.kind) {
+    case 'finalizing':
+      return "Today's picks are being finalized — check back soon.";
+    case 'nextMonday':
+      return "This week's picks are done — the next set lands next Monday at 9:05 AM.";
+    case 'nextBatch':
+      return `Today's picks are done — the next set lands at ${info.at}.`;
+    case 'tomorrow':
+      return "Today's picks are done — the next set lands tomorrow at 9:05 AM.";
   }
-  if (horizon === 'swing') {
-    return "This week's picks are done — the next set lands next Monday at 9:05 AM.";
-  }
-  const next = formatNextBatch(PICKS_RESET_AT, now);
-  return `Today's picks are done — the next set lands ${next ? `at ${next}` : 'tomorrow at 9:05 AM'}.`;
 }
 
 export type RiskTone = 'low' | 'med' | 'high';

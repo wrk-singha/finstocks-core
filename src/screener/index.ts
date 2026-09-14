@@ -32,13 +32,19 @@ export {
   getMonthlyData,
   mapTimeframeLabel,
   PICKS_RESET_AT,
+  picksResetInfo,
   picksResetMessage,
   splitEntryExit,
   STRATEGY_HORIZON_LABEL,
   strategyHorizon,
   strategyRiskTier,
 } from './screenerUtils.ts';
-export type {RiskTier, RiskTone, StrategyHorizon} from './screenerUtils.ts';
+export type {
+  PicksResetInfo,
+  RiskTier,
+  RiskTone,
+  StrategyHorizon,
+} from './screenerUtils.ts';
 export {
   applyTemplateFilters,
   compareMetric,

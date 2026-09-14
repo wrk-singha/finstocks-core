@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.4"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.5"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,12 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.5** — structured forms beside the English copy, so mobile can translate what the web still
+  reads in English (additive; every English function returns what it did): `needsCondition`,
+  `positioningFacts`, `futuresTitleParts`, `EntryStatus.driftPct` and `picksResetInfo`. The socket
+  paths `ohlcvStreamPath`, `depthStreamPath` and `premiumStreamPath` in `/api` (relative to the API
+  root, without `/api`, like every core path), and the backtest sweep helpers `buildSweepCurves` and
+  `prepareSweep` in `/strategy`.
 - **v0.2.4** — query keys the Wave C ports kept locally (`stockScore`, `portfolioAnalysis.{all, detail}`,
   `fno.topTraded`); `budget_config.total` on `RedeployOverrides` and `UpdateFsmOverrides`; the strategy
   timeframe options and `normalizeStrategyTimeframe` in `/strategy`.

@@ -45,13 +45,13 @@ export const colorLight = {
     surfaceEdge: 'rgba(0,0,0,0.08)',
   },
   status: {
-    success: '#10b981',
+    success: '#0ea674',
     error: '#dc2626',
     errorStrong: '#b91c1c',
     /** Light is a darkened amber: the dark palette's #f59e0b is 2.07:1 on the light ground, under the 3:1 WCAG 1.4.11 asks of an indicator and well under 4.5:1 as text; this clears both at 4.85:1. */
     warning: '#b45309',
     info: '#3b82f6',
-    orange: '#f97316',
+    orange: '#eb6d15',
   },
   /** Theme-aware P&L semantics for TEXT. Distinct from chart.positive/negative: tuned for legibility on both surfaces (light greens/reds are darker for contrast). Profit/loss colour stays reserved for money. */
   pl: {
@@ -113,7 +113,7 @@ export const colorDark = {
     tertiary: '#9a9ea6',
     muted: '#8b8f96',
     /** Dimmer than muted — captions and eyebrows. */
-    subtle: '#7a7f87',
+    subtle: '#7b8088',
     disabled: '#6b6f76',
     placeholder: '#7e838b',
     inverse: '#0a0b0d',

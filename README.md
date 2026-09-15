@@ -32,7 +32,7 @@ registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/co
 - Subpath imports: `@finstocks/core` (everything), or `@finstocks/core/{types,market,trading,strategy,screener,portfolio,data,format,queryKeys,api,tokens}`.
 - `tokens/src/*.json` — the design-token source (colour light/dark, type, space, motion).
 - `tokens/scripts/build.mjs` — generates `src/tokens/index.ts` and `tokens/dist/tokens.css`.
-- `tokens/test/` — WCAG contrast assertions (with a dated allowlist → decision H8).
+- `tokens/test/` — WCAG contrast assertions (a `KNOWN_FAILURES` allowlist, empty since decision H8).
 
 ## Commands
 

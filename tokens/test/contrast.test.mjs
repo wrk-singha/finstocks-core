@@ -30,38 +30,11 @@ const ratio = (a, b) => {
 };
 const isHex = s => /^#[0-9a-f]{6}$/i.test(s);
 
-// Known failures carried over from the current app's palette, measured 2026-09-13. Each is a
-// pending DESIGN decision (docs/migration/DECISIONS.md H8), not a permanent exception: when the
-// value changes, the entry is removed and the assertion goes live. Adding an entry requires a
-// measured ratio, a proposed passing value, and a decision reference.
-const KNOWN_FAILURES = {
-  'light status.success on surface.base >= 3:1 (indicator)': {
-    measured: 2.45,
-    proposed:
-      '#0ea674 (3.02:1) — or #0b845c (4.54:1) if it is ever used as text',
-    decision: 'H8',
-  },
-  'light status.success on surface.card >= 3:1 (indicator)': {
-    measured: 2.54,
-    proposed: '#0ea674',
-    decision: 'H8',
-  },
-  'light status.orange on surface.base >= 3:1 (indicator)': {
-    measured: 2.71,
-    proposed: '#eb6d15 (3.01:1)',
-    decision: 'H8',
-  },
-  'light status.orange on surface.card >= 3:1 (indicator)': {
-    measured: 2.8,
-    proposed: '#eb6d15',
-    decision: 'H8',
-  },
-  'dark ink.subtle on surface.cardSoft >= 4.5:1': {
-    measured: 4.45,
-    proposed: '#7b8088 (4.51:1)',
-    decision: 'H8',
-  },
-};
+// Known failures: a measured palette failure awaiting a DESIGN decision, not a permanent exception.
+// When the value changes, the entry is removed and the assertion goes live. Adding an entry
+// requires a measured ratio, a proposed passing value, and a decision reference. Empty since the
+// five 2026-09-13 findings were resolved by decision H8 (v0.2.7).
+const KNOWN_FAILURES = {};
 const check = (name, ok, detail) =>
   test(name, t => {
     const known = KNOWN_FAILURES[name];

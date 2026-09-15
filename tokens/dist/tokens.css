@@ -28,12 +28,12 @@
   --color-wash-tileFill: rgba(0, 0, 0, 0.025);
   --color-wash-surface: rgba(0, 0, 0, 0.02);
   --color-wash-surfaceEdge: rgba(0, 0, 0, 0.08);
-  --color-status-success: #10b981;
+  --color-status-success: #0ea674;
   --color-status-error: #dc2626;
   --color-status-errorStrong: #b91c1c;
   --color-status-warning: #b45309;
   --color-status-info: #3b82f6;
-  --color-status-orange: #f97316;
+  --color-status-orange: #eb6d15;
   --color-pl-profit: #177047;
   --color-pl-loss: #b23227;
   --color-action-primary: #9126eb;
@@ -124,7 +124,7 @@
     --color-ink-secondary: #d5d7da;
     --color-ink-tertiary: #9a9ea6;
     --color-ink-muted: #8b8f96;
-    --color-ink-subtle: #7a7f87;
+    --color-ink-subtle: #7b8088;
     --color-ink-disabled: #6b6f76;
     --color-ink-placeholder: #7e838b;
     --color-ink-inverse: #0a0b0d;
@@ -182,7 +182,7 @@
   --color-ink-secondary: #d5d7da;
   --color-ink-tertiary: #9a9ea6;
   --color-ink-muted: #8b8f96;
-  --color-ink-subtle: #7a7f87;
+  --color-ink-subtle: #7b8088;
   --color-ink-disabled: #6b6f76;
   --color-ink-placeholder: #7e838b;
   --color-ink-inverse: #0a0b0d;

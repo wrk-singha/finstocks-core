@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.6"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.7"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,11 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.7** — decision H8, the minimal passing contrast values: light `status.success` `#10b981` →
+  `#0ea674` (3.02:1 on base), light `status.orange` `#f97316` → `#eb6d15` (3.01:1) and dark
+  `ink.subtle` `#7a7f87` → `#7b8088` (4.51:1 on cardSoft). The contrast test's `KNOWN_FAILURES` is
+  empty. **Web visual change:** the CSS variables in `tokens.css` change too
+  (`--color-status-success`, `--color-status-orange`, dark `--color-ink-subtle`).
 - **v0.2.6** — the old app's chat search by category (drift since `c8f7925`; the key, the `category`
   list param, `ChatCategory`, `CHAT_CATEGORIES` and `emptyChatsMessage` were already in v0.2.0):
   `chatCategoryParam` in `/api`, the sorted comma-joined value both the request and

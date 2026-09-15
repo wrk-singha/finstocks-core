@@ -24,3 +24,12 @@ export const CHAT_CATEGORIES: ChatCategoryOption[] = [
   {key: 'portfolio', label: 'Portfolio', icon: 'briefcase'},
   {key: 'order', label: 'Orders', icon: 'receipt'},
 ];
+
+/**
+ * Display names of the selected categories in the order the picker lists them, not the order
+ * they were tapped — the `categoryLabels` that `emptyChatsMessage` takes.
+ */
+export const chatCategoryLabels = (
+  categories: readonly ChatCategory[],
+): string[] =>
+  CHAT_CATEGORIES.filter(c => categories.includes(c.key)).map(c => c.label);

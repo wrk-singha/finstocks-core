@@ -13,6 +13,7 @@ export type {AuthApi} from './auth.ts';
 
 export {
   chatApi,
+  chatCategoryParam,
   chatResumeStreamPath,
   chatStreamPath,
   chatStreamRequest,

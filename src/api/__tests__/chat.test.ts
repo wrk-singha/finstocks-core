@@ -3,12 +3,55 @@ import {test} from 'node:test';
 
 import {
   chatApi,
+  chatCategoryParam,
   chatResumeStreamPath,
   chatStreamPath,
   chatStreamRequest,
   chatWsPath,
 } from '../chat.ts';
+import {queryKeys} from '../../queryKeys.ts';
 import {fakeHttp} from './fakeHttp.ts';
+
+test('chatCategoryParam is order-independent and empty when nothing is selected', () => {
+  assert.equal(chatCategoryParam([]), '');
+  assert.equal(chatCategoryParam(['order']), 'order');
+  assert.equal(
+    chatCategoryParam(['strategy', 'order', 'research']),
+    'order,research,strategy',
+  );
+  assert.equal(
+    chatCategoryParam(['research', 'strategy', 'order']),
+    chatCategoryParam(['order', 'strategy', 'research']),
+  );
+  const selection = ['strategy', 'autopilot'] as const;
+  const tapped = [...selection];
+  chatCategoryParam(tapped);
+  assert.deepEqual(tapped, selection);
+});
+
+test('a category search sends the param and keys on the same value', async () => {
+  const {http, last} = fakeHttp();
+  const category = chatCategoryParam(['portfolio', 'autopilot']);
+  await chatApi(http).getAllChats({surface: 'chart', q: 'nifty', category});
+  assert.equal(
+    last().path,
+    '/chats?surface=chart&q=nifty&category=autopilot%2Cportfolio',
+  );
+  assert.deepEqual(queryKeys.chatsSearch('nifty', 'chart', category), [
+    'chats',
+    'search',
+    'nifty',
+    'chart',
+    'autopilot,portfolio',
+  ]);
+  assert.deepEqual(queryKeys.chatsSearch('nifty', 'chart'), [
+    'chats',
+    'search',
+    'nifty',
+    'chart',
+    '',
+  ]);
+});
 
 test('list queries only carry the params that were set', async () => {
   const {http, calls} = fakeHttp();

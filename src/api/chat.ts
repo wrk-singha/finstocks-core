@@ -1,5 +1,6 @@
 import type {
   Chat,
+  ChatCategory,
   SSEDonePayload,
   VoiceSessionResponse,
   createChatRequest,
@@ -28,9 +29,18 @@ export interface ChatListQuery {
   surface?: string;
   symbol?: string;
   q?: string;
-  /** Comma-joined chat categories; omitted entirely when none selected. */
+  /** Comma-joined chat categories (`chatCategoryParam`); omitted entirely when none selected. */
   category?: string;
 }
+
+/**
+ * The `category` query value for a chip selection, and the matching segment of
+ * `queryKeys.chatsSearch`. Sorted so one set is one cache entry and one request
+ * whatever order the chips were tapped in; '' when nothing is selected.
+ */
+export const chatCategoryParam = (
+  categories: readonly ChatCategory[],
+): string => [...categories].sort().join(',');
 
 /** POST body of a streamed turn — the same for the SSE endpoint and the websocket `chat_message` frame. */
 export interface ChatStreamRequest {

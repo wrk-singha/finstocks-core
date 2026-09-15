@@ -61,7 +61,7 @@ export {
 } from './alertChannels.ts';
 export {ACTION_ICON_NAMES} from './actionIcons.ts';
 export type {ActionIconKey, ActionIconName} from './actionIcons.ts';
-export {CHAT_CATEGORIES} from './chatCategories.ts';
+export {CHAT_CATEGORIES, chatCategoryLabels} from './chatCategories.ts';
 export type {ChatCategoryOption} from './chatCategories.ts';
 export {AGENT_STATUS_MESSAGES} from './agentStatusMessages.ts';
 export {CORE_LESSONS, LESSONS, lessonsForRoute} from './lessons.ts';

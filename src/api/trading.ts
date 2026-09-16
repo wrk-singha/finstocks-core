@@ -215,9 +215,9 @@ export const unzipGraphSeries = (
  */
 // drift resolved 2026-09-13: the mobile's un-zip dropped `ac` (absolute_change) and the
 // web's ignored the `{data:{data}}` wrapper; this is the union of both.
-export const parseGraphData = (raw: unknown): StockGraphData => {
-  const out: StockGraphData = {};
-  if (!raw || typeof raw !== 'object') return out;
+/** The symbol-keyed map inside either wrapper; null when the payload carries none. */
+const graphSeriesMap = (raw: unknown): Record<string, unknown> | null => {
+  if (!raw || typeof raw !== 'object') return null;
   const outer = raw as {data?: unknown};
   let map: unknown = raw;
   if (outer.data && typeof outer.data === 'object') {
@@ -225,13 +225,42 @@ export const parseGraphData = (raw: unknown): StockGraphData => {
     map =
       inner.data && typeof inner.data === 'object' ? inner.data : outer.data;
   }
-  if (!map || typeof map !== 'object') return out;
-  for (const [symbol, series] of Object.entries(
-    map as Record<string, unknown>,
-  )) {
+  if (!map || typeof map !== 'object') return null;
+  return map as Record<string, unknown>;
+};
+
+export const parseGraphData = (raw: unknown): StockGraphData => {
+  const out: StockGraphData = {};
+  const map = graphSeriesMap(raw);
+  if (!map) return out;
+  for (const [symbol, series] of Object.entries(map)) {
     out[symbol] = Array.isArray(series)
       ? (series as GraphDataPoint[])
       : unzipGraphSeries(series as Partial<RawGraphSeries> | null);
+  }
+  return out;
+};
+
+/**
+ * The settled previous close each series carries as `pc`, keyed by symbol. It describes the series
+ * rather than a bar in it, so it cannot ride in GraphDataPoint[] and `parseGraphData` necessarily
+ * drops it; this reads the same payload for the scalar instead.
+ *
+ * Preferred over deriving a previous close from the bars: the server resolves it against the feed
+ * the prices come from, so it cannot drift when the daily rollup falls behind. A symbol is absent
+ * rather than zero when the field is missing — while the backend rolls it out, on the older array
+ * shape, or for a symbol with no settled session behind it.
+ */
+export const parseGraphPrevCloses = (raw: unknown): Record<string, number> => {
+  const out: Record<string, number> = {};
+  const map = graphSeriesMap(raw);
+  if (!map) return out;
+  for (const [symbol, series] of Object.entries(map)) {
+    if (!series || typeof series !== 'object' || Array.isArray(series)) {
+      continue;
+    }
+    const {pc} = series as Partial<RawGraphSeries>;
+    if (typeof pc === 'number') out[symbol] = pc;
   }
   return out;
 };
@@ -512,6 +541,25 @@ export const tradingApi = (http: HttpClient) => ({
       ),
     );
     return Object.assign({}, ...pages.map(parseGraphData)) as StockGraphData;
+  },
+
+  /**
+   * The same request as `getGraphData`, read for the series-level `pc` instead of the bars.
+   * Separate on purpose: every caller of `getGraphData` reads `StockGraphData`, and folding a
+   * scalar map into that return would break all of them for a value most never use.
+   */
+  getGraphPrevCloses: async (
+    params: GraphDataQuery,
+  ): Promise<Record<string, number>> => {
+    const pages = await Promise.all(
+      graphDataPaths(params).map(path =>
+        http.request<unknown>(path, params.hmacToken ? {anonymous: true} : {}),
+      ),
+    );
+    return Object.assign({}, ...pages.map(parseGraphPrevCloses)) as Record<
+      string,
+      number
+    >;
   },
 
   /**

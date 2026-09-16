@@ -55,4 +55,4 @@ export {
   TEMPLATE_RISK_OPTIONS,
 } from './templatesFilters.ts';
 export type {TemplateFilterState} from './templatesFilters.ts';
-export {getSeriesFromGraphData} from './screener.ts';
+export {getSeriesFromGraphData, prevCloseFor} from './screener.ts';

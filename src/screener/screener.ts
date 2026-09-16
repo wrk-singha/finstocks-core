@@ -29,3 +29,24 @@ export const getSeriesFromGraphData = (
   }
   return [];
 };
+
+/**
+ * One symbol's settled previous close out of the map `parseGraphPrevCloses` builds. Keys arrive in
+ * whichever case the request used, so this matches getSeriesFromGraphData's tolerance. Null when
+ * absent — the caller falls back to deriving one from the bars rather than printing a zero.
+ */
+export const prevCloseFor = (
+  prevCloses: Record<string, number> | undefined,
+  stockSymbol: string,
+): number | null => {
+  if (!prevCloses) return null;
+  for (const key of [
+    stockSymbol,
+    stockSymbol.toUpperCase(),
+    stockSymbol.toLowerCase(),
+  ]) {
+    const value = prevCloses[key];
+    if (typeof value === 'number') return value;
+  }
+  return null;
+};

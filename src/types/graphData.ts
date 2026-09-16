@@ -27,6 +27,11 @@ export interface RawGraphSeries {
   rc?: number[];
   // Present only when the request opted in via includeVolume (see getGraphData).
   v?: number[];
+  // The last settled session's close, resolved server-side against the same feed the bars come
+  // from. Series-level rather than a column, so it cannot survive the conversion to
+  // GraphDataPoint[]; read it with parseGraphPrevCloses. Absent while the backend rolls it out,
+  // and for a symbol with no settled session behind it.
+  pc?: number;
 }
 
 export type RawStockGraphData = Record<string, RawGraphSeries>;

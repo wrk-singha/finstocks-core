@@ -44,6 +44,7 @@ export {
   normalizeOrderType,
   ohlcvStreamPath,
   parseGraphData,
+  parseGraphPrevCloses,
   premiumStreamPath,
   tradingApi,
   unzipGraphSeries,

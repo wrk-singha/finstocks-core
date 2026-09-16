@@ -563,6 +563,32 @@ export const tradingApi = (http: HttpClient) => ({
   },
 
   /**
+   * Bars and their settled previous closes from one request. `getGraphData` and
+   * `getGraphPrevCloses` each fetch the same pages, so a caller that wants both — a screen pricing
+   * a symbol against yesterday's close — would poll the endpoint twice for one scalar. This parses
+   * the same responses for both instead.
+   */
+  getGraphDataWithPrevCloses: async (
+    params: GraphDataQuery,
+  ): Promise<{
+    data: StockGraphData;
+    prevCloses: Record<string, number>;
+  }> => {
+    const pages = await Promise.all(
+      graphDataPaths(params).map(path =>
+        http.request<unknown>(path, params.hmacToken ? {anonymous: true} : {}),
+      ),
+    );
+    return {
+      data: Object.assign({}, ...pages.map(parseGraphData)) as StockGraphData,
+      prevCloses: Object.assign(
+        {},
+        ...pages.map(parseGraphPrevCloses),
+      ) as Record<string, number>,
+    };
+  },
+
+  /**
    * Web-only: two numbers a symbol instead of a session of minute bars —
    * the newest close and the bar it opened at.
    */

@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.7"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.8"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,14 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.8** — the settled previous close the backend already serves per series, additive and
+  breaking nothing: `pc` on `RawGraphSeries`, `parseGraphPrevCloses` in `/api` (the same payload
+  read for the scalar `parseGraphData` necessarily drops, since it describes the series rather than
+  a bar in it), `tradingApi.getGraphPrevCloses`, and `prevCloseFor` in `/screener` for the
+  case-tolerant lookup. `getGraphData` keeps its shape — every caller reads `StockGraphData`, so
+  the scalar rides beside it rather than inside it. Web already reads this field; mobile derives a
+  previous close from the bars and can now prefer the server's, which is resolved against the same
+  feed the prices come from and so cannot drift when the daily rollup falls behind.
 - **v0.2.7** — decision H8, the minimal passing contrast values: light `status.success` `#10b981` →
   `#0ea674` (3.02:1 on base), light `status.orange` `#f97316` → `#eb6d15` (3.01:1) and dark
   `ink.subtle` `#7a7f87` → `#7b8088` (4.51:1 on cardSoft). The contrast test's `KNOWN_FAILURES` is

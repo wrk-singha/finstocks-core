@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.8"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.9"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,11 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.9** — `tradingApi.getGraphDataWithPrevCloses`: the bars and their settled previous closes
+  from one request. `getGraphData` and `getGraphPrevCloses` each fetch the same pages, so a screen
+  that wants both — anything pricing a symbol against yesterday's close — polled the endpoint twice
+  for one scalar. This parses the same responses for both instead. Additive: both existing methods
+  are unchanged, and callers that need only bars keep using `getGraphData`.
 - **v0.2.8** — the settled previous close the backend already serves per series, additive and
   breaking nothing: `pc` on `RawGraphSeries`, `parseGraphPrevCloses` in `/api` (the same payload
   read for the scalar `parseGraphData` necessarily drops, since it describes the series rather than

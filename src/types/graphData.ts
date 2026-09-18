@@ -38,7 +38,14 @@ export type RawStockGraphData = Record<string, RawGraphSeries>;
 
 // `max` is ours, not model2's — the backend stitches DB history behind its 3y
 // ceiling rather than forwarding the value upstream.
-export type Period = '1d' | '1w' | '1m' | '3m' | '1y' | '3y' | 'max';
+//
+// `6m` and `5y` are served too: graph.go's periodWindowDays has carried both since
+// before this union did, so a caller wanting half a year no longer has to fetch a
+// full one and throw half of it away. Both apps widened first (old app `9488c13`,
+// web the same week) and core was the one left behind; the apps meanwhile fetch
+// `1y` and trim 182 days, which those comments call out as a workaround.
+export type Period =
+  '1d' | '1w' | '1m' | '3m' | '6m' | '1y' | '3y' | '5y' | 'max';
 
 // What the backend actually serves. Only "1m" and "1d" are fetchable; every
 // other resolution is aggregated client-side from one of those two, so anything

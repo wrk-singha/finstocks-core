@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.13"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.14"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,13 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.14** — documentation only, no behaviour change: `lotSizes` named the wrong producer. The
+  source of truth is `backend-go/handlers/trading/fnolots.go`, which carries all 216 listed
+  underlyings, and the mirror is `sentinel/core/constants.py` — not the `market/fno.go` and
+  `fno_ideas.py` the header claimed. `lotSizeFor` now also says that MCX commodities are in neither
+  map, so it is always null for them and their pads step in single units: an answer rather than a
+  gap. Carried from the old app's `9488c13`. Neither set of paths is verifiable from this repo, so
+  this follows the more specific and more recent claim rather than treating the old one as settled.
 - **v0.2.13** — the 13 keys the old app added in `9488c13`, taking the catalogue to 222 across 30
   sections. All thirteen were already declared in `TechnicalIndicatorData` and live in web, so this
   is the same two-source case as the 23 in v0.2.11 — a data change with no type work. Web splits

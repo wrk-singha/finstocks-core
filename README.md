@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.12"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.13"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,15 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.13** — the 13 keys the old app added in `9488c13`, taking the catalogue to 222 across 30
+  sections. All thirteen were already declared in `TechnicalIndicatorData` and live in web, so this
+  is the same two-source case as the 23 in v0.2.11 — a data change with no type work. Web splits
+  them across **two** sections and the split carries meaning: `September Additions` is
+  `priceLevels` (moving averages, chandelier exits, the Ichimoku lagging span, the Heikin Ashi
+  trio) while `Standard MACD & Volume Averages` is not, since an oscillator and an average volume
+  are not price levels. The old app put all thirteen in one section, which would have drawn volume
+  averages as price lines. Core is now 19 keys behind web; those remain web-only and unverifiable
+  against the producer from here.
 - **v0.2.12** — `valueHint` and `exitHint` in `/strategy`, the rule-hint helpers both apps already
   carry an identical copy of. The compiler writes conditions the engine can evaluate rather than
   ones a trader reads — a 5% take-profit compiles to `$entry_price * 1.05` — and these turn such an

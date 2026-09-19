@@ -15,11 +15,11 @@ import {
   serializeIndicatorFilters,
 } from '../screenerIndicators.ts';
 
-test('indicatorSections: 209 unique computed columns, formatted through the shared helpers', () => {
+test('indicatorSections: 222 unique computed columns, formatted through the shared helpers', () => {
   const fields = indicatorSections.flatMap(s => s.fields);
-  assert.equal(indicatorSections.length, 28);
-  assert.equal(fields.length, 209);
-  assert.equal(new Set(fields.map(f => f.key)).size, 209);
+  assert.equal(indicatorSections.length, 30);
+  assert.equal(fields.length, 222);
+  assert.equal(new Set(fields.map(f => f.key)).size, 222);
   assert.equal(price(1234.5), '₹1,234.50');
   assert.equal(largeNum(1234567.6), '12,34,568');
   assert.equal(num(null), 'N/A');

@@ -19,5 +19,5 @@ test('the rule picker leads with position context, then every computed column, t
   assert.equal(STRATEGY_INDICATOR_OPTIONS.at(-1)?.value, 'mf');
   const values = STRATEGY_INDICATOR_OPTIONS.map(o => o.value);
   assert.equal(new Set(values).size, values.length);
-  assert.equal(values.length, 3 + 209 + 24);
+  assert.equal(values.length, 3 + 222 + 24);
 });

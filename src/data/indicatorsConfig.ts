@@ -19,8 +19,18 @@
  * (`45b4d103`, "Offer every indicator the engine can actually resolve"), so the 2026-09-07 drop was
  * about missing detectors rather than about the columns. Web's grouping and labels are followed
  * again: four sections (Trend-Confirmed Candles, More Double Candle Patterns, Gaps & Range Breaks,
- * Adaptive & Cycle) rather than the old app's three. Web now carries 241 keys, so core is still 32
- * behind; those are web-only and unverified against the producer, which is not reachable from here.
+ * Adaptive & Cycle) rather than the old app's three.
+ *
+ * 2026-09-19, later: +13 more from the old app's `9488c13`, taking this list to 222. All thirteen
+ * were already declared in `TechnicalIndicatorData` and live in web, so they are the same
+ * two-source case as the 23 above. Web splits them across **two** sections and that split carries
+ * meaning: `September Additions` is `priceLevels` — moving averages, chandelier exits, the Ichimoku
+ * lagging span and the Heikin Ashi trio, all drawable on the chart — while `Standard MACD & Volume
+ * Averages` is not, since an oscillator and an average volume are not price levels. The old app put
+ * all thirteen in one section, which would have drawn volume averages as price lines.
+ *
+ * Web now carries 241 keys, so core is 19 behind. Those are web-only, with no second source, and
+ * cannot be checked against the producer from here.
  */
 import {formatCurrency, formatNumber} from '../format/index.ts';
 import type {TechnicalIndicatorData} from '../types/indicators.ts';
@@ -1503,6 +1513,102 @@ const advancedIndicatorSections: IndicatorSection[] = [
         key: 'random_walk_index',
         getValue: data => num(data.random_walk_index),
         description: 'Whether the move exceeds what a random walk explains',
+      },
+    ],
+  },
+  {
+    // Web keeps these two apart and the split is the meaningful one: everything here is a price
+    // level the chart can draw, while the MACD and volume averages below are not. The old app put
+    // all thirteen in one section, which would have drawn volume averages as price lines.
+    title: 'September Additions',
+    defaultCollapsed: true,
+    priceLevels: true,
+    fields: [
+      {
+        label: 'SMA 20',
+        key: 'sma20',
+        getValue: data => price(data.sma20),
+        description: '20-period simple moving average',
+      },
+      {
+        label: 'SMA 200',
+        key: 'sma200',
+        getValue: data => price(data.sma200),
+        description:
+          '200-period simple moving average — the long-term trend line',
+      },
+      {
+        label: 'Chandelier Exit Long',
+        key: 'chandelier_exit_long',
+        getValue: data => price(data.chandelier_exit_long),
+        description: 'Trailing stop for a long: 22-bar high less 3x ATR',
+      },
+      {
+        label: 'Chandelier Exit Short',
+        key: 'chandelier_exit_short',
+        getValue: data => price(data.chandelier_exit_short),
+        description: 'Trailing stop for a short: 22-bar low plus 3x ATR',
+      },
+      {
+        label: 'Ichimoku Chikou',
+        key: 'ichimoku_chikou',
+        getValue: data => price(data.ichimoku_chikou),
+        description: 'Lagging span — close shifted back 26 periods',
+      },
+      {
+        label: 'Heikin Ashi Open',
+        key: 'ha_open',
+        getValue: data => price(data.ha_open),
+        description:
+          'Heikin Ashi open — average of the prior HA open and close',
+      },
+      {
+        label: 'Heikin Ashi High',
+        key: 'ha_high',
+        getValue: data => price(data.ha_high),
+        description: 'Heikin Ashi high',
+      },
+      {
+        label: 'Heikin Ashi Low',
+        key: 'ha_low',
+        getValue: data => price(data.ha_low),
+        description: 'Heikin Ashi low',
+      },
+    ],
+  },
+  {
+    title: 'Standard MACD & Volume Averages',
+    defaultCollapsed: true,
+    fields: [
+      {
+        label: 'MACD (12, 26, 9)',
+        key: 'macd_12_26_9',
+        getValue: data => num(data.macd_12_26_9),
+        description: 'MACD on the conventional 12/26/9 settings',
+      },
+      {
+        label: 'MACD Signal (12, 26, 9)',
+        key: 'macd_12_26_signal',
+        getValue: data => num(data.macd_12_26_signal),
+        description: 'Signal line for the conventional MACD',
+      },
+      {
+        label: 'Accelerator Oscillator',
+        key: 'accelerator_osc',
+        getValue: data => num(data.accelerator_osc),
+        description: 'Awesome Oscillator less its own 5-period average',
+      },
+      {
+        label: 'Volume MA 20',
+        key: 'volume_ma20',
+        getValue: data => largeNum(data.volume_ma20),
+        description: '20-period average volume',
+      },
+      {
+        label: 'Volume MA 50',
+        key: 'volume_ma50',
+        getValue: data => largeNum(data.volume_ma50),
+        description: '50-period average volume',
       },
     ],
   },

@@ -88,6 +88,12 @@ export interface FSMRule {
   exit_type?: 'take_profit' | 'stop_loss' | 'signal';
   /** Exits: resolved percentage (e.g. 10 for 10%). */
   pct?: number;
+  /**
+   * The compiler's own words for the transition, e.g. "Take profit at 5.0%". `projectRawFsm` reads
+   * it off the raw transition; `exitHint` prefers it over a derived phrase when it quantifies the
+   * exit, because it states the intent exactly.
+   */
+  comment?: string;
 }
 
 /**

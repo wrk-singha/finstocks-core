@@ -46,6 +46,7 @@ export {
   conflictWarning,
   findConflictingStrategies,
 } from './strategyConflicts.ts';
+export {exitHint, valueHint} from './ruleHint.ts';
 export {STRATEGY_INDICATOR_OPTIONS} from './strategyIndicators.ts';
 export type {IndicatorPickerOption} from './strategyIndicators.ts';
 export {formatLogDateTime, getTradeLogAction} from './strategyLogs.ts';

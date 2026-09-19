@@ -271,6 +271,29 @@ export interface TechnicalIndicatorData {
   random_walk_index?: number | null;
   accelerator_osc?: number | null;
 
+  // Trend-confirmed candles: the classic single-candle shapes, qualified by the
+  // trend that precedes them. The bare shapes are declared above.
+  hammer_at_downtrend?: boolean | null;
+  inverted_hammer_at_downtrend?: boolean | null;
+  shooting_star_at_uptrend?: boolean | null;
+  hanging_man_at_uptrend?: boolean | null;
+  takuri?: boolean | null;
+  short_line_candle?: boolean | null;
+  closing_marubozu_bullish?: boolean | null;
+  closing_marubozu_bearish?: boolean | null;
+  in_neck_bearish?: boolean | null;
+  thrusting_bearish?: boolean | null;
+  // Gaps and range breaks: an imbalance left unfilled, and the resolution of a
+  // narrow- or wide-range squeeze (the squeezes themselves are `nr4`/`nr7`/`wr7`).
+  fvg_bullish?: boolean | null;
+  fvg_bearish?: boolean | null;
+  nr4_bullish_breakout?: boolean | null;
+  nr4_bearish_breakdown?: boolean | null;
+  nr7_bullish_breakout?: boolean | null;
+  nr7_bearish_breakdown?: boolean | null;
+  wr7_bullish_continuation?: boolean | null;
+  wr7_bearish_continuation?: boolean | null;
+
   stock_symbol: string;
   rsi?: number;
   macd?: number;

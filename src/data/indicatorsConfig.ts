@@ -13,6 +13,14 @@
  * value helpers also won: Indian-grouped rupees ("₹1,23,456.00" via formatCurrency, where mobile
  * printed an ungrouped toFixed), "Yes"/"No" flags (mobile: "✓ Yes"), and the longer pivot
  * labels ("Resistance 1", mobile "R1").
+ *
+ * 2026-09-19: +23 keys, taking this list to 209. Both apps landed them on 2026-09-18 — the old app
+ * mirrored them into its single file (`10eb5b0`) and web restored them once detectors existed
+ * (`45b4d103`, "Offer every indicator the engine can actually resolve"), so the 2026-09-07 drop was
+ * about missing detectors rather than about the columns. Web's grouping and labels are followed
+ * again: four sections (Trend-Confirmed Candles, More Double Candle Patterns, Gaps & Range Breaks,
+ * Adaptive & Cycle) rather than the old app's three. Web now carries 241 keys, so core is still 32
+ * behind; those are web-only and unverified against the producer, which is not reachable from here.
  */
 import {formatCurrency, formatNumber} from '../format/index.ts';
 import type {TechnicalIndicatorData} from '../types/indicators.ts';
@@ -736,6 +744,137 @@ const patternIndicatorSections: IndicatorSection[] = [
       },
     ],
   },
+  {
+    title: 'Trend-Confirmed Candles',
+    fields: [
+      {
+        label: 'Hammer at downtrend',
+        key: 'hammer_at_downtrend',
+        getValue: data => flag(data.hammer_at_downtrend),
+        description:
+          'Hammer confirmed by a preceding downtrend - rejection of lower prices',
+      },
+      {
+        label: 'Inverted hammer at downtrend',
+        key: 'inverted_hammer_at_downtrend',
+        getValue: data => flag(data.inverted_hammer_at_downtrend),
+        description: 'Inverted hammer after a decline - failed push down',
+      },
+      {
+        label: 'Shooting star at uptrend',
+        key: 'shooting_star_at_uptrend',
+        getValue: data => flag(data.shooting_star_at_uptrend),
+        description:
+          'Shooting star confirmed by a preceding uptrend - rejection of highs',
+      },
+      {
+        label: 'Hanging man at uptrend',
+        key: 'hanging_man_at_uptrend',
+        getValue: data => flag(data.hanging_man_at_uptrend),
+        description:
+          'Hanging man after an advance - selling pressure inside a rise',
+      },
+      {
+        label: 'Takuri',
+        key: 'takuri',
+        getValue: data => flag(data.takuri),
+        description:
+          'A long lower shadow far below the body - deep rejection of the low',
+      },
+      {
+        label: 'Short line candle',
+        key: 'short_line_candle',
+        getValue: data => flag(data.short_line_candle),
+        description: 'A short body with little range - a pause in the trend',
+      },
+      {
+        label: 'Closing marubozu (bullish)',
+        key: 'closing_marubozu_bullish',
+        getValue: data => flag(data.closing_marubozu_bullish),
+        description: 'Green body running to its close with no upper shadow',
+      },
+      {
+        label: 'Closing marubozu (bearish)',
+        key: 'closing_marubozu_bearish',
+        getValue: data => flag(data.closing_marubozu_bearish),
+        description: 'Red body running to its close with no lower shadow',
+      },
+    ],
+  },
+  {
+    title: 'More Double Candle Patterns',
+    fields: [
+      {
+        label: 'In neck (bearish)',
+        key: 'in_neck_bearish',
+        getValue: data => flag(data.in_neck_bearish),
+        description:
+          'Weak close just into the prior red body - the bounce fails',
+      },
+      {
+        label: 'Thrusting (bearish)',
+        key: 'thrusting_bearish',
+        getValue: data => flag(data.thrusting_bearish),
+        description:
+          'Close pushes into but not past the prior red body midpoint',
+      },
+    ],
+  },
+  {
+    // The squeezes themselves are in Range Patterns above; these are how they resolve.
+    title: 'Gaps & Range Breaks',
+    fields: [
+      {
+        label: 'Fair value gap (bullish)',
+        key: 'fvg_bullish',
+        getValue: data => flag(data.fvg_bullish),
+        description:
+          'An unfilled gap between wicks - price often returns to it',
+      },
+      {
+        label: 'Fair value gap (bearish)',
+        key: 'fvg_bearish',
+        getValue: data => flag(data.fvg_bearish),
+        description: 'An unfilled downward imbalance left by a fast move',
+      },
+      {
+        label: 'NR4 breakout',
+        key: 'nr4_bullish_breakout',
+        getValue: data => flag(data.nr4_bullish_breakout),
+        description: 'NR4 squeeze resolved upward',
+      },
+      {
+        label: 'NR4 breakdown',
+        key: 'nr4_bearish_breakdown',
+        getValue: data => flag(data.nr4_bearish_breakdown),
+        description: 'NR4 squeeze resolved downward',
+      },
+      {
+        label: 'NR7 breakout',
+        key: 'nr7_bullish_breakout',
+        getValue: data => flag(data.nr7_bullish_breakout),
+        description: 'NR7 squeeze resolved upward',
+      },
+      {
+        label: 'NR7 breakdown',
+        key: 'nr7_bearish_breakdown',
+        getValue: data => flag(data.nr7_bearish_breakdown),
+        description: 'NR7 squeeze resolved downward',
+      },
+      {
+        label: 'WR7 bullish continuation',
+        key: 'wr7_bullish_continuation',
+        getValue: data => flag(data.wr7_bullish_continuation),
+        description: 'Wide range bar extending an advance',
+      },
+      {
+        label: 'WR7 bearish continuation',
+        key: 'wr7_bearish_continuation',
+        getValue: data => flag(data.wr7_bearish_continuation),
+        description: 'Wide range bar extending a decline',
+      },
+    ],
+  },
 ];
 
 const advancedIndicatorSections: IndicatorSection[] = [
@@ -1327,6 +1466,43 @@ const advancedIndicatorSections: IndicatorSection[] = [
         key: 'zigzag_pivot',
         getValue: d => price(d.zigzag_pivot),
         description: 'Most recent ZigZag swing pivot price',
+      },
+    ],
+  },
+  {
+    title: 'Adaptive & Cycle',
+    fields: [
+      {
+        label: 'FRAMA',
+        key: 'frama',
+        getValue: data => price(data.frama),
+        description:
+          'Fractal Adaptive Moving Average - adapts to fractal dimension',
+      },
+      {
+        label: 'T3 MA',
+        key: 't3_ma',
+        getValue: data => price(data.t3_ma),
+        description: 'Tillson T3 - smoother than EMA with less lag',
+      },
+      {
+        label: 'Schaff Trend Cycle',
+        key: 'schaff_trend_cycle',
+        getValue: data => num(data.schaff_trend_cycle),
+        description: 'MACD run through stochastic cycles - faster turns',
+      },
+      {
+        label: 'Wave Trend',
+        key: 'wave_trend',
+        getValue: data => num(data.wave_trend),
+        description:
+          'Channel-based oscillator for overbought and oversold turns',
+      },
+      {
+        label: 'Random Walk Index',
+        key: 'random_walk_index',
+        getValue: data => num(data.random_walk_index),
+        description: 'Whether the move exceeds what a random walk explains',
       },
     ],
   },

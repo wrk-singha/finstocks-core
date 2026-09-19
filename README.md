@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.11"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.12"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,13 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.12** — `valueHint` and `exitHint` in `/strategy`, the rule-hint helpers both apps already
+  carry an identical copy of. The compiler writes conditions the engine can evaluate rather than
+  ones a trader reads — a 5% take-profit compiles to `$entry_price * 1.05` — and these turn such an
+  expression back into words beside the field, never in place of it. Names resolve through
+  `STRATEGY_INDICATOR_OPTIONS`, so a newly-computed column reads correctly without a second list.
+  `FSMRule` gains `comment`, the compiler own words, which `exitHint` prefers when it quantifies
+  the exit; `projectRawFsm` already read it off the raw transition but never surfaced it.
 - **v0.2.11** — the 23 indicator keys both apps landed on 2026-09-18, taking the catalogue to 209
   columns across 28 sections: trend-confirmed candles, two more double-candle patterns, gaps and
   range breaks, and the adaptive/cycle oscillators. Web grouping and labels are followed (four

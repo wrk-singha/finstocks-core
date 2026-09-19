@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.10"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.11"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,12 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.11** — the 23 indicator keys both apps landed on 2026-09-18, taking the catalogue to 209
+  columns across 28 sections: trend-confirmed candles, two more double-candle patterns, gaps and
+  range breaks, and the adaptive/cycle oscillators. Web grouping and labels are followed (four
+  sections, not the old app three), and `TechnicalIndicatorData` gains the 18 flags it lacked —
+  the five oscillators were already declared. Web carries 241 keys in total, so core is still 32
+  behind; those are web-only and unverified against the producer.
 - **v0.2.10** — `Period` gains `6m` and `5y`. graph.go has served both since before the union did, so a caller wanting half a year no longer fetches a full one and throws half of it away; both apps widened first and core was the one left behind. Additive: no consumer enumerates `Period`, and the two functions that return one key off `interval` alone.
 - **v0.2.9** — `tradingApi.getGraphDataWithPrevCloses`: the bars and their settled previous closes
   from one request. `getGraphData` and `getGraphPrevCloses` each fetch the same pages, so a screen

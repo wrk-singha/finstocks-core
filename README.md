@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.14"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.15"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,22 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.15** — the rule picker's context variables, 3 to 8. `$target_profit` and `$stop_loss` are
+  gone; `$entry_time`, `$trailing_stop`, `$pullback_low`, `$opening_range_high`,
+  `$opening_range_low`, `$candle_size` and `$trade_count` take their place. The engine sets an
+  opening range, a pullback low, a trailing stop and a trade count through UPDATE_CONTEXT, and none
+  of them could be picked. Web dropped the two in `87fa20b9` (2026-09-13) and the old app followed
+  in `9488c13` three days later, so both clients agreed and core was the last holdout. Nothing
+  outside core referenced either name, and `fsmProjection` prettifies a var itself rather than
+  reading this catalogue, so the removal reaches only `valueHint`: a saved rule written against
+  `$target_profit` still runs, but reads back as its raw expression instead of a phrase. Both
+  catalogue-size guards move with it, deliberately: `slice(0, 3)` -> `slice(0, 8)` and
+  `3 + 222 + 24` -> `8 + 222 + 24`.
+
+  Recorded because the first pass got it wrong: this was declined on 2026-09-19 as "one
+  unverifiable source diverging from web". That reading came from a local `frontend` checkout on a
+  side branch **59 commits behind `origin/main`** — web had already made the change six days
+  earlier. Read web through `git show origin/main:<path>`, never the working tree.
 - **v0.2.14** — documentation only, no behaviour change: `lotSizes` named the wrong producer. The
   source of truth is `backend-go/handlers/trading/fnolots.go`, which carries all 216 listed
   underlyings, and the mirror is `sentinel/core/constants.py` — not the `market/fno.go` and

@@ -15,11 +15,36 @@ export interface IndicatorPickerOption {
  * engine sets these via UPDATE_CONTEXT actions, so they resolve per-position
  * rather than per-bar. Exit rules are written against them constantly
  * ("$entry_price * 1.05"), so they belong in the picker despite not being data.
+ *
+ * drift resolved 2026-09-19: web won again. `$target_profit` and `$stop_loss` are gone and seven
+ * others take their place - the engine sets an opening range, a pullback low, a trailing stop and a
+ * trade count, and none of them could be picked. Web dropped the two in `87fa20b9` (2026-09-13) and
+ * the old app followed in `9488c13` three days later, so both clients agree and core was the last
+ * holdout. Nothing outside core referenced either name. The cost is bounded and real: a saved rule
+ * written against `$target_profit` still runs, but `valueHint` no longer has a label for it, so it
+ * reads back as the raw expression rather than a phrase.
  */
 const CONTEXT_VARS: IndicatorPickerOption[] = [
   {value: '$entry_price', label: 'Entry price', group: 'Position context'},
-  {value: '$target_profit', label: 'Target profit', group: 'Position context'},
-  {value: '$stop_loss', label: 'Stop loss', group: 'Position context'},
+  {value: '$entry_time', label: 'Entry time', group: 'Position context'},
+  {value: '$trailing_stop', label: 'Trailing stop', group: 'Position context'},
+  {value: '$pullback_low', label: 'Pullback low', group: 'Position context'},
+  {
+    value: '$opening_range_high',
+    label: 'Opening range high',
+    group: 'Position context',
+  },
+  {
+    value: '$opening_range_low',
+    label: 'Opening range low',
+    group: 'Position context',
+  },
+  {
+    value: '$candle_size',
+    label: 'Opening range size',
+    group: 'Position context',
+  },
+  {value: '$trade_count', label: 'Trades today', group: 'Position context'},
 ];
 
 /** Fundamental fields come from in_fundamentals (not in_technicals), so they are declared here. */

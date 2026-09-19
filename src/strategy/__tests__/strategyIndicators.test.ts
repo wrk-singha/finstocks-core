@@ -5,8 +5,17 @@ import {STRATEGY_INDICATOR_OPTIONS} from '../strategyIndicators.ts';
 
 test('the rule picker leads with position context, then every computed column, then fundamentals', () => {
   assert.deepEqual(
-    STRATEGY_INDICATOR_OPTIONS.slice(0, 3).map(o => o.value),
-    ['$entry_price', '$target_profit', '$stop_loss'],
+    STRATEGY_INDICATOR_OPTIONS.slice(0, 8).map(o => o.value),
+    [
+      '$entry_price',
+      '$entry_time',
+      '$trailing_stop',
+      '$pullback_low',
+      '$opening_range_high',
+      '$opening_range_low',
+      '$candle_size',
+      '$trade_count',
+    ],
   );
   const rsi = STRATEGY_INDICATOR_OPTIONS.find(o => o.value === 'rsi14');
   assert.deepEqual(rsi, {
@@ -19,5 +28,5 @@ test('the rule picker leads with position context, then every computed column, t
   assert.equal(STRATEGY_INDICATOR_OPTIONS.at(-1)?.value, 'mf');
   const values = STRATEGY_INDICATOR_OPTIONS.map(o => o.value);
   assert.equal(new Set(values).size, values.length);
-  assert.equal(values.length, 3 + 222 + 24);
+  assert.equal(values.length, 8 + 222 + 24);
 });

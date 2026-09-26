@@ -51,6 +51,10 @@ const setupRow = (rows: SetupRows, ...keys: string[]): string => {
   return '';
 };
 
+/** The card's Condition row as the assistant wrote it — what `readingFsm` compiles. */
+export const alertCondition = (rows: SetupRows): string =>
+  setupRow(rows, 'condition', 'entry_condition', 'entry');
+
 /**
  * The assistant's reading of a watch, as the fields a card can render.
  *
@@ -66,7 +70,7 @@ export const alertReading = (
   const rows = setup.rows ?? [];
   const instruments = setupRow(rows, 'stock', 'stocks', 'tickers', 'ticker');
   const alertName = setupRow(rows, 'alert', 'alert_name', 'strategy_name');
-  const condition = setupRow(rows, 'condition', 'entry_condition', 'entry');
+  const condition = alertCondition(rows);
   const timeframe = setupRow(rows, 'timeframe');
 
   const tokens = instruments
@@ -98,6 +102,7 @@ export interface WatchlistDraftConfig {
   symbol?: string;
   timeframe?: string;
   original_query?: string;
+  fsm?: unknown;
 }
 
 /**
@@ -135,5 +140,6 @@ export const draftFromAlert = (
   if (config.timeframe !== undefined) draft.timeframe = config.timeframe;
   if (config.original_query !== undefined)
     draft.original_query = config.original_query;
+  if (config.fsm !== undefined) draft.fsm = config.fsm;
   return draft;
 };

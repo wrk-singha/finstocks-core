@@ -39,6 +39,9 @@ export interface Watchlist {
   symbol?: string;
   timeframe?: string;
   original_query?: string;
+  /** The Condition row compiled for the engine (`readingFsm`), carried to
+   *  create-backtest unchanged: it refuses an alert without one. */
+  fsm?: unknown;
 }
 
 export interface WatchlistsResponse {

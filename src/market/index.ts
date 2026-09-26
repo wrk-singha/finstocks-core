@@ -1,3 +1,15 @@
+export {readingFsm, readingLeaf} from './alertReading.ts';
+
+export {monitorFsm} from './alertRule.ts';
+export type {
+  AlertCondition,
+  AlertLeaf,
+  MonitorAction,
+  MonitorFsm,
+  MonitorState,
+  MonitorTransition,
+} from './alertRule.ts';
+
 export {blackScholesGreeks, impliedForward, yearsToExpiry} from './greeks.ts';
 export type {OptionGreeks} from './greeks.ts';
 
@@ -145,6 +157,7 @@ export type {
 } from './tradeSetup.ts';
 
 export {
+  alertCondition,
   alertReading,
   deriveWatchlistName,
   draftFromAlert,

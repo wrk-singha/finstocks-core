@@ -59,6 +59,7 @@ export {
   alertScopeForChannel,
   defaultAlertPreferences,
 } from './alertChannels.ts';
+export {ALERT_READING_FIELDS} from './alertReadingFields.ts';
 export {ACTION_ICON_NAMES} from './actionIcons.ts';
 export type {ActionIconKey, ActionIconName} from './actionIcons.ts';
 export {CHAT_CATEGORIES, chatCategoryLabels} from './chatCategories.ts';

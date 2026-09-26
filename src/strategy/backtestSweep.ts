@@ -1,7 +1,7 @@
 import type {CreateBacktestRequest} from '../api/trading.ts';
 import type {BacktestSweep} from '../types/backtest.ts';
 import type {ExecutionLogEntry} from '../types/strategyLogs.ts';
-import {extractSetupConfig} from './strategySetupConfig.ts';
+import {setupConfig} from './strategySetupConfig.ts';
 
 export interface SweepSeries {
   readonly key: string;
@@ -81,7 +81,7 @@ export function prepareSweep(
   today = todayIso(),
 ): PreparedVariant[] {
   return sweep.variants.map(variant => {
-    const config = extractSetupConfig(variant.rows);
+    const config = setupConfig(variant.rows, variant.terms);
     if (config.symbol === undefined || config.start_date === undefined) {
       return {label: variant.label, request: null};
     }
@@ -103,6 +103,7 @@ export function prepareSweep(
           : {total_capital: config.total_capital}),
         start_date: config.start_date,
         end_date: config.end_date ?? today,
+        ...(config.fsm === undefined ? {} : {fsm: config.fsm}),
       },
     };
   });

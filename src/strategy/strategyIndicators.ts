@@ -88,6 +88,24 @@ const FUNDAMENTAL_OPTIONS: IndicatorPickerOption[] = [
 ];
 
 /**
+ * Groups worth opening on. Web's picker fits about nine of its collapsed group headers and the
+ * phone's list a handful of rows, so ordering decides what a reader finds without scrolling; the
+ * rest follow in their source order.
+ */
+const LEAD_SECTIONS: readonly string[] = [
+  'Momentum Indicators',
+  'Price & Moving Averages',
+  'OHLCV Data',
+  'Volume & Stochastic',
+  'Volatility & Trend',
+];
+
+const sectionRank = (group: string): number => {
+  const lead = LEAD_SECTIONS.indexOf(group);
+  return lead === -1 ? LEAD_SECTIONS.length : lead;
+};
+
+/**
  * Every indicator a strategy rule can reference, derived from the same indicatorSections the
  * stock-detail panel renders. That config is kept 1:1 with the producer
  * (refresher/database/column_defs.py) and the SQL allowlist, so deriving here means a
@@ -98,6 +116,9 @@ const FUNDAMENTAL_OPTIONS: IndicatorPickerOption[] = [
  * drift resolved 2026-09-13: web won - it appends the in_fundamentals fields, which the mobile
  * picker had not yet grown; the UI DropdownOption (`tag` on web, `description` on mobile) became
  * the plain `group` the apps map.
+ *
+ * Ordered by LEAD_SECTIONS since web de4023e9 (2026-09-18); the list used to open on the eight
+ * position-context variables.
  */
 export const STRATEGY_INDICATOR_OPTIONS: IndicatorPickerOption[] = [
   ...CONTEXT_VARS,
@@ -109,4 +130,4 @@ export const STRATEGY_INDICATOR_OPTIONS: IndicatorPickerOption[] = [
     })),
   ),
   ...FUNDAMENTAL_OPTIONS,
-];
+].sort((a, b) => sectionRank(a.group) - sectionRank(b.group));

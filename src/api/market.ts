@@ -265,8 +265,10 @@ export const depthStreamPath = (symbol: string): string =>
  * backend that has not shipped it yet still answers; the grid reads an empty list as "nothing to
  * show" rather than throwing on the first month.
  */
-interface RecommendationReportWire
-  extends Omit<RecommendationReport, 'monthly_returns'> {
+interface RecommendationReportWire extends Omit<
+  RecommendationReport,
+  'monthly_returns'
+> {
   monthly_returns?: MonthlyPnl[] | null;
 }
 

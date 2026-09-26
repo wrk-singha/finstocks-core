@@ -220,5 +220,8 @@ export function buildConsoleRulesDraft(
     rawFSM: strategy.fsm ?? null,
     strategyId: strategy.strategy_id,
     isParent: strategy.is_parent,
+    isIntraday: strategy.is_intraday,
+    executionMode: strategy.execution_mode,
+    isFno: strategy.is_fno,
   };
 }

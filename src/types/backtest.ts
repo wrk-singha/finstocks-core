@@ -104,6 +104,11 @@ export interface StrategySetup {
    */
   stage?: 'params' | 'confirm' | 'confirmed' | 'run';
   rows: BacktestSetupRow[];
+  /**
+   * Machine-shaped rows, when the card sends both. Only consulted where `terms` is absent, since
+   * those take precedence.
+   */
+  backend_rows?: BacktestSetupRow[];
   terms?: BacktestSetupTerms;
   backtest_offer?: BacktestOffer;
 }

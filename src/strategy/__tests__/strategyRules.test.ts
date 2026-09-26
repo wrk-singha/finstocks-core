@@ -173,6 +173,9 @@ test('buildConsoleRulesDraft preserves the sizing mode and total pool', () => {
     rawFSM: base.fsm,
     strategyId: UUID_A,
     isParent: true,
+    isIntraday: false,
+    executionMode: 'LOOP',
+    isFno: false,
   });
   assert.equal(
     buildConsoleRulesDraft(base, 100000, normalize).sizingMode,

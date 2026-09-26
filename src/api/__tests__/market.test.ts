@@ -247,3 +247,29 @@ test('the fundamentals detail key is one entry per section set, whatever the ord
     ['fundamentals-detail', 'RELIANCE', 'documents', 'S', 0, 50],
   );
 });
+
+test('a screen run is posted with three minutes to build a cold universe', async () => {
+  const {http, calls} = fakeHttp();
+  const api = marketApi(http);
+  const request = {
+    universes: ['nifty50'],
+    symbols: [],
+    industries: ['financial-services'],
+    filters: [{field: 'roe', min: 15}],
+    columns: ['pe'],
+  };
+  await api.getScreenCatalog();
+  await api.runScreen(request);
+  await api.getIndustryTree();
+  assert.deepEqual(
+    calls.map(c => [c.path, c.init?.method, c.init?.body, c.init?.timeoutMs]),
+    [
+      ['/news/screen/fields', undefined, undefined, undefined],
+      ['/news/screen', 'POST', request, 180_000],
+      ['/news/industries', undefined, undefined, undefined],
+    ],
+  );
+  assert.deepEqual(queryKeys.screen.catalog(), ['screen', 'catalog']);
+  assert.deepEqual(queryKeys.screen.run(request), ['screen', 'run', request]);
+  assert.deepEqual(queryKeys.industries.tree(), ['industries', 'tree']);
+});

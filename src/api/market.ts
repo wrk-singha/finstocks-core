@@ -17,6 +17,7 @@ import type {
   GetIndicatorsParams,
   TechnicalIndicatorData,
 } from '../types/indicators.ts';
+import type {IndustryTree} from '../types/industries.ts';
 import type {
   InstitutionalFlowRow,
   MarketDepth,
@@ -37,6 +38,11 @@ import type {
   PatternScanResponse,
 } from '../types/patternScan.ts';
 import type {StockScoreResponse} from '../types/scores.ts';
+import type {
+  ScreenCatalog,
+  ScreenRequest,
+  ScreenResult,
+} from '../types/screen.ts';
 import type {
   ScreenerIndicatorsResponse,
   ScreenerStocksResponse,
@@ -262,6 +268,13 @@ export interface AccordNewsQuery {
   days?: number;
   fincode?: string;
 }
+
+/**
+ * A screen run gets its own timeout: the server builds the universe it screens on first use, and
+ * that read of every company's filings and bars can outlast the client's usual minute. Failing at
+ * sixty seconds would abandon work that was about to finish, and the retry would start it over.
+ */
+const COLD_SCAN_TIMEOUT_MS = 180_000;
 
 /** The order-book socket for one symbol; relative to the API root like the REST paths. */
 export const depthStreamPath = (symbol: string): string =>
@@ -543,6 +556,20 @@ export const marketApi = (http: HttpClient) => ({
   /** Web-only: holders, insider trades and bulk deals for one symbol. */
   getOwnership: (symbol: string) =>
     http.request<GetOwnershipResponse>(`/news/ownership${query({symbol})}`),
+
+  /** Every field a screen can filter on or show, and the universes it can start from. */
+  getScreenCatalog: () => http.request<ScreenCatalog>('/news/screen/fields'),
+
+  /** Runs one screen over the whole listed universe. */
+  runScreen: (request: ScreenRequest) =>
+    http.request<ScreenResult>('/news/screen', {
+      method: 'POST',
+      body: request,
+      timeoutMs: COLD_SCAN_TIMEOUT_MS,
+    }),
+
+  /** The four-level industry tree the sector picker and the industry pages read. */
+  getIndustryTree: () => http.request<IndustryTree>('/news/industries'),
 });
 
 export type MarketApi = ReturnType<typeof marketApi>;

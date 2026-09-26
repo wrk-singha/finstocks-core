@@ -168,3 +168,35 @@ test('signals are capped at six, best first', () => {
     false,
   );
 });
+
+// Bars arrive as zone-less IST digits. A device east of IST reads "2026-08-19
+// 00:00:00" as its own local midnight, which is still the 18th in IST, so a
+// zone-shifted key would pin the story to the wrong session's close.
+test('news keys bars by their own IST digits, so a device east of IST finds the right close', () => {
+  const hostZone = process.env.TZ;
+  process.env.TZ = 'Asia/Tokyo';
+  try {
+    const bar = (date: string, close: number): GraphDataPoint => ({
+      time: `${date} 00:00:00`,
+      open: close,
+      close,
+      high: close + 1,
+      low: close - 1,
+    });
+    const signals = buildStockSignals({
+      daily: [
+        bar('2026-08-18', 100),
+        bar('2026-08-19', 105),
+        bar('2026-08-20', 110),
+      ],
+      lastPrice: 121,
+      now: Date.UTC(2026, 7, 23, 12),
+      news: [news({headline: 'Guidance', analysis_date: '2026-08-19'})],
+    });
+    const story = signals.find(s => s.kind === 'news');
+    assert.equal(story?.metric, '+15.24% since');
+  } finally {
+    if (hostZone === undefined) delete process.env.TZ;
+    else process.env.TZ = hostZone;
+  }
+});

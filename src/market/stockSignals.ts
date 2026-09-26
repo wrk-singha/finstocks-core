@@ -343,6 +343,12 @@ const technicalSignals = ({
  * belongs to the exchange's day, so a device in another timezone would match
  * news to the wrong close.
  */
+// Bar stamps are zone-less IST digits ("2026-09-18 00:00:00"); their first ten
+// characters already are the IST day. `istDayKey(new Date(bar.time))` would
+// read them in the host zone first and shift them into IST again, so east of
+// IST a midnight daily bar keys a day early.
+const barDayKey = (time: string): string => time.slice(0, 10);
+
 const newsSignals = ({
   news,
   daily,
@@ -351,10 +357,11 @@ const newsSignals = ({
 }: SignalInputs): StockSignal[] => {
   if (!news?.length) return [];
 
+  // Keyed by the bar's own digits, not `istDayKey(new Date(bar.time))`: the
+  // `istDayKey(at)` lookup below is keyed off analysis_date, a zone-safe UTC
+  // instant, and a host-zone shift on the bar side makes the two miss.
   const closeByDay = new Map<string, number>();
-  daily.forEach(bar =>
-    closeByDay.set(istDayKey(new Date(bar.time)), bar.close),
-  );
+  daily.forEach(bar => closeByDay.set(barDayKey(bar.time), bar.close));
 
   const current = lastPrice ?? daily[daily.length - 1]?.close ?? null;
 

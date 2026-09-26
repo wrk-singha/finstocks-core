@@ -72,7 +72,7 @@ export const getCurrentPriceFromGraphData = (
 };
 
 /**
- * A watchlist row's quote from its price series. Series arrive newest-first, and `computeDayChange`
+ * An alert match's quote from its price series. Series arrive newest-first, and `computeDayChange`
  * reads them that way: the newest close against the day's first bar while the market is trading,
  * against the previous daily close when the intraday feed is empty.
  */

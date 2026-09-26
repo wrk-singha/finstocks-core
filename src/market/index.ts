@@ -112,6 +112,15 @@ export type {
   StructureMath,
 } from './optionStructures.ts';
 
+export {
+  alertCondition,
+  alertReading,
+  deriveAlertName,
+  draftFromAlert,
+  newSavedAlertId,
+} from './savedAlerts.ts';
+export type {AlertDraftConfig} from './savedAlerts.ts';
+
 export {mapSector, SECTOR_CHIPS} from './sectors.ts';
 export type {CoarseSector} from './sectors.ts';
 
@@ -155,12 +164,3 @@ export type {
   LadderPoint,
   TradeGeometry,
 } from './tradeSetup.ts';
-
-export {
-  alertCondition,
-  alertReading,
-  deriveWatchlistName,
-  draftFromAlert,
-  newWatchlistId,
-} from './watchlists.ts';
-export type {WatchlistDraftConfig} from './watchlists.ts';

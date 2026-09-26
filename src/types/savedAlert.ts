@@ -1,5 +1,5 @@
 /** One instrument a watch resolved to, or one that matched it. */
-export interface WatchlistMatch {
+export interface AlertMatch {
   symbol: string;
   name?: string;
   /** Why it matched, in words. */
@@ -8,15 +8,18 @@ export interface WatchlistMatch {
 }
 
 /**
- * A watchlist is a saved prompt.
+ * An alert is a saved prompt.
  *
  * Not a form. Nobody thinks "kind: condition, universe: NIFTY 500, rsi_max: 40"
  * — they think "tell me when a Nifty 100 stock crosses above its 50 EMA". The
  * sentence is the definition of the watch, and the assistant is what turns it
  * into something that can be evaluated and delivered. Everything below `prompt`
  * is the assistant's reading of it, and is absent until it has read it.
+ *
+ * Not a stock watchlist: "watchlist" names the lists of instruments a person
+ * follows, and these are shown to people as Alerts.
  */
-export interface Watchlist {
+export interface SavedAlert {
   id: string;
   /** What the person typed. The watch, in their words. */
   prompt: string;
@@ -32,8 +35,11 @@ export interface Watchlist {
   /** What the assistant understood the prompt to mean, in one line. */
   summary?: string;
   /** What the watch is following, or what matches it right now. */
-  matches?: WatchlistMatch[];
+  matches?: AlertMatch[];
   last_triggered_at?: string | null;
+  /** What it watches, as the alert's own rule states it ({var, op, val}
+   *  leaves under AND/OR) — read to mark it on the chart once it fires. */
+  condition?: unknown;
   /** The assistant's structured reading of the prompt — carried on the draft
    *  so pressing Create can call create-backtest without re-parsing `prompt`. */
   symbol?: string;
@@ -44,8 +50,9 @@ export interface Watchlist {
   fsm?: unknown;
 }
 
-export interface WatchlistsResponse {
-  watchlists: Watchlist[];
+/** The wire shape: the endpoint predates the rename and still says watchlists. */
+export interface SavedAlertsResponse {
+  watchlists: SavedAlert[];
 }
 
 /**
@@ -56,7 +63,7 @@ export interface WatchlistsResponse {
  * same reading keyed the way the strategy engine names things. The card reads
  * `rows` — it is what the person is being shown and asked to confirm.
  */
-export interface WatchlistAlertSetup {
+export interface AlertSetup {
   stage?: 'confirm' | 'confirmed';
   title?: string;
   rows: {k: string; v?: string}[];

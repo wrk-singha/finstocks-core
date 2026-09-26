@@ -113,5 +113,5 @@ export type {AlertsApi} from './alerts.ts';
 export {memoryApi, memoryDownloadPath} from './memory.ts';
 export type {MemoryApi} from './memory.ts';
 
-export {watchlistApi} from './watchlist.ts';
-export type {WatchlistApi} from './watchlist.ts';
+export {savedAlertsApi} from './savedAlerts.ts';
+export type {SavedAlertsApi} from './savedAlerts.ts';

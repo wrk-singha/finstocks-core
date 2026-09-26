@@ -39,8 +39,8 @@
  * Gaps & Range Breaks. Heikin Ashi returns as rows, not pattern chips: web's PATTERN_SECTIONS still
  * leaves it out, because the Go side only approximates ha_open.
  *
- * What still differs from web (`dc29567e`) is order, not content: web appends Adaptive & Cycle after
- * Standard MACD & Volume Averages, and here it sits before September Additions.
+ * 2026-09-27: Adaptive & Cycle moved to the end, after Standard MACD & Volume Averages, where web
+ * (`dc29567e`) lists it, so the stock screen's sheet and the rule picker read in web's order.
  */
 import {formatCurrency, formatNumber} from '../format/index.ts';
 import type {TechnicalIndicatorData} from '../types/indicators.ts';
@@ -1621,43 +1621,6 @@ const advancedIndicatorSections: IndicatorSection[] = [
     ],
   },
   {
-    title: 'Adaptive & Cycle',
-    fields: [
-      {
-        label: 'FRAMA',
-        key: 'frama',
-        getValue: data => price(data.frama),
-        description:
-          'Fractal Adaptive Moving Average - adapts to fractal dimension',
-      },
-      {
-        label: 'T3 MA',
-        key: 't3_ma',
-        getValue: data => price(data.t3_ma),
-        description: 'Tillson T3 - smoother than EMA with less lag',
-      },
-      {
-        label: 'Schaff Trend Cycle',
-        key: 'schaff_trend_cycle',
-        getValue: data => num(data.schaff_trend_cycle),
-        description: 'MACD run through stochastic cycles - faster turns',
-      },
-      {
-        label: 'Wave Trend',
-        key: 'wave_trend',
-        getValue: data => num(data.wave_trend),
-        description:
-          'Channel-based oscillator for overbought and oversold turns',
-      },
-      {
-        label: 'Random Walk Index',
-        key: 'random_walk_index',
-        getValue: data => num(data.random_walk_index),
-        description: 'Whether the move exceeds what a random walk explains',
-      },
-    ],
-  },
-  {
     // Web keeps these two apart and the split is the meaningful one: everything here is a price
     // level the chart can draw, while the MACD and volume averages below are not. The old app put
     // all thirteen in one section, which would have drawn volume averages as price lines.
@@ -1750,6 +1713,43 @@ const advancedIndicatorSections: IndicatorSection[] = [
         key: 'volume_ma50',
         getValue: data => largeNum(data.volume_ma50),
         description: '50-period average volume',
+      },
+    ],
+  },
+  {
+    title: 'Adaptive & Cycle',
+    fields: [
+      {
+        label: 'FRAMA',
+        key: 'frama',
+        getValue: data => price(data.frama),
+        description:
+          'Fractal Adaptive Moving Average - adapts to fractal dimension',
+      },
+      {
+        label: 'T3 MA',
+        key: 't3_ma',
+        getValue: data => price(data.t3_ma),
+        description: 'Tillson T3 - smoother than EMA with less lag',
+      },
+      {
+        label: 'Schaff Trend Cycle',
+        key: 'schaff_trend_cycle',
+        getValue: data => num(data.schaff_trend_cycle),
+        description: 'MACD run through stochastic cycles - faster turns',
+      },
+      {
+        label: 'Wave Trend',
+        key: 'wave_trend',
+        getValue: data => num(data.wave_trend),
+        description:
+          'Channel-based oscillator for overbought and oversold turns',
+      },
+      {
+        label: 'Random Walk Index',
+        key: 'random_walk_index',
+        getValue: data => num(data.random_walk_index),
+        description: 'Whether the move exceeds what a random walk explains',
       },
     ],
   },

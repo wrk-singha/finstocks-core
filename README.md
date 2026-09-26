@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.15"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.16"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -59,6 +59,16 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.2.16** — web parity phase 1, five shared changes mirrored from web. `RecommendationReport`
+  takes the web shape (`expectancy`, `avg_win_pct`, `avg_loss_pct`, `drawdown_recovery_trades`,
+  `monthly_returns`, `equity_curve[].p`; `closed_count`/`win_count` dropped) with `monthlyGrid` and
+  `MIN_EDGE_SAMPLE` in `strategy/recommendationReport.ts`, and the api reader treats
+  `monthly_returns` as optional at the boundary (web 4f733d3c, 1b63ab44). `parseSizingMode` reads
+  "2 lots" / "10 shares" as QTY and `prepareSweep` builds variants from their terms and passes the
+  FSM through (web 329e8233, de4023e9). `market/alertReading.ts` + `market/alertRule.ts` carry the
+  alert reading map with the corrected volatility labels (web 134e67c3). `newsSignals` keys closes
+  by the bar's own IST day (web cddbfad5). `queryKeys.fno.indexUnderlyings()` and
+  `getFnoIndexUnderlyings` are no longer web-only (web cf431ef3).
 - **v0.2.15** — the rule picker's context variables, 3 to 8. `$target_profit` and `$stop_loss` are
   gone; `$entry_time`, `$trailing_stop`, `$pullback_low`, `$opening_range_high`,
   `$opening_range_low`, `$candle_size` and `$trade_count` take their place. The engine sets an

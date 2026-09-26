@@ -18,6 +18,19 @@ import type {
 } from '../types/console.ts';
 import type {ScreenerStrategy} from '../types/screener.ts';
 import type {Strategy} from '../types/trade.ts';
+import {type QtyUnit, qtyUnit} from './strategyRuleEdit.ts';
+
+// These rows are English throughout; the unit follows the instrument (see qtyUnit), so a lot is
+// never called a share.
+const QTY_UNIT_WORDS: Readonly<
+  Record<QtyUnit, readonly [one: string, other: string]>
+> = {
+  lot: ['lot', 'lots'],
+  share: ['share', 'shares'],
+};
+
+const qtyUnitWord = (isFno: boolean, count: number): string =>
+  QTY_UNIT_WORDS[qtyUnit(isFno)][count === 1 ? 0 : 1];
 
 export interface StrategyRule {
   k: string;
@@ -73,7 +86,12 @@ export function buildStrategyRules(
   if (capital != null) {
     rows.push({
       k: 'Position size',
-      v: formatAllocation(capital, strategy.budget_config?.mode),
+      v: formatAllocation(
+        capital,
+        strategy.budget_config?.mode,
+        0,
+        qtyUnitWord(strategy.is_fno, capital),
+      ),
     });
   }
 
@@ -156,7 +174,14 @@ export function buildConsoleRules(
       : {}),
     ...(strategy.is_intraday ? {timeExit: 'Square off same day'} : {}),
     ...(displayCapital
-      ? {capital: formatAllocation(displayCapital, mode, 0)}
+      ? {
+          capital: formatAllocation(
+            displayCapital,
+            mode,
+            0,
+            qtyUnitWord(strategy.is_fno, displayCapital),
+          ),
+        }
       : {}),
     ...(sizingMethod !== undefined ? {sizingMethod} : {}),
     fsm: strategy.rules ?? null,

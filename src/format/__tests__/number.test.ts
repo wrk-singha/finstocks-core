@@ -99,12 +99,19 @@ test('formatValue collapses every spelling of absent to N/A', () => {
   assert.equal(formatValue(42), '42');
 });
 
-test('formatAllocation reads QTY budgets as a share count', () => {
+test('formatAllocation reads QTY budgets as a count', () => {
   assert.equal(formatAllocation(1500, 'QTY'), '1,500 qty');
   assert.equal(formatAllocation(1500, 'qty'), '1,500 qty');
   assert.equal(formatAllocation(150000, 'AMOUNT'), '₹1,50,000');
   assert.equal(formatAllocation(150000), '₹1,50,000');
   assert.equal(formatAllocation(null, undefined, 2), '₹0.00');
+});
+
+test('formatAllocation names what the count is of when the caller knows', () => {
+  assert.equal(formatAllocation(2, 'QTY', 0, 'lots'), '2 lots');
+  assert.equal(formatAllocation(1500, 'QTY', 0, 'shares'), '1,500 shares');
+  // The unit is a QTY word only; a rupee budget ignores it.
+  assert.equal(formatAllocation(50000, 'AMOUNT', 0, 'lots'), '₹50,000');
 });
 
 test('clamp holds a value inside its bounds', () => {

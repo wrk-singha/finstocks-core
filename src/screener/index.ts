@@ -102,3 +102,12 @@ export type {
   ScreenState,
   WatchlistSymbols,
 } from './screenModel.ts';
+export {
+  indexTree,
+  matchingNodes,
+  nodeName,
+  nodeState,
+  selectedCount,
+  toggleNode,
+} from './industrySelection.ts';
+export type {NodeState, TreeEntry, TreeIndex} from './industrySelection.ts';

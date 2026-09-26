@@ -176,17 +176,20 @@ export const formatValue = (
 };
 
 /**
- * A strategy's budget is sized either by rupee AMOUNT or by share QTY (budget_config.mode).
- * Format the raw value per its mode so QTY strategies read as a share count instead of being
- * mislabelled with a ₹ sign.
+ * A strategy's budget is sized either by rupee AMOUNT or by count QTY (budget_config.mode).
+ * Format the raw value per its mode so QTY strategies read as a count instead of being
+ * mislabelled with a ₹ sign. `unit` names what the count is of when the caller knows the
+ * instrument - QTY is lots in F&O and shares in equity - and falls back to the neutral "qty" when
+ * it does not.
  */
 export const formatAllocation = (
   value: number | null | undefined,
   mode?: string,
   decimals = 0,
+  unit = 'qty',
 ): string =>
   mode?.toUpperCase() === 'QTY'
-    ? `${formatNumber(value ?? 0)} qty`
+    ? `${formatNumber(value ?? 0)} ${unit}`
     : formatCurrency(value, decimals);
 
 /** `value` held inside `[min, max]`. */

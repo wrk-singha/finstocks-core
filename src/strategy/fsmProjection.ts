@@ -29,7 +29,7 @@ interface RawFsm {
   nlp_triggers?: NLPTrigger[];
 }
 
-const OPERATOR_TEXT: Record<string, string> = {
+export const OPERATOR_TEXT: Record<string, string> = {
   '>': 'above',
   '<': 'below',
   '>=': 'at or above',
@@ -76,7 +76,7 @@ const IDENTIFIER = /^[a-z0-9_]+$/i;
 
 // An unbound var compiles to an expression like "atr14 / volume_ma50". It is shown verbatim
 // rather than prettified, because it signals a compiler failure worth seeing.
-function humanizeVar(value: string): string {
+export function humanizeVar(value: string): string {
   if (!IDENTIFIER.test(value)) return value;
   const lower = value.toLowerCase();
   if (UPPERCASE_INDICATORS.some(prefix => lower.startsWith(prefix)))
@@ -84,7 +84,7 @@ function humanizeVar(value: string): string {
   return value.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 }
 
-function humanizeValue(value: unknown): string {
+export function humanizeValue(value: unknown): string {
   if (
     typeof value === 'string' &&
     (value.startsWith('$') || IDENTIFIER.test(value))

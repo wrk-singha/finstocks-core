@@ -60,12 +60,54 @@ export type {IndicatorPickerOption} from './strategyIndicators.ts';
 export {formatLogDateTime, getTradeLogAction} from './strategyLogs.ts';
 export type {LogDateTime, TradeLogAction} from './strategyLogs.ts';
 export {
+  ENTRY_PARTS,
+  entryTokenKey,
+  parseEntryTokenKey,
+  parseRuleFsm,
+  qtyUnit,
+  ruleRepeat,
+  sizingParts,
+  strategyRuleParts,
+  takeProfitPct,
+  withEntryLeafField,
+  withTakeProfitPct,
+  WORDED_TIMEFRAMES,
+  wordedTimeframe,
+} from './strategyRuleEdit.ts';
+export type {
+  EntryTokenPart,
+  QtyUnit,
+  RuleExitPart,
+  RuleRepeat,
+  SizingParts,
+  StrategyRuleParts,
+  WordedTimeframe,
+} from './strategyRuleEdit.ts';
+export {
   buildConsoleRules,
   buildConsoleRulesDraft,
   buildScreenerStrategySpec,
   buildStrategyRules,
 } from './strategyRules.ts';
 export type {StrategyRule, StrategyRuleOptions} from './strategyRules.ts';
+export {
+  BACKTEST_PERIODS,
+  BACKTEST_STALLED_AFTER_MS,
+  backtestDates,
+  CARD_HIGHLIGHT_RUN,
+  clampPeriod,
+  DEFAULT_BACKTEST_PERIOD,
+  isDeploymentOpen,
+  isPeriodAllowed,
+  maxPeriod,
+  periodForWindow,
+  runAgeMs,
+  snapshotRuns,
+} from './strategyRunOptions.ts';
+export type {
+  BacktestPeriodOption,
+  StrategyRunRow,
+} from './strategyRunOptions.ts';
 export {
   extractSetupConfig,
   normalizeSetupKey,

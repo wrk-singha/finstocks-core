@@ -61,10 +61,22 @@ test('buildStrategyRules: overrides, empty overrides, intraday, QTY and mock exe
   assert.deepEqual(rows, [
     {k: 'Universe', v: 'Custom list'},
     {k: 'Entry rule', v: 'EMA 9 crosses above EMA 21'},
-    {k: 'Position size', v: '1,000 qty'},
+    {k: 'Position size', v: '1,000 shares'},
     {k: 'Timeframe', v: 'Intraday · square off same day'},
     {k: 'Execution', v: 'Simulated — no broker'},
   ]);
+  // QTY is a lot count in F&O: the F&O executor multiplies it by the lot size.
+  const lots = (val: number) =>
+    buildStrategyRules(
+      strategy({
+        ...base,
+        is_fno: true,
+        budget_config: {val, mode: 'QTY'},
+      }),
+      {mode: 'MOCK'},
+    ).find(row => row.k === 'Position size')?.v;
+  assert.equal(lots(1), '1 lot');
+  assert.equal(lots(3), '3 lots');
   assert.equal(
     buildStrategyRules(base, {mode: 'LIVE'}).at(-1)?.v,
     'Connected broker',
@@ -109,6 +121,7 @@ test('buildConsoleRules projects the model into read-only rows, sized per budget
       budget_config: {val: 2, mode: 'QTY'},
       timeframe: '1d',
       is_intraday: true,
+      is_fno: true,
       rules: null,
     }),
     100000,
@@ -120,10 +133,17 @@ test('buildConsoleRules projects the model into read-only rows, sized per budget
     takeProfit: '+5%',
     stopLoss: '-2%',
     timeExit: 'Square off same day',
-    capital: '2 qty',
+    capital: '2 lots',
     sizingMethod: 'QTY',
     fsm: null,
   });
+  assert.equal(
+    buildConsoleRules(
+      strategy({...base, budget_config: {val: 1, mode: 'QTY'}}),
+      100000,
+    ).capital,
+    '1 share',
+  );
   const amount = buildConsoleRules(base, 100000);
   assert.equal(amount.universe, 'Custom list');
   assert.equal(amount.capital, '₹1,00,000');
@@ -153,6 +173,9 @@ test('buildConsoleRulesDraft preserves the sizing mode and total pool', () => {
     rawFSM: base.fsm,
     strategyId: UUID_A,
     isParent: true,
+    isIntraday: false,
+    executionMode: 'LOOP',
+    isFno: false,
   });
   assert.equal(
     buildConsoleRulesDraft(base, 100000, normalize).sizingMode,

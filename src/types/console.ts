@@ -99,6 +99,10 @@ export interface ConsoleRulesDraft {
   strategyId?: string;
   /** index strategies - symbol is not editable */
   isParent?: boolean;
+  // Display-only context for the rule steps; not saved by either path.
+  isIntraday?: boolean;
+  executionMode?: string;
+  isFno?: boolean;
 }
 
 export interface ConsolePosition {

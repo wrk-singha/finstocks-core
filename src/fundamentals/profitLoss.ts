@@ -1,0 +1,707 @@
+import {
+  ADJ_EPS_HINT,
+  REPORTED_EPS_HINT,
+  type FormatFamily,
+  type GroupSpec,
+} from './schema.ts';
+
+// Tier 1 is the eight lines that tell you how the business did: what it sold,
+// what it kept, what it paid to lenders and the taxman, what was left, and per
+// share. Tier 2 opens the cost base. Tier 3 is the filing.
+
+const GENERAL: GroupSpec[] = [
+  {
+    id: 'revenue',
+    title: 'Revenue',
+    tier: 1,
+    lines: [
+      {key: 'Net_sales', label: 'Net sales', tier: 1, total: true},
+      {key: 'Gross_sales', label: 'Gross sales', tier: 2},
+      {key: 'Excise', label: 'Excise', tier: 3, expense: true},
+      {key: 'Sales_return', label: 'Sales returns', tier: 3, expense: true},
+      {key: 'Sales', label: 'Sales', tier: 3},
+      {key: 'Total_gross_sales', label: 'Total gross sales', tier: 3},
+      {key: 'Service_income', label: 'Service income', tier: 3},
+      {key: 'Sales_scrap', label: 'Sale of scrap', tier: 3},
+      {key: 'Export_benefits', label: 'Export benefits', tier: 3},
+      {key: 'Subsidy_incentives', label: 'Subsidies and incentives', tier: 3},
+      {key: 'Other_income', label: 'Other income', tier: 2},
+      {key: 'Total_income', label: 'Total income', tier: 2, total: true},
+    ],
+  },
+  {
+    id: 'materials',
+    title: 'Materials and manufacturing',
+    tier: 2,
+    lines: [
+      {
+        key: 'Raw_matrs_consumed',
+        label: 'Raw materials consumed',
+        tier: 2,
+        expense: true,
+      },
+      {
+        key: 'Purchases_RM',
+        label: 'Purchases of raw material',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Purchases_FG',
+        label: 'Purchases of finished goods',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Opening_RM', label: 'Opening stock', tier: 3},
+      {key: 'Closing_RM', label: 'Closing stock', tier: 3},
+      {
+        key: 'Inc_Dec_Inventory',
+        label: 'Change in inventory',
+        tier: 3,
+        hint: 'Increase or decrease in stock of finished goods and work in progress.',
+      },
+      {key: 'Power_Fuel', label: 'Power and fuel', tier: 2, expense: true},
+      {key: 'Electricity', label: 'Electricity', tier: 3, expense: true},
+      {
+        key: 'Spare_consumed',
+        label: 'Stores and spares consumed',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Packing_materials',
+        label: 'Packing materials',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Job_works', label: 'Job work charges', tier: 3, expense: true},
+      {key: 'sub_contract', label: 'Subcontracting', tier: 3, expense: true},
+      {
+        key: 'Sub_contract_charges',
+        label: 'Subcontract charges',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'processing_charges',
+        label: 'Processing charges',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Other_Mfg_Exps',
+        label: 'Other manufacturing expenses',
+        tier: 2,
+        expense: true,
+      },
+    ],
+  },
+  {
+    id: 'people',
+    title: 'People',
+    tier: 2,
+    lines: [
+      {key: 'Employees', label: 'Employee cost', tier: 2, expense: true},
+      {key: 'Salaries', label: 'Salaries and wages', tier: 3, expense: true},
+      {key: 'Staff_welfare', label: 'Staff welfare', tier: 3, expense: true},
+      {
+        key: 'Providend_fund_contri',
+        label: 'Provident fund contribution',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Fringe_benefits',
+        label: 'Fringe benefits',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Traing_exps', label: 'Training', tier: 3, expense: true},
+    ],
+  },
+  {
+    id: 'selling',
+    title: 'Selling and administration',
+    tier: 2,
+    lines: [
+      {
+        key: 'Sellg_Admn_Exps',
+        label: 'Selling and admin expenses',
+        tier: 2,
+        expense: true,
+      },
+      {key: 'Sellg_Exps', label: 'Selling expenses', tier: 3, expense: true},
+      {key: 'Advertising', label: 'Advertising', tier: 3, expense: true},
+      {key: 'Commission', label: 'Commission', tier: 3, expense: true},
+      {key: 'Commision', label: 'Commission', tier: 3, expense: true},
+      {
+        key: 'Brokerage_commission',
+        label: 'Brokerage and commission',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Commission_incentives',
+        label: 'Commission and incentives',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'freight_outward',
+        label: 'Freight outward',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'freight_inward', label: 'Freight inward', tier: 3, expense: true},
+      {
+        key: 'freight_forwardings',
+        label: 'Freight and forwarding',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Handling_clearing',
+        label: 'Handling and clearing',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'packing_expemses',
+        label: 'Packing expenses',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'travelling', label: 'Travelling', tier: 3, expense: true},
+      {key: 'Telephone', label: 'Telephone', tier: 3, expense: true},
+      {
+        key: 'priting_stationery',
+        label: 'Printing and stationery',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'rent_rates_taxes',
+        label: 'Rent, rates and taxes',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'rates_taxes', label: 'Rates and taxes', tier: 3, expense: true},
+      {
+        key: 'repairs_maintenance',
+        label: 'Repairs and maintenance',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'repairs_other_admin',
+        label: 'Other repairs and admin',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Insurance', label: 'Insurance', tier: 3, expense: true},
+      {
+        key: 'professional_charges',
+        label: 'Professional charges',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Auditor_payment',
+        label: 'Auditor remuneration',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Bank_charges', label: 'Bank charges', tier: 3, expense: true},
+      {key: 'Donation', label: 'Donations', tier: 3, expense: true},
+      {key: 'royalty', label: 'Royalty', tier: 3, expense: true},
+      {
+        key: 'Misc_exps',
+        label: 'Miscellaneous expenses',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Total_expendiure',
+        label: 'Total expenditure',
+        tier: 2,
+        total: true,
+        expense: true,
+      },
+    ],
+  },
+  {
+    id: 'profit',
+    title: 'Profit',
+    tier: 1,
+    lines: [
+      {
+        key: 'Operating_profit',
+        label: 'Operating profit (EBITDA)',
+        tier: 1,
+        total: true,
+        hint: 'Profit from operations before interest, tax, depreciation and amortisation.',
+      },
+      {key: 'Gross_profits', label: 'Gross profit', tier: 2},
+      {key: 'Depreciation', label: 'Depreciation', tier: 1, expense: true},
+      {
+        key: 'Depreciation_leased_assets',
+        label: 'Depreciation on leased assets',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Interest', label: 'Interest', tier: 1, expense: true},
+      {
+        key: 'Interest_Term_loans',
+        label: 'Interest on term loans',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Interest_deb',
+        label: 'Interest on debentures',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Interest_other', label: 'Other interest', tier: 3, expense: true},
+      {
+        key: 'Profit_before_exception',
+        label: 'Profit before exceptional items',
+        tier: 2,
+      },
+      {
+        // Tier 1 despite being a one-off, because tier 1 has to reconcile.
+        // Vodafone Idea FY26 files EBITDA 18,632 against depreciation 21,509
+        // and interest 21,325, yet PBT of +34,482 — the bridge is a ~58,000
+        // crore exceptional gain. Hidden, the headline reads as arithmetic
+        // that does not work. The row only renders when the company filed it,
+        // so companies without one lose nothing.
+        key: 'ExceptionalIncome_Expenses',
+        label: 'Exceptional items',
+        tier: 1,
+        hint: 'One-off gains or losses the company reported separately, so they are not read as recurring.',
+      },
+      {key: 'Extr_Items', label: 'Extraordinary items', tier: 3},
+      {key: 'extra_items', label: 'Extraordinary items', tier: 3},
+      {
+        key: 'Profit_before_tax',
+        label: 'Profit before tax',
+        tier: 1,
+        total: true,
+      },
+      {key: 'Taxation', label: 'Tax', tier: 1, expense: true},
+      {key: 'Curr_tax', label: 'Current tax', tier: 3, expense: true},
+      {key: 'Def_tax', label: 'Deferred tax', tier: 3, expense: true},
+      {key: 'Tax', label: 'Tax', tier: 3, expense: true},
+      {
+        key: 'Profit_after_tax',
+        label: 'Profit after tax',
+        tier: 1,
+        total: true,
+      },
+      {key: 'Minority_interest', label: 'Minority interest', tier: 3},
+      {key: 'Share_Associate', label: 'Share of associates', tier: 3},
+      {
+        key: 'Consolidated_NetProfit',
+        label: 'Consolidated net profit',
+        tier: 2,
+      },
+      {key: 'Adj_Net_profit', label: 'Adjusted net profit', tier: 3},
+    ],
+  },
+  {
+    id: 'pershare',
+    title: 'Per share',
+    tier: 1,
+    lines: [
+      {
+        key: 'Adj_Eps',
+        label: 'EPS in ₹',
+        tier: 1,
+        kind: 'rupees',
+        hint: ADJ_EPS_HINT,
+      },
+      {
+        key: 'Reported_EPS',
+        label: 'Reported EPS',
+        tier: 3,
+        kind: 'rupees',
+        hint: REPORTED_EPS_HINT,
+      },
+      {
+        key: 'EPS',
+        label: 'EPS as filed',
+        tier: 3,
+        kind: 'rupees',
+        hint: REPORTED_EPS_HINT,
+      },
+      {key: 'Dividend_perc', label: 'Dividend rate', tier: 2, kind: 'pct'},
+    ],
+  },
+  {
+    id: 'appropriation',
+    title: 'Appropriations',
+    tier: 3,
+    lines: [
+      {
+        key: 'Profit_Brought_forward',
+        label: 'Profit brought forward',
+        tier: 3,
+      },
+      {
+        key: 'Profit_available_appropriation',
+        label: 'Profit available for appropriation',
+        tier: 3,
+      },
+      {
+        key: 'Profit_availble_appr',
+        label: 'Profit available for appropriation',
+        tier: 3,
+      },
+      {key: 'Appropriation', label: 'Appropriation', tier: 3},
+      {
+        key: 'Appropriation_General_Reserve',
+        label: 'To general reserve',
+        tier: 3,
+      },
+      {
+        key: 'Appropriation_Revenue_Reserve',
+        label: 'To revenue reserve',
+        tier: 3,
+      },
+      {
+        key: 'Proposed_Equity_devided',
+        label: 'Proposed equity dividend',
+        tier: 3,
+      },
+      {key: 'Corp_Divd_tax', label: 'Corporate dividend tax', tier: 3},
+      {key: 'Statutory_reserve', label: 'To statutory reserve', tier: 3},
+      {key: 'Other_appropriation', label: 'Other appropriations', tier: 3},
+    ],
+  },
+];
+
+// A bank earns interest and pays interest; "net sales" is not a line it files.
+// Leading with Net Sales here would put a zero at the top of every bank.
+const BANK: GroupSpec[] = [
+  {
+    id: 'interest-earned',
+    title: 'Interest earned',
+    tier: 1,
+    lines: [
+      {key: 'Interest_earned', label: 'Interest earned', tier: 1, total: true},
+      {
+        key: 'Interest_advances_Bills',
+        label: 'On advances and bills',
+        tier: 2,
+      },
+      {key: 'Interest_investment', label: 'On investments', tier: 2},
+      {key: 'Interest_RBI', label: 'On balances with RBI', tier: 3},
+      {key: 'Interest_fixed_deposits', label: 'On fixed deposits', tier: 3},
+      {key: 'Interest_earned_loan', label: 'On loans', tier: 3},
+      {
+        key: 'Other_interest_income',
+        label: 'Other interest income',
+        tier: 3,
+      },
+    ],
+  },
+  {
+    id: 'other-income',
+    title: 'Other income',
+    tier: 2,
+    lines: [
+      {key: 'Interest_Other_income', label: 'Other income', tier: 2},
+      {
+        key: 'Commission',
+        label: 'Commission, exchange and brokerage',
+        tier: 2,
+      },
+      {key: 'Other_income', label: 'Other income', tier: 3},
+      {
+        key: 'Profit_Investment',
+        label: 'Profit on sale of investments',
+        tier: 3,
+      },
+      {
+        key: 'Foreign_exchange_gain',
+        label: 'Foreign exchange gain',
+        tier: 3,
+      },
+      {key: 'Total_income', label: 'Total income', tier: 1, total: true},
+    ],
+  },
+  {
+    id: 'expended',
+    title: 'Interest expended and operating cost',
+    tier: 1,
+    lines: [
+      {key: 'Interest', label: 'Interest expended', tier: 1, expense: true},
+      {key: 'Interest_deb', label: 'On debentures', tier: 3, expense: true},
+      {
+        key: 'Interest_RBI_borrowings',
+        label: 'On RBI borrowings',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Operating_expenses',
+        label: 'Operating expenses',
+        tier: 1,
+        expense: true,
+      },
+      {key: 'Employees', label: 'Employee cost', tier: 2, expense: true},
+      {key: 'Salaries', label: 'Salaries and wages', tier: 3, expense: true},
+      {
+        key: 'rent_rates_taxes',
+        label: 'Rent, rates and taxes',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Depreciation', label: 'Depreciation', tier: 2, expense: true},
+      {
+        key: 'Auditor_payment',
+        label: 'Auditor remuneration',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Misc_exps',
+        label: 'Miscellaneous expenses',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Total',
+        label: 'Total expenditure',
+        tier: 2,
+        total: true,
+        expense: true,
+      },
+      {
+        key: 'Total_expendiure',
+        label: 'Total expenditure',
+        tier: 3,
+        total: true,
+        expense: true,
+      },
+    ],
+  },
+  {
+    id: 'provisions',
+    title: 'Provisions and contingencies',
+    tier: 1,
+    lines: [
+      {
+        key: 'Provisions_contigency',
+        label: 'Provisions and contingencies',
+        tier: 1,
+        expense: true,
+        hint: 'What the bank set aside against loans it may not recover, plus other contingencies.',
+      },
+      {
+        key: 'Provision_advances',
+        label: 'Against advances',
+        tier: 2,
+        expense: true,
+      },
+      {
+        key: 'Provision_investment',
+        label: 'Against investments',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'provision_NPA',
+        label: 'Against non-performing assets',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Provision_other',
+        label: 'Other provisions',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Provision_contigency',
+        label: 'Contingency provisions',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Prov_written_back', label: 'Provisions written back', tier: 3},
+    ],
+  },
+  {
+    id: 'profit',
+    title: 'Profit',
+    tier: 1,
+    lines: [
+      {
+        key: 'Operating_profit',
+        label: 'Operating profit',
+        tier: 1,
+        total: true,
+      },
+      {
+        key: 'Profit_before_tax',
+        label: 'Profit before tax',
+        tier: 1,
+        total: true,
+      },
+      {key: 'Taxation', label: 'Tax', tier: 1, expense: true},
+      {key: 'Tax', label: 'Tax', tier: 3, expense: true},
+      {key: 'Curr_tax', label: 'Current tax', tier: 3, expense: true},
+      {key: 'Def_tax', label: 'Deferred tax', tier: 3, expense: true},
+      {
+        key: 'Profit_after_tax',
+        label: 'Profit after tax',
+        tier: 1,
+        total: true,
+      },
+      {
+        key: 'Consolidated_NetProfit',
+        label: 'Consolidated net profit',
+        tier: 2,
+      },
+      {key: 'Minority_interest', label: 'Minority interest', tier: 3},
+    ],
+  },
+  {
+    id: 'pershare',
+    title: 'Per share',
+    tier: 1,
+    lines: [
+      {
+        key: 'Adj_Eps',
+        label: 'EPS in ₹',
+        tier: 1,
+        kind: 'rupees',
+        hint: ADJ_EPS_HINT,
+      },
+      {
+        key: 'Reported_EPS',
+        label: 'Reported EPS',
+        tier: 3,
+        kind: 'rupees',
+        hint: REPORTED_EPS_HINT,
+      },
+      {key: 'Dividend_perc', label: 'Dividend rate', tier: 2, kind: 'pct'},
+    ],
+  },
+  {
+    id: 'appropriation',
+    title: 'Appropriations',
+    tier: 3,
+    lines: [
+      {
+        key: 'Profit_Brought_forward',
+        label: 'Profit brought forward',
+        tier: 3,
+      },
+      {
+        key: 'Profit_availble_appr',
+        label: 'Profit available for appropriation',
+        tier: 3,
+      },
+      {key: 'Statutory_reserve', label: 'To statutory reserve', tier: 3},
+      {key: 'Appropriation', label: 'Appropriation', tier: 3},
+      {key: 'Other_appropriation', label: 'Other appropriations', tier: 3},
+    ],
+  },
+];
+
+// An NBFC files the general layout but earns on lending, so interest income
+// leads rather than sitting three groups down under "other income".
+const LENDER: GroupSpec[] = [
+  {
+    id: 'revenue',
+    title: 'Income',
+    tier: 1,
+    lines: [
+      {
+        key: 'Net_sales',
+        label: 'Revenue from operations',
+        tier: 1,
+        total: true,
+      },
+      {key: 'Interest_earned_loan', label: 'Interest on loans', tier: 1},
+      {key: 'Interest_income', label: 'Interest income', tier: 2},
+      {
+        key: 'Other_interest_income',
+        label: 'Other interest income',
+        tier: 2,
+      },
+      {key: 'Interest_earned', label: 'Interest earned', tier: 2},
+      {key: 'Dividend_income', label: 'Dividend income', tier: 3},
+      {key: 'Profit_Investment', label: 'Profit on investments', tier: 3},
+      {key: 'Other_income', label: 'Other income', tier: 2},
+      {key: 'Total_income', label: 'Total income', tier: 1, total: true},
+    ],
+  },
+  {
+    id: 'costs',
+    title: 'Costs',
+    tier: 2,
+    lines: [
+      {key: 'Interest', label: 'Finance cost', tier: 1, expense: true},
+      {key: 'Employees', label: 'Employee cost', tier: 2, expense: true},
+      {key: 'Salaries', label: 'Salaries and wages', tier: 3, expense: true},
+      {
+        key: 'Sellg_Admn_Exps',
+        label: 'Selling and admin expenses',
+        tier: 2,
+        expense: true,
+      },
+      {
+        key: 'professional_charges',
+        label: 'Professional charges',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Provision_advances',
+        label: 'Provision against advances',
+        tier: 2,
+        expense: true,
+      },
+      {
+        key: 'provision_NPA',
+        label: 'Provision for NPAs',
+        tier: 2,
+        expense: true,
+      },
+      {
+        key: 'Prov_Doubtfull_debts',
+        label: 'Provision for doubtful debts',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Bad_debts',
+        label: 'Bad debts written off',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Misc_exps',
+        label: 'Miscellaneous expenses',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Total_expendiure',
+        label: 'Total expenditure',
+        tier: 2,
+        total: true,
+        expense: true,
+      },
+    ],
+  },
+  ...GENERAL.filter(g =>
+    ['profit', 'pershare', 'appropriation'].includes(g.id),
+  ),
+];
+
+export const PROFIT_LOSS_SCHEMA: Readonly<
+  Record<FormatFamily, readonly GroupSpec[]>
+> = {general: GENERAL, bank: BANK, lender: LENDER};

@@ -1,0 +1,448 @@
+import type {FormatFamily, GroupSpec} from './schema.ts';
+
+// The quarterly feed is one blob of 156 keys covering every filer type, so a
+// bank's NIM and a manufacturer's raw material cost arrive in the same shape.
+// Splitting by family here is what stops a bank's quarterly opening with an
+// empty "Raw material cost" row.
+
+const GENERAL: GroupSpec[] = [
+  {
+    id: 'revenue',
+    title: 'Revenue',
+    tier: 1,
+    lines: [
+      {key: 'Net_Sales', label: 'Net sales', tier: 1, total: true},
+      {key: 'Gross_Sale', label: 'Gross sales', tier: 3},
+      {key: 'Other_NetSales', label: 'Other operating revenue', tier: 3},
+      {key: 'Excise_Duty', label: 'Excise duty', tier: 3, expense: true},
+      {key: 'Other_Income', label: 'Other income', tier: 2},
+      {key: 'Other_Other_Income', label: 'Other income (other)', tier: 3},
+      {key: 'Total_Income', label: 'Total income', tier: 2, total: true},
+    ],
+  },
+  {
+    id: 'costs',
+    title: 'Costs',
+    tier: 2,
+    lines: [
+      {
+        key: 'Expenditure',
+        label: 'Total expenditure',
+        tier: 2,
+        total: true,
+        expense: true,
+      },
+      {
+        key: 'Raw_Material_Cost',
+        label: 'Raw material cost',
+        tier: 2,
+        expense: true,
+      },
+      {
+        key: 'PURCHASE_FIN_GOOD',
+        label: 'Purchase of finished goods',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Inc_Dec_Inventory', label: 'Change in inventory', tier: 3},
+      {key: 'Exployee_Cost', label: 'Employee cost', tier: 2, expense: true},
+      {
+        key: 'Electricity_Power_Fuel',
+        label: 'Power and fuel',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Mfg_Exps',
+        label: 'Manufacturing expenses',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Gen_AdminExpenses',
+        label: 'General and admin',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Selling_Dist_Expenses',
+        label: 'Selling and distribution',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Job_Works', label: 'Job work', tier: 3, expense: true},
+      {
+        key: 'Misc_Expenses',
+        label: 'Miscellaneous expenses',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Other_Exp', label: 'Other expenses', tier: 3, expense: true},
+      {
+        key: 'Operating_Ex',
+        label: 'Operating expenses',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Expence_Capitalised', label: 'Expenses capitalised', tier: 3},
+    ],
+  },
+  {
+    id: 'profit',
+    title: 'Profit',
+    tier: 1,
+    lines: [
+      {
+        key: 'Operating_Profit',
+        label: 'Operating profit',
+        tier: 1,
+        total: true,
+      },
+      {key: 'GROSS_PROFIT', label: 'Gross profit', tier: 3},
+      {key: 'Interest', label: 'Interest', tier: 1, expense: true},
+      {key: 'Depreciation', label: 'Depreciation', tier: 1, expense: true},
+      {key: 'Exception_Items', label: 'Exceptional items', tier: 1},
+      {key: 'EI', label: 'Extraordinary items', tier: 3},
+      {key: 'Pbt', label: 'Profit before tax', tier: 1, total: true},
+      {key: 'Tax', label: 'Tax', tier: 1, expense: true},
+      {key: 'Curr_tax', label: 'Current tax', tier: 3, expense: true},
+      {key: 'Def_tax', label: 'Deferred tax', tier: 3, expense: true},
+      {key: 'Other_Tax', label: 'Other tax', tier: 3, expense: true},
+      {key: 'Pat', label: 'Profit after tax', tier: 1, total: true},
+      {key: 'Net_Profit', label: 'Net profit', tier: 2, total: true},
+      {
+        key: 'Consolidated_net_profit',
+        label: 'Consolidated net profit',
+        tier: 3,
+      },
+      {
+        key: 'NetProfit_OwnOfParent',
+        label: 'Attributable to owners',
+        tier: 3,
+      },
+      {
+        key: 'NetProfit_NonContInt',
+        label: 'Attributable to minority',
+        tier: 3,
+      },
+      {key: 'Minority_interest', label: 'Minority interest', tier: 3},
+      {key: 'Shares_Associate', label: 'Share of associates', tier: 3},
+      {
+        key: 'Pbt_DiscOperations',
+        label: 'PBT, discontinued operations',
+        tier: 3,
+      },
+      {key: 'Discontinued_Op', label: 'Discontinued operations', tier: 3},
+    ],
+  },
+  {
+    id: 'margins',
+    title: 'Margins and per share',
+    tier: 1,
+    lines: [
+      {key: 'PBIDTM', label: 'EBITDA margin', tier: 1, kind: 'pct'},
+      {key: 'PATM', label: 'Net profit margin', tier: 1, kind: 'pct'},
+      {key: 'PBDTM', label: 'PBDT margin', tier: 3, kind: 'pct'},
+      {key: 'PBTM', label: 'PBT margin', tier: 3, kind: 'pct'},
+      {
+        key: 'PBIDTMEXOI',
+        label: 'EBITDA margin excl. other income',
+        tier: 3,
+        kind: 'pct',
+      },
+      {key: 'eps_basic', label: 'Basic EPS', tier: 1, kind: 'rupees'},
+      {key: 'eps_diluted', label: 'Diluted EPS', tier: 2, kind: 'rupees'},
+      {
+        key: 'eps_basic_extraord',
+        label: 'Basic EPS incl. extraordinary',
+        tier: 3,
+        kind: 'rupees',
+      },
+      {
+        key: 'eps_diluted_extraord',
+        label: 'Diluted EPS incl. extraordinary',
+        tier: 3,
+        kind: 'rupees',
+      },
+      {key: 'EPSAbs', label: 'EPS for the quarter', tier: 3, kind: 'rupees'},
+      {key: 'EPSAnn', label: 'EPS annualised', tier: 3, kind: 'rupees'},
+      {key: 'Adj_eps_abs', label: 'Adjusted EPS', tier: 3, kind: 'rupees'},
+      {
+        key: 'Adj_eps_ann',
+        label: 'Adjusted EPS annualised',
+        tier: 3,
+        kind: 'rupees',
+      },
+      {key: 'Fv', label: 'Face value', tier: 3, kind: 'rupees'},
+    ],
+  },
+  {
+    id: 'comprehensive',
+    title: 'Comprehensive income',
+    tier: 3,
+    lines: [
+      {
+        key: 'Other_CompIncome',
+        label: 'Other comprehensive income',
+        tier: 3,
+      },
+      {
+        key: 'TOTAL_COMPINCOME',
+        label: 'Total comprehensive income',
+        tier: 3,
+        total: true,
+      },
+      {
+        key: 'TotalCompIncome_OwnOfParent',
+        label: 'Attributable to owners',
+        tier: 3,
+      },
+      {
+        key: 'MININT_COMPINCOME',
+        label: 'Attributable to minority',
+        tier: 3,
+      },
+      {
+        key: 'Items_Classif_PL',
+        label: 'Items to be reclassified to P&L',
+        tier: 3,
+      },
+      {
+        key: 'Items_NotClassif_PL',
+        label: 'Items not to be reclassified to P&L',
+        tier: 3,
+      },
+    ],
+  },
+  {
+    id: 'capital',
+    title: 'Capital and promoter holding',
+    tier: 2,
+    lines: [
+      {key: 'Equity_Cap', label: 'Equity capital', tier: 2},
+      {key: 'Reserves', label: 'Reserves', tier: 2},
+      {key: 'PREF_CAP', label: 'Preference capital', tier: 3},
+      {
+        key: 'Prom_Percent_Of_Shares',
+        label: 'Promoter holding',
+        tier: 2,
+        kind: 'pct',
+      },
+      {
+        key: 'Govt_Percent_Of_Shares',
+        label: 'Government holding',
+        tier: 3,
+        kind: 'pct',
+      },
+      {
+        key: 'percentage_pledgedpromoter',
+        label: 'Promoter shares pledged',
+        tier: 2,
+        kind: 'pct',
+        hint: "Share of the promoter's own holding that is pledged against borrowing.",
+      },
+      {
+        key: 'Percentage_PledgedCapital',
+        label: 'Pledged as % of capital',
+        tier: 3,
+        kind: 'pct',
+      },
+      {
+        key: 'Percentage_NonPledgedPromoter',
+        label: 'Promoter shares not pledged',
+        tier: 3,
+        kind: 'pct',
+      },
+      {
+        key: 'Prom_No_Of_Shares',
+        label: 'Promoter shares',
+        tier: 3,
+        kind: 'shares',
+      },
+      {
+        key: 'Encumbered_NOS',
+        label: 'Encumbered shares',
+        tier: 3,
+        kind: 'shares',
+      },
+    ],
+  },
+  {
+    id: 'ratios',
+    title: 'Reported ratios',
+    tier: 3,
+    lines: [
+      {
+        key: 'Debt/Equity Ratio',
+        label: 'Debt to equity',
+        tier: 3,
+        kind: 'ratio',
+      },
+      {
+        key: 'Interest Coverage Ratio',
+        label: 'Interest cover',
+        tier: 3,
+        kind: 'x',
+      },
+      {
+        key: 'Inventory Turnover Ratio',
+        label: 'Inventory turnover',
+        tier: 3,
+        kind: 'x',
+      },
+      {
+        key: 'Debtor Turnover Ratio',
+        label: 'Debtor turnover',
+        tier: 3,
+        kind: 'x',
+      },
+      {
+        key: 'Return on Capital Employed',
+        label: 'Return on capital employed',
+        tier: 3,
+        kind: 'pct',
+      },
+      {
+        key: 'Dividend payout ratio',
+        label: 'Dividend payout',
+        tier: 3,
+        kind: 'pct',
+      },
+      {
+        key: 'Dividend per share',
+        label: 'Dividend per share',
+        tier: 3,
+        kind: 'rupees',
+      },
+    ],
+  },
+];
+
+const BANK: GroupSpec[] = [
+  {
+    id: 'income',
+    title: 'Income',
+    tier: 1,
+    lines: [
+      {key: 'Net_Sales', label: 'Interest earned', tier: 1, total: true},
+      {key: 'Int_Adv', label: 'On advances and bills', tier: 2},
+      {key: 'Inc_Inv', label: 'On investments', tier: 2},
+      {key: 'Int_Bal', label: 'On balances with RBI', tier: 3},
+      {key: 'Int_Others', label: 'Other interest', tier: 3},
+      {
+        key: 'Other_Interest_income',
+        label: 'Other interest income',
+        tier: 3,
+      },
+      {key: 'Other_Income', label: 'Other income', tier: 1},
+      {key: 'Rev_Fee_Comm', label: 'Fees and commission', tier: 3},
+      {key: 'Rev_Div_Income', label: 'Dividend income', tier: 3},
+      {
+        key: 'Rev_Gain_Fairvalue',
+        label: 'Gain on fair value changes',
+        tier: 3,
+      },
+      {key: 'Total_Income', label: 'Total income', tier: 1, total: true},
+    ],
+  },
+  {
+    id: 'costs',
+    title: 'Expenses and provisions',
+    tier: 1,
+    lines: [
+      {key: 'Interest', label: 'Interest expended', tier: 1, expense: true},
+      {
+        key: 'Operating_Ex',
+        label: 'Operating expenses',
+        tier: 1,
+        expense: true,
+      },
+      {key: 'Exployee_Cost', label: 'Employee cost', tier: 2, expense: true},
+      {
+        key: 'Gen_AdminExpenses',
+        label: 'General and admin',
+        tier: 3,
+        expense: true,
+      },
+      {key: 'Depreciation', label: 'Depreciation', tier: 3, expense: true},
+      {
+        key: 'Prov_Emp',
+        label: 'Provisions for employees',
+        tier: 3,
+        expense: true,
+      },
+      {
+        key: 'Expenditure',
+        label: 'Total expenditure',
+        tier: 2,
+        total: true,
+        expense: true,
+      },
+      {
+        key: 'Misc_Expenses',
+        label: 'Miscellaneous expenses',
+        tier: 3,
+        expense: true,
+      },
+    ],
+  },
+  {
+    id: 'asset-quality',
+    title: 'Asset quality and capital',
+    tier: 1,
+    lines: [
+      {key: 'NPA_Gross_perc', label: 'Gross NPA', tier: 1, kind: 'pct'},
+      {key: 'NPA_Net_perc', label: 'Net NPA', tier: 1, kind: 'pct'},
+      {key: 'NPA_Gross', label: 'Gross NPA amount', tier: 2},
+      {key: 'NPA_Net', label: 'Net NPA amount', tier: 2},
+      {
+        key: 'Provisions_Coverage',
+        label: 'Provision coverage',
+        tier: 1,
+        kind: 'pct',
+        hint: 'Share of bad loans already provided for. Higher means fewer surprises left.',
+      },
+      {key: 'NIM', label: 'Net interest margin', tier: 1, kind: 'pct'},
+      {key: 'CASA', label: 'CASA ratio', tier: 1, kind: 'pct'},
+      {key: 'CASA_AMOUNT', label: 'CASA amount', tier: 3},
+      {key: 'Roa', label: 'Return on assets', tier: 2, kind: 'pct'},
+      {
+        key: 'Cap_Ratio_Percent',
+        label: 'Capital adequacy',
+        tier: 1,
+        kind: 'pct',
+      },
+      {key: 'Tier1basel3', label: 'Tier 1, Basel III', tier: 2, kind: 'pct'},
+      {key: 'Tier2basel3', label: 'Tier 2, Basel III', tier: 3, kind: 'pct'},
+      {
+        key: 'Tier_I_Basel_II',
+        label: 'Tier 1, Basel II',
+        tier: 3,
+        kind: 'pct',
+      },
+      {
+        key: 'Tier_2_Basel_II',
+        label: 'Tier 2, Basel II',
+        tier: 3,
+        kind: 'pct',
+      },
+    ],
+  },
+  {
+    id: 'network',
+    title: 'Network',
+    tier: 2,
+    lines: [
+      {key: 'No_of_Branches', label: 'Branches', tier: 2, kind: 'count'},
+      {key: 'No_of_ATMs', label: 'ATMs', tier: 2, kind: 'count'},
+      {key: 'No_of_Employes', label: 'Employees', tier: 2, kind: 'count'},
+    ],
+  },
+  ...GENERAL.filter(g =>
+    ['profit', 'margins', 'comprehensive', 'capital'].includes(g.id),
+  ),
+];
+
+export const QUARTERLY_SCHEMA: Readonly<
+  Record<FormatFamily, readonly GroupSpec[]>
+> = {general: GENERAL, bank: BANK, lender: GENERAL};

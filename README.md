@@ -20,6 +20,10 @@ registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/co
 - `src/data/` — static data: brokers (no logos — those are app assets), lot sizes, holidays,
   stocks, indicators config, wizard steps, lessons, alert channels.
 - `src/format/` — number, date, text and market-calendar formatting (IST, hoisted Intl formatters).
+- `src/fundamentals/` — how a filed statement is read: the per-family line schemas and disclosure
+  tiers, the Screener-style tables (quarterly results, profit & loss with its trailing twelve
+  months, balance sheet, cash flows, ratios, share capital) and the SEBI shareholding tree. Line
+  labels are English data, as in `src/data/`.
 - `src/queryKeys.ts` — the React Query key factory both apps build keys with.
 - `src/api/` — endpoint definitions over the `HttpClient` contract in `api/http.ts`: each domain
   exports a factory (`tradingApi(http)`), paths are relative to the API root without `/api`,
@@ -29,7 +33,7 @@ registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/co
   extension, and the code uses only erasable syntax (no enums, no namespaces, no parameter
   properties — `tsc` enforces it). ESLint blocks React, React Native, DOM, fetch, storage and app
   aliases inside `src/`.
-- Subpath imports: `@finstocks/core` (everything), or `@finstocks/core/{types,market,trading,strategy,screener,portfolio,data,format,queryKeys,api,tokens}`.
+- Subpath imports: `@finstocks/core` (everything), or `@finstocks/core/{types,market,trading,strategy,screener,portfolio,fundamentals,data,format,queryKeys,api,tokens}`.
 - `tokens/src/*.json` — the design-token source (colour light/dark, type, space, motion).
 - `tokens/scripts/build.mjs` — generates `src/tokens/index.ts` and `tokens/dist/tokens.css`.
 - `tokens/test/` — WCAG contrast assertions (a `KNOWN_FAILURES` allowlist, empty since decision H8).

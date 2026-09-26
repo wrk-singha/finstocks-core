@@ -49,12 +49,13 @@ const toAmount = (v: string | number | undefined): number | undefined => {
 };
 
 // Matched by keyword, not exact token - the LLM writes this as a phrase ("percent of capital"),
-// not the backend's enum value.
+// not the backend's enum value. LOT and SHARE are here because the sizing row reads "2 lots" /
+// "10 shares", and without them such a row fell through to the backend's AMOUNT default.
 const parseSizingMode = (val: string): ConsoleSizingMode | undefined => {
   const upper = val.toUpperCase();
   if (upper.includes('RISK')) return 'RISK_PERCENT';
   if (upper.includes('PERCENT') || upper.includes('%')) return 'PERCENT';
-  if (upper.includes('QTY') || upper.includes('QUANTITY')) return 'QTY';
+  if (/QTY|QUANTITY|LOT|SHARE/.test(upper)) return 'QTY';
   if (upper.includes('AMOUNT')) return 'AMOUNT';
   return undefined;
 };

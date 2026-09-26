@@ -38,7 +38,12 @@ const PROMOTER = 'Ftotalpromoter';
 const INSTITUTIONS = 'INSubtotal';
 const NON_INSTITUTIONS = 'NINSubtotal';
 const FOREIGN_INSTITUTIONAL: readonly string[] = ['INFII', 'INForeignPortInv'];
-const GOVERNMENT: readonly string[] = ['INcgovt', 'INDcgovt'];
+// The government that holds as a public shareholder, inside the institutions.
+// INDcgovt is not this: it is a government that is the promoter (the President
+// of India in a state-owned company), already inside Ftotalpromoter. Counted
+// here as well, that stake would be drawn twice and subtracted from
+// institutions it was never part of, zeroing DII.
+const GOVERNMENT: readonly string[] = ['INcgovt'];
 
 // The order a stacked bar or a doughnut lays them out in.
 const BUCKET_ORDER: readonly OwnershipBucketKey[] = [

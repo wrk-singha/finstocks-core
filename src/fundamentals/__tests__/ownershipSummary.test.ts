@@ -136,6 +136,36 @@ test('an institutional class nobody has named still lands in DII, so the total s
   );
 });
 
+test("a state-owned company's promoter government is the promoter, not a second government slice", () => {
+  // The President of India as promoter (INDcgovt, inside Ftotalpromoter),
+  // and a state government holding as a public institution (INcgovt).
+  const ownership = filing([202606], {
+    Ftotalpromoter: [58.89],
+    INDSubtotal: [58.89],
+    INDcgovt: [58.89],
+    Totalpublic: [41.11],
+    INSubtotal: [30.1],
+    INForeignPortInv: [7.5],
+    INMFUTI: [6.2],
+    INInsurance: [10.9],
+    INFIBanks: [0.9],
+    INProviPenFund: [0.4],
+    INAltInvFund: [0.1],
+    INcgovt: [4.1],
+    NINSubtotal: [11.01],
+    GrandTotal: [100],
+  });
+  const buckets = ownershipBuckets(ownership, 0);
+  assert.deepEqual(buckets, [
+    {key: 'promoter', pct: 58.89},
+    {key: 'fii', pct: 7.5},
+    {key: 'dii', pct: 18.5},
+    {key: 'government', pct: 4.1},
+    {key: 'public', pct: 11.01},
+  ]);
+  assert.equal(sum(buckets), 100);
+});
+
 test('with no institutions subtotal on file, DII is left out rather than guessed', () => {
   const ownership = filing([202606], {
     Ftotalpromoter: [50.3],

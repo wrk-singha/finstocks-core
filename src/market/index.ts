@@ -140,6 +140,20 @@ export type {
   StockSignal,
 } from './stockSignals.ts';
 
+export {
+  exceedsWatchlistCap,
+  freshSymbols,
+  MAX_WATCHLIST_ITEMS,
+  MAX_WATCHLISTS,
+  pruneSections,
+  upsertWatchlist,
+  watchlistMembership,
+  withItemsReplaced,
+  withSymbolRemoved,
+  withSymbolsAdded,
+} from './stockWatchlists.ts';
+export type {WatchlistMembership} from './stockWatchlists.ts';
+
 export {extractUnderlyingSymbol, isFnOSymbol, stockLogoUrl} from './symbols.ts';
 
 export {

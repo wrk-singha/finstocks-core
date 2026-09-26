@@ -9,6 +9,7 @@ import type {
   FundamentalsSection,
   StatementBasis,
 } from './types/fundamentalsDetail.ts';
+import type {WatchlistSearchType} from './types/stockWatchlist.ts';
 
 /**
  * Centralized React Query key factory.
@@ -332,4 +333,46 @@ export const queryKeys = {
   /** ["watchlists", "pending-watch"] — the sentence/draft the open chat is
    *  working out, shared between the portfolio pane and the chat card. */
   pendingWatch: () => ['watchlists', 'pending-watch'],
+
+  /**
+   * The account's stock watchlists — the lists of instruments a person
+   * follows, not the saved alerts above. `lists()` is the prefix of every
+   * other key here, so a prefix invalidation reaches all of them; the list
+   * writes themselves target it `exact`.
+   */
+  stockWatchlists: {
+    /** ["stock-watchlists"] — every list on the account */
+    lists: () => ['stock-watchlists'],
+    /** ["stock-watchlists", "write"] — a mutation key, not a query: every
+     *  list write carries it, so `isMutating` can tell the last of a burst */
+    writes: () => ['stock-watchlists', 'write'],
+    /** ["stock-watchlists", "details", listId, symbols] — one list's
+     *  advanced-view rows. Keyed on the symbols too, joined, so an add or a
+     *  remove refetches the rows it changed. */
+    details: (listId: string | undefined, symbols: readonly string[]) => [
+      'stock-watchlists',
+      'details',
+      listId,
+      symbols.join(','),
+    ],
+    /** ["stock-watchlists", "flags"] — colour flags, one per symbol across
+     *  every list */
+    flags: () => ['stock-watchlists', 'flags'],
+    /** ["stock-watchlists", "removed"] — what came off a list, newest first */
+    removed: () => ['stock-watchlists', 'removed'],
+    /** ["stock-watchlists", "search", type, TERM] — trimmed and upper-cased,
+     *  so a change of case never splits the cache */
+    search: (term: string, type: WatchlistSearchType) => [
+      'stock-watchlists',
+      'search',
+      type,
+      term.trim().toUpperCase(),
+    ],
+  },
+  /** ["shared-stock-watchlist", shareId] — a list opened from its public
+   *  link. Outside the account's prefix: the viewer need not own it. */
+  sharedStockWatchlist: (shareId: string | undefined) => [
+    'shared-stock-watchlist',
+    shareId,
+  ],
 };

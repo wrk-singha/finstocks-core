@@ -30,6 +30,7 @@
     "./strategy": "./src/strategy/index.ts",
     "./screener": "./src/screener/index.ts",
     "./portfolio": "./src/portfolio/index.ts",
+    "./fundamentals": "./src/fundamentals/index.ts",
     "./data": "./src/data/index.ts",
     "./format": "./src/format/index.ts",
     "./queryKeys": "./src/queryKeys.ts",

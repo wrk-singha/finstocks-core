@@ -30,6 +30,7 @@ export * from './trading/index.ts';
 export * from './strategy/index.ts';
 export * from './screener/index.ts';
 export * from './portfolio/index.ts';
+export * from './fundamentals/index.ts';
 export * from './api/index.ts';
 export {queryKeys} from './queryKeys.ts';
 // Runtime values that live beside their types (types/index.ts is type-only).

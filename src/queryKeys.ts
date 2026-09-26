@@ -1,6 +1,7 @@
 // Type-only: a value import here drags screenerFilters -> screenerIndicators ->
 // data/indicatorsConfig (59 KB) onto the startup path, since queryKeys is reached
 // from app/_layout via use-notification-observer.
+import type {ScreenRequest} from './types/screen.ts';
 import type {
   ScreenerBackendFilters,
   ScreenerTimeframe,
@@ -306,4 +307,18 @@ export const queryKeys = {
   /** ["watchlists", "pending-watch"] — the sentence/draft the open chat is
    *  working out, shared between the portfolio pane and the chat card. */
   pendingWatch: () => ['watchlists', 'pending-watch'],
+
+  screen: {
+    /** ["screen", "catalog"] — the field catalogue; asking for it also starts the server warming
+     *  the universe a screen reads. */
+    catalog: () => ['screen', 'catalog'],
+    /** ["screen", "run", request] — the request is the whole question: universes, symbols,
+     *  industries, filters and columns all change the answer. */
+    run: (request: ScreenRequest) => ['screen', 'run', request],
+  },
+
+  industries: {
+    /** ["industries", "tree"] — the classification tree, refreshed with the daily master. */
+    tree: () => ['industries', 'tree'],
+  },
 };

@@ -23,6 +23,20 @@ export type HttpClient = {
   request<T>(path: string, init?: RequestInit): Promise<T>;
 };
 
+/**
+ * The HTTP status a host's rejected request carries: `status` on mobile's `ApiError`,
+ * `response.status` on an axios error. Undefined for anything else thrown, so a caller that
+ * turns one status into an answer never mistakes a transport failure for it.
+ */
+export function statusOf(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const {status, response} = error as {status?: unknown; response?: unknown};
+  if (typeof status === 'number') return status;
+  if (typeof response !== 'object' || response === null) return undefined;
+  const nested = (response as {status?: unknown}).status;
+  return typeof nested === 'number' ? nested : undefined;
+}
+
 /** Builds `?a=1&b=2` from defined values only; an empty object yields ''. */
 export function query(
   params: Readonly<

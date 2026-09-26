@@ -12,6 +12,7 @@ export type * from './dataTable.ts';
 export type * from './dividends.ts';
 export type * from './fno.ts';
 export type * from './fundamentals.ts';
+export type * from './fundamentalsDetail.ts';
 export type * from './futures.ts';
 export type * from './graphData.ts';
 export type * from './indicators.ts';

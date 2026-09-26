@@ -5,6 +5,10 @@ import type {
   ScreenerBackendFilters,
   ScreenerTimeframe,
 } from './types/screenerFilters.ts';
+import type {
+  FundamentalsSection,
+  StatementBasis,
+} from './types/fundamentalsDetail.ts';
 
 /**
  * Centralized React Query key factory.
@@ -151,6 +155,27 @@ export const queryKeys = {
     'fundamentals',
     symbols,
     market,
+  ],
+  /**
+   * ["fundamentals-detail", symbol, sections, basis, periods, limit] — one entry per section
+   * set, basis and depth, which is what makes the surface progressive: opening Financials
+   * fetches the statements and leaves ownership unfetched, and asking for every year is a
+   * second, wider entry that does not invalidate the five-year one on screen. The sections are
+   * sorted and joined, so the same set asked in another order is the same entry.
+   */
+  fundamentalsDetail: (
+    symbol: string | null,
+    sections: readonly FundamentalsSection[],
+    basis: StatementBasis,
+    periods: number,
+    limit?: number,
+  ) => [
+    'fundamentals-detail',
+    symbol,
+    [...sections].sort().join(','),
+    basis,
+    periods,
+    limit,
   ],
   /** ["technicals", symbols, market, timeframe] */
   technicals: (symbols: string[], market: string, timeframe: string) => [

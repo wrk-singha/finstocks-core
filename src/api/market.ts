@@ -7,6 +7,13 @@ import type {
 } from '../types/fno.ts';
 import type {GetFundamentalsResponse} from '../types/fundamentals.ts';
 import type {
+  FundamentalsOwnership,
+  FundamentalsSection,
+  GetFundamentalsDetailResponse,
+  OwnershipCategory,
+  StatementBasis,
+} from '../types/fundamentalsDetail.ts';
+import type {
   GetIndicatorsParams,
   TechnicalIndicatorData,
 } from '../types/indicators.ts';
@@ -43,7 +50,7 @@ import type {
   GetStockEventsResponse,
 } from '../types/stockEvents.ts';
 import type {HttpClient} from './http.ts';
-import {query} from './http.ts';
+import {query, statusOf} from './http.ts';
 import {joinQuery, repeatedParam, symbolQuery} from './params.ts';
 
 export interface RecommendationsQuery {
@@ -279,6 +286,36 @@ const readRecommendationReport = (
   monthly_returns: report.monthly_returns ?? [],
 });
 
+/**
+ * The filing as the server sends it. Go serialises a nil slice as null, so a company whose
+ * shareholding rows carried no measure answers `categories: null`; the register readers iterate
+ * it, so it is filled once here rather than guarded in every one of them.
+ */
+interface FundamentalsOwnershipWire extends Omit<
+  FundamentalsOwnership,
+  'categories'
+> {
+  categories: OwnershipCategory[] | null;
+}
+
+interface FundamentalsDetailWire extends Omit<
+  GetFundamentalsDetailResponse,
+  'ownership'
+> {
+  ownership?: FundamentalsOwnershipWire | null;
+}
+
+const readFundamentalsDetail = ({
+  ownership,
+  ...detail
+}: FundamentalsDetailWire): GetFundamentalsDetailResponse =>
+  ownership == null
+    ? detail
+    : {
+        ...detail,
+        ownership: {...ownership, categories: ownership.categories ?? []},
+      };
+
 export const marketApi = (http: HttpClient) => ({
   getRecommendations: (params?: RecommendationsQuery) =>
     http.request<MarketRecommendationsResponse>(
@@ -435,6 +472,40 @@ export const marketApi = (http: HttpClient) => ({
     http.request<GetFundamentalsResponse[]>(
       `/news/fundamentals${joinQuery(symbolQuery(symbols), query({market, fields}))}`,
     ),
+
+  /**
+   * The filing as filed, one request per section set: statements, quarterly results with their
+   * filings, the shareholding register, deliveries and documents. `periods` 0 asks for every
+   * period on file. `limit` caps each documents list and is sent only when given, so the other
+   * sections' requests are unchanged.
+   *
+   * 404 is the answer for a company with nothing on file, so it resolves to null. Every other
+   * status throws: a 502 swallowed into null would be cached as "filed nothing" for as long as the
+   * host keeps the answer fresh, and nothing downstream could tell the difference.
+   */
+  getFundamentalsDetail: async (
+    symbol: string,
+    sections: readonly FundamentalsSection[],
+    basis: StatementBasis = 'C',
+    periods = 5,
+    limit?: number,
+  ): Promise<GetFundamentalsDetailResponse | null> => {
+    const path = `/news/fundamentals/detail${query({
+      symbol,
+      sections: sections.join(','),
+      basis,
+      periods,
+      limit,
+    })}`;
+    try {
+      return readFundamentalsDetail(
+        await http.request<FundamentalsDetailWire>(path),
+      );
+    } catch (error) {
+      if (statusOf(error) === 404) return null;
+      throw error;
+    }
+  },
 
   getTechnicals: (params: GetIndicatorsParams) =>
     http.request<TechnicalIndicatorData[]>(

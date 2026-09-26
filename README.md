@@ -5,7 +5,7 @@ market/trading/strategy maths, static data, query keys, endpoint definitions, an
 design tokens. No React, React Native, DOM, `fetch`, or storage imports (lint-enforced).
 
 Consumers: `finstocks-mobile` and `DownStocks/frontend`, which install it as a **git-tag
-dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.2.16"`;
+dependency** for now (`"@finstocks/core": "git+https://github.com/wrk-singha/finstocks-core.git#v0.3.0"`;
 the `github:` shorthand makes Yarn 1 fall back to SSH), moving to a
 registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/core/tokens`,
 `@finstocks/core/tokens.css`.
@@ -63,6 +63,34 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.3.0** — web parity phase 2, the foundations the phase-3 features stand on. A minor
+  because two changes break callers:
+  - **Saved alerts renamed** (web 21aeeca2): the `/watchlists` records are `SavedAlert`,
+    `AlertMatch`, `SavedAlertsResponse` and `AlertSetup`, served by `savedAlertsApi`
+    (`getSavedAlerts` / `saveSavedAlerts` / `deleteSavedAlert`) and keyed by
+    `queryKeys.savedAlerts()`; `market/savedAlerts.ts` holds `deriveAlertName` and
+    `newSavedAlertId`. The endpoint, the wire field, the cache key arrays and the
+    `watchlist_alert` card type keep their old names. `SavedAlert.condition` is web's 564af137.
+  - **Crore formatting** (web 6e4b8a95): `formatCroreCompact` prints lakh crore at ₹1L Cr and up
+    and grouped crore below (no more "₹1.82K Cr"); `formatCompactQuantity` is the one compact
+    count (K, L, Cr, no ₹) and `formatOi` is now its alias.
+
+  Added: the fundamentals detail client, types and key (`getFundamentalsDetail`, a 404 is `null`;
+  web 1d4a3c31, e9e33bc0); `@finstocks/core/fundamentals` with web's statement schemas and table
+  builders, the SEBI ownership tree and `ownershipBuckets` (web 6fb2ccdc, 74fecbb1, cbecdebb,
+  95fda334); the stock watchlist client, types, list helpers and keys (web 0c327488, 950917a3);
+  the screen engine: types, `getScreenCatalog` / `runScreen` (180 s per request) /
+  `getIndustryTree`, the screen model, industry selection and the prebuilt screens (web
+  1485be7d); the nineteen restored pattern flags, taking the indicator catalogue to web's 241,
+  with Adaptive & Cycle now last as on web (web 45b4d103); the strategy run options, rule steps
+  and sizing words, `BACKTEST_STALLED_AFTER_MS`, the rule picker's lead sections and
+  `StrategySetup.backend_rows` (web bf4b9c8b, 3a0be772, de4023e9, ee2d1df9).
+
+  Two places where core deliberately reads differently from web, each its own revertable commit,
+  to be raised on web: `resolveGroups` gives a filed line one owner, so a lender's or bank's
+  Interest (and a bank's quarterly Depreciation) prints once instead of as two rows (5380474);
+  the ownership split's Government is `INcgovt` only, because `INDcgovt` is the promoter
+  government already inside Promoters, which web counts twice (a PSU read 140%) (9e70544).
 - **v0.2.16** — web parity phase 1, five shared changes mirrored from web. `RecommendationReport`
   takes the web shape (`expectancy`, `avg_win_pct`, `avg_loss_pct`, `drawdown_recovery_trades`,
   `monthly_returns`, `equity_curve[].p`; `closed_count`/`win_count` dropped) with `monthlyGrid` and

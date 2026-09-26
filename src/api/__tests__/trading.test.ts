@@ -10,6 +10,7 @@ import {
   premiumStreamPath,
   tradingApi,
 } from '../trading.ts';
+import {queryKeys} from '../../queryKeys.ts';
 import {fakeHttp} from './fakeHttp.ts';
 
 test('orders carry the idempotency key and a normalised order_type', async () => {
@@ -255,6 +256,12 @@ test('web-only reads', async () => {
   );
   assert.equal(calls[2]?.path, '/trading/fno/index-underlyings');
   assert.equal(idx[0]?.symbol, 'NIFTY');
+});
+
+test('the index underlyings list is one cache entry for both apps', async () => {
+  assert.deepEqual(queryKeys.fno.indexUnderlyings(), ['fno-index-underlyings']);
+  const {http} = fakeHttp([{}]);
+  assert.deepEqual(await tradingApi(http).getFnoIndexUnderlyings(), []);
 });
 
 test('stream paths are relative to the API root and encode their params', () => {

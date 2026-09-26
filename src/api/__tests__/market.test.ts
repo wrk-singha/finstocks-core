@@ -109,3 +109,19 @@ test('the depth stream path is relative to the API root', () => {
   );
   assert.equal(depthStreamPath('M&M'), '/market/depth/stream?symbol=M%26M');
 });
+
+test('the reports fill in monthly_returns when the server leaves it out', async () => {
+  const months = [{month: '2026-09', pnl: 1900, trades: 2}];
+  const {http} = fakeHttp([
+    {hit_count: 1, closed_trades: []},
+    {hit_count: 1, closed_trades: [], monthly_returns: null},
+    {hit_count: 2, closed_trades: [], monthly_returns: months},
+  ]);
+  const api = marketApi(http);
+  assert.deepEqual((await api.getRecommendationReport()).monthly_returns, []);
+  assert.deepEqual((await api.getStrategyReport()).monthly_returns, []);
+  assert.deepEqual(
+    (await api.getRecommendationReport()).monthly_returns,
+    months,
+  );
+});

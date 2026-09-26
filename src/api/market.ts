@@ -18,6 +18,7 @@ import type {
   MarketNewsResponse,
   MarketOverview,
   MarketRecommendationsResponse,
+  MonthlyPnl,
   RecommendationReport,
 } from '../types/market.ts';
 import type {AccordNewsResponse, GetAccordNewsParams} from '../types/news.ts';
@@ -259,6 +260,23 @@ export interface AccordNewsQuery {
 export const depthStreamPath = (symbol: string): string =>
   `/market/depth/stream${query({symbol})}`;
 
+/**
+ * The report as the server sends it. monthly_returns joined the contract after the rest, so a
+ * backend that has not shipped it yet still answers; the grid reads an empty list as "nothing to
+ * show" rather than throwing on the first month.
+ */
+interface RecommendationReportWire
+  extends Omit<RecommendationReport, 'monthly_returns'> {
+  monthly_returns?: MonthlyPnl[] | null;
+}
+
+const readRecommendationReport = (
+  report: RecommendationReportWire,
+): RecommendationReport => ({
+  ...report,
+  monthly_returns: report.monthly_returns ?? [],
+});
+
 export const marketApi = (http: HttpClient) => ({
   getRecommendations: (params?: RecommendationsQuery) =>
     http.request<MarketRecommendationsResponse>(
@@ -268,11 +286,17 @@ export const marketApi = (http: HttpClient) => ({
       })}`,
     ),
 
-  getRecommendationReport: () =>
-    http.request<RecommendationReport>('/market/recommendation-report'),
+  getRecommendationReport: async (): Promise<RecommendationReport> =>
+    readRecommendationReport(
+      await http.request<RecommendationReportWire>(
+        '/market/recommendation-report',
+      ),
+    ),
 
-  getStrategyReport: () =>
-    http.request<RecommendationReport>('/market/strategy-report'),
+  getStrategyReport: async (): Promise<RecommendationReport> =>
+    readRecommendationReport(
+      await http.request<RecommendationReportWire>('/market/strategy-report'),
+    ),
 
   getMarketOverview: () => http.request<MarketOverview>('/market/overview'),
 

@@ -158,3 +158,56 @@ test('an open-ended sweep variant ends today by default', () => {
   const end = prepareSweep(sweep, 'Sweep')[1]?.request?.end_date;
   assert.match(end ?? '', /^\d{4}-\d{2}-\d{2}$/);
 });
+
+test('a variant with terms is prepared from them, rules as the query and the compiled FSM through', () => {
+  const fsm = {initial_state: 'IDLE', states: {}};
+  // The rows deliberately disagree with the terms: the prose beside "Tickers" must not become
+  // the symbol when the tool already said which one it meant.
+  const [variant] = prepareSweep(
+    {
+      stage: 'confirm',
+      variants: [
+        {
+          label: 'RSI < 30',
+          rows: [
+            {k: 'Tickers', v: 'Tata Consultancy Services'},
+            {k: 'Strategy Name', v: 'RSI dip buyer'},
+            {k: 'Backtest Period', v: '2026-01-01 to 2026-02-01'},
+          ],
+          terms: {
+            tickers: 'tcs',
+            strategy_name: 'RSI Dip',
+            entry_condition: 'RSI(14) < 30',
+            exit_condition: 'RSI(14) > 70',
+            backtest_start: '2026-06-01',
+            backtest_end: '2026-09-01',
+            fsm,
+          },
+        },
+      ],
+    },
+    'Sweep',
+    '2026-09-11',
+  );
+  assert.deepEqual(variant, {
+    label: 'RSI < 30',
+    request: {
+      symbol: 'TCS',
+      strategy_hname: 'RSI Dip — RSI < 30',
+      timeframe: '1d',
+      is_intraday: false,
+      execution_mode: 'LOOP',
+      original_query: 'RSI(14) < 30\nRSI(14) > 70',
+      allocated_amount: 100_000,
+      start_date: '2026-06-01',
+      end_date: '2026-09-01',
+      fsm,
+    },
+  });
+});
+
+test('a variant without terms carries no fsm key at all', () => {
+  const request = prepareSweep(sweep, 'Sweep', '2026-09-11')[0]?.request;
+  assert.ok(request);
+  assert.equal('fsm' in request, false);
+});

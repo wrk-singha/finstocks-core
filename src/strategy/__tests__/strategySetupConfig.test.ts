@@ -54,8 +54,17 @@ test('extractSetupConfig: sizing keywords, execution modes and explicit dates', 
     extractSetupConfig([{k: 'sizing_mode', v: 'fixed amount'}]).sizing_mode,
     'AMOUNT',
   );
+  // "2 lots" (F&O) and "10 shares" (equity) are how the sizing row is written; either is a QTY.
   assert.equal(
-    extractSetupConfig([{k: 'sizing_mode', v: 'shares'}]).sizing_mode,
+    extractSetupConfig([{k: 'sizing_mode', v: '2 lots'}]).sizing_mode,
+    'QTY',
+  );
+  assert.equal(
+    extractSetupConfig([{k: 'sizing_mode', v: '10 shares'}]).sizing_mode,
+    'QTY',
+  );
+  assert.equal(
+    extractSetupConfig([{k: 'sizing_mode', v: 'per trade'}]).sizing_mode,
     undefined,
   );
   assert.equal(

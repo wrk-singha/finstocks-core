@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {projectRawFsm} from '../fsmProjection.ts';
+import {
+  humanizeValue,
+  humanizeVar,
+  OPERATOR_TEXT,
+  projectRawFsm,
+} from '../fsmProjection.ts';
 
 const fsm = {
   initial_state: 'IDLE',
@@ -112,4 +117,16 @@ test('projectRawFsm returns null when there is nothing to render', () => {
       nlp_triggers: triggers,
     },
   );
+});
+
+test('the wording the rule steps share with the projection', () => {
+  assert.equal(OPERATOR_TEXT['>='], 'at or above');
+  assert.equal(OPERATOR_TEXT.crosses_below, 'crosses below');
+  assert.equal(humanizeVar('rsi14'), 'RSI14');
+  assert.equal(humanizeVar('close_price'), 'Close Price');
+  // An unbound var is a compiler failure worth seeing, so it is shown as written.
+  assert.equal(humanizeVar('atr14 / volume_ma50'), 'atr14 / volume_ma50');
+  assert.equal(humanizeValue('$entry_price'), '$entry_price');
+  assert.equal(humanizeValue('ema50'), 'EMA50');
+  assert.equal(humanizeValue(30), '30');
 });

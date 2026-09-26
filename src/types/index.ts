@@ -31,6 +31,7 @@ export type * from './screener.ts';
 export type * from './screenerFilters.ts';
 export type * from './stockEvents.ts';
 export type * from './strategyLogs.ts';
+export type * from './strategyRun.ts';
 export type * from './terminal.ts';
 export type * from './trade.ts';
 export type * from './user.ts';

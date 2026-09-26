@@ -283,6 +283,8 @@ export const queryKeys = {
     expiries: (underlying: string) => ['fno-expiries', underlying],
     /** ["fno-top-traded"] — the most traded futures contracts today */
     topTraded: () => ['fno-top-traded'],
+    /** ["fno-index-underlyings"] — the index underlyings with a listed option chain */
+    indexUnderlyings: () => ['fno-index-underlyings'],
   },
 
   /** ["stockScore", symbol] — one stock's FinStocks score and pillars */

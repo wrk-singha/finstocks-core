@@ -641,8 +641,9 @@ export const tradingApi = (http: HttpClient) => ({
   },
 
   /**
-   * Web-only: the index underlyings whose option chains can actually be
-   * opened — NIFTY100 and INDIAVIX are real indices with no listed options.
+   * The index underlyings whose option chains can actually be opened —
+   * NIFTY100 and INDIAVIX are real indices with no listed options, and the
+   * static `FNO_INDEX_UNDERLYINGS` offers them anyway.
    */
   getFnoIndexUnderlyings: async (): Promise<FnoIndexUnderlying[]> => {
     const res = await http.request<{underlyings?: FnoIndexUnderlying[]}>(

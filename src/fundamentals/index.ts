@@ -63,3 +63,15 @@ export {
   OWNERSHIP_TREE,
 } from './ownership.ts';
 export type {OwnershipNode} from './ownership.ts';
+
+export {
+  diiConstituents,
+  latestPctIndex,
+  ownershipBuckets,
+} from './ownershipSummary.ts';
+export type {
+  DiiConstituentKey,
+  OwnershipBucket,
+  OwnershipBucketKey,
+  OwnershipConstituent,
+} from './ownershipSummary.ts';

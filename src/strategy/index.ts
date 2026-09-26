@@ -41,7 +41,15 @@ export {
   toConsolePosition,
 } from './consoleRows.ts';
 export {projectRawFsm} from './fsmProjection.ts';
-export {istDayOfMonth, istYMD, tradeReturnPct} from './recommendationReport.ts';
+export {
+  istDayOfMonth,
+  istYMD,
+  MIN_EDGE_SAMPLE,
+  monthlyGrid,
+  MONTHS_SHOWN,
+  tradeReturnPct,
+} from './recommendationReport.ts';
+export type {MonthCell} from './recommendationReport.ts';
 export {
   conflictWarning,
   findConflictingStrategies,

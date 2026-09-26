@@ -56,33 +56,48 @@ export interface ClosedTrade {
   strategy_name?: string;
 }
 
-/** Cumulative realized-PnL step, keyed by resolution time. */
+/** Cumulative realized P&L after one closed trade, with the running peak it is
+ *  measured against — `p - c` is the drawdown at that trade. */
 export interface EquityPoint {
   t: string;
   c: number;
+  p: number;
+}
+
+/** Realized P&L of the trades that closed in one IST month ("YYYY-MM"). */
+export interface MonthlyPnl {
+  month: string;
+  pnl: number;
+  trades: number;
 }
 
 /** GET /api/market/recommendation-report (stock picks) and
  *  /api/market/strategy-report (strategy picker trades). One shape, two sources —
- *  the drawer renders either through the same components. Trade-quality stats are
- *  derived from this month's closed recommendations; nullable when there are none.
- *  Drawdown is ₹ only (no capital base exists to express it as a percentage). */
+ *  the drawer renders either through the same components. Edge metrics cover
+ *  every closed trade and are null when there is nothing to derive them from.
+ *  ₹ figures are per recommended position; % figures are the entry → exit price
+ *  move. No capital base exists, so there is no % drawdown or return on capital. */
 export interface RecommendationReport {
   won_pct: number | null;
   monthly_pnl: number;
   total_setups: number;
   hit_count: number;
-  avg_return_pct: number | null;
   updated_at: string | null;
   profit_factor: number | null;
+  expectancy: number | null;
+  avg_return_pct: number | null;
   avg_win: number | null;
   avg_loss: number | null;
+  avg_win_pct: number | null;
+  avg_loss_pct: number | null;
+  /** Null when no trade closed in profit. */
   best_trade: number | null;
-  closed_count: number;
-  win_count: number;
   max_drawdown_inr: number;
+  /** Trades the worst drawdown took to regain its peak; null while unrecovered. */
+  drawdown_recovery_trades: number | null;
   closed_trades: ClosedTrade[];
   equity_curve: EquityPoint[];
+  monthly_returns: MonthlyPnl[];
 }
 
 /** GET /api/market/overview. Sector return %s live in MarketMovers (computed from

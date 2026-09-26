@@ -30,6 +30,7 @@ export {
   formatAllocation,
   formatCompactINR,
   formatCompactInr,
+  formatCompactQuantity,
   formatCrore,
   formatCroreCompact,
   formatMarketCap,

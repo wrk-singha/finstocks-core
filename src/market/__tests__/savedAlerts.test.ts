@@ -3,34 +3,34 @@ import {test} from 'node:test';
 
 import {
   alertReading,
-  deriveWatchlistName,
+  deriveAlertName,
   draftFromAlert,
-  newWatchlistId,
-} from '../watchlists.ts';
+  newSavedAlertId,
+} from '../savedAlerts.ts';
 
 test('ids are unique strings', () => {
-  const a = newWatchlistId();
+  const a = newSavedAlertId();
   assert.equal(typeof a, 'string');
-  assert.notEqual(a, newWatchlistId());
+  assert.notEqual(a, newSavedAlertId());
 });
 
 test('names drop the lead-in, take the first clause and cap the length', () => {
   assert.equal(
-    deriveWatchlistName('Tell me when Reliance breaks out. Also TCS.'),
+    deriveAlertName('Tell me when Reliance breaks out. Also TCS.'),
     'Reliance breaks out',
   );
   assert.equal(
-    deriveWatchlistName('please can you alert me if   nifty drops 2%'),
+    deriveAlertName('please can you alert me if   nifty drops 2%'),
     'Nifty drops 2%',
   );
   assert.equal(
-    deriveWatchlistName(
+    deriveAlertName(
       'watch for a golden cross on any of the private banks in the nifty',
       30,
     ),
     'A golden cross on any of the…',
   );
-  assert.equal(deriveWatchlistName('...'), '...');
+  assert.equal(deriveAlertName('...'), '...');
 });
 
 const setup = {

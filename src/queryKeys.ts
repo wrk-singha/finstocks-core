@@ -326,8 +326,9 @@ export const queryKeys = {
     ],
   },
 
-  /** ["watchlists"] — the account's saved watches (drafts + active) */
-  watchlists: () => ['watchlists'],
+  /** ["watchlists"] — the account's saved alerts (drafts + active); the key
+   *  keeps the endpoint's pre-rename name */
+  savedAlerts: () => ['watchlists'],
   /** ["watchlists", "pending-watch"] — the sentence/draft the open chat is
    *  working out, shared between the portfolio pane and the chat card. */
   pendingWatch: () => ['watchlists', 'pending-watch'],

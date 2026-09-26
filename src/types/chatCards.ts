@@ -6,8 +6,8 @@ import type {
   PortfolioAnalysisPosition,
 } from './portfolioAnalysis.ts';
 import type {PortfolioSimPayload} from './portfolioSim.ts';
+import type {AlertSetup} from './savedAlert.ts';
 import type {OrderSide, OrderType} from './trade.ts';
-import type {WatchlistAlertSetup} from './watchlist.ts';
 
 /**
  * Typed chat card list emitted by the LLM on the completion frame (`cards[]`).
@@ -37,7 +37,7 @@ export type ChatCard =
   | {type: 'suggested_strategies'; payload?: {template_ids?: number[]}}
   | {type: 'backtest'; payload: BacktestSetup}
   | {type: 'backtest_sweep'; payload: BacktestSweep}
-  | {type: 'watchlist_alert'; payload: WatchlistAlertSetup}
+  | {type: 'watchlist_alert'; payload: AlertSetup}
   | {
       type: 'portfolio_sim';
       investment_amount?: number;

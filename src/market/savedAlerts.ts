@@ -1,5 +1,5 @@
 import {normalizeSetupKey} from '../strategy/strategySetupConfig.ts';
-import type {Watchlist, WatchlistAlertSetup} from '../types/watchlist.ts';
+import type {AlertSetup, SavedAlert} from '../types/savedAlert.ts';
 
 // drift resolved 2026-09-13: the mobile always minted the `wl_` id; the web
 // prefers `crypto.randomUUID` with the same fallback, which wins because
@@ -11,7 +11,7 @@ const randomUuid = (): string | null =>
     globalThis as {crypto?: {randomUUID?: () => string}}
   ).crypto?.randomUUID?.() ?? null;
 
-export const newWatchlistId = (): string =>
+export const newSavedAlertId = (): string =>
   randomUuid() ??
   `wl_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
@@ -29,7 +29,7 @@ const LEAD_INS =
  * real name once it has read the prompt, and a heuristic that tried harder would
  * just be wrong in more interesting ways.
  */
-export const deriveWatchlistName = (prompt: string, maxLength = 52): string => {
+export const deriveAlertName = (prompt: string, maxLength = 52): string => {
   const cleaned = prompt.trim().replace(LEAD_INS, '').replace(/\s+/g, ' ');
   const firstClause =
     (cleaned.split(/[.;\n]/)[0] ?? '').trim() || prompt.trim();
@@ -61,12 +61,12 @@ export const alertCondition = (rows: SetupRows): string =>
  * The `submit_watchlist_alert` confirm table is the only place the instruments,
  * the condition and the timeframe exist as separate fields, so this is where a
  * watch stops being a sentence and starts being something that can be evaluated.
- * Everything here is `Watchlist`'s assistant-supplied half — the half the
+ * Everything here is `SavedAlert`'s assistant-supplied half — the half the
  * interface documents as "absent until it has read it".
  */
 export const alertReading = (
-  setup: WatchlistAlertSetup,
-): Pick<Watchlist, 'name' | 'summary' | 'matches'> => {
+  setup: AlertSetup,
+): Pick<SavedAlert, 'name' | 'summary' | 'matches'> => {
   const rows = setup.rows ?? [];
   const instruments = setupRow(rows, 'stock', 'stocks', 'tickers', 'ticker');
   const alertName = setupRow(rows, 'alert', 'alert_name', 'strategy_name');
@@ -85,8 +85,8 @@ export const alertReading = (
 
   const line = [scope, condition].filter(Boolean).join(' — ');
 
-  const reading: Pick<Watchlist, 'name' | 'summary' | 'matches'> = {
-    name: alertName || deriveWatchlistName(condition || instruments),
+  const reading: Pick<SavedAlert, 'name' | 'summary' | 'matches'> = {
+    name: alertName || deriveAlertName(condition || instruments),
     matches: symbols.map(symbol => ({symbol: symbol.toUpperCase()})),
   };
   if (line) reading.summary = timeframe ? `${line} (${timeframe})` : line;
@@ -98,7 +98,7 @@ export const alertReading = (
  * host app extracts it with its strategy setup parser and passes it in, so the
  * draft can call create-backtest without re-parsing `prompt`.
  */
-export interface WatchlistDraftConfig {
+export interface AlertDraftConfig {
   symbol?: string;
   timeframe?: string;
   original_query?: string;
@@ -119,17 +119,17 @@ export interface WatchlistDraftConfig {
  * condition read back is the closest thing to what they asked for.
  */
 export const draftFromAlert = (
-  setup: WatchlistAlertSetup,
-  config: WatchlistDraftConfig,
+  setup: AlertSetup,
+  config: AlertDraftConfig,
   prompt?: string,
   now: Date = new Date(),
-): Watchlist => {
+): SavedAlert => {
   const reading = alertReading(setup);
   // An empty prompt box is no prompt: the reading stands in for it.
   const typed = prompt?.trim();
   const own = typed !== undefined && typed.length > 0 ? typed : undefined;
-  const draft: Watchlist = {
-    id: newWatchlistId(),
+  const draft: SavedAlert = {
+    id: newSavedAlertId(),
     prompt: own ?? reading.summary ?? reading.name,
     status: 'draft',
     notify: true,

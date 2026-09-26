@@ -1,4 +1,8 @@
-import {formatCurrency, formatNumber} from '../format/index.ts';
+import {
+  formatCompactQuantity,
+  formatCurrency,
+  formatNumber,
+} from '../format/index.ts';
 import type {OptionChainRow, OptionOrderDraft} from '../types/fno.ts';
 import {daysToExpiry} from './optionStructures.ts';
 
@@ -91,20 +95,12 @@ export const optionContractLabel = (
     .filter(Boolean)
     .join(' ');
 
-const trimZeros = (s: string): string =>
-  s.includes('.') ? s.replace(/\.?0+$/, '') : s;
-
 // Open interest is a contract count, not a rupee figure, so `formatCurrency` and
 // `formatCroreCompact` (which expects a value already denominated in crore) do
-// not fit. Indian market convention: L = lakh (1e5), Cr = crore (1e7).
-export const formatOi = (value: number, decimals = 2): string => {
-  const sign = value < 0 ? '-' : '';
-  const abs = Math.abs(value);
-  if (abs >= 1e7) return `${sign}${trimZeros((abs / 1e7).toFixed(decimals))}Cr`;
-  if (abs >= 1e5) return `${sign}${trimZeros((abs / 1e5).toFixed(decimals))}L`;
-  if (abs >= 1e3) return `${sign}${trimZeros((abs / 1e3).toFixed(1))}K`;
-  return `${sign}${abs.toFixed(0)}`;
-};
+// not fit. It is on the same Indian scale as session volume and share
+// quantities, so it reads through the one shared implementation, kept under its
+// domain name because that is what every chain call site asks for.
+export const formatOi = formatCompactQuantity;
 
 // IV arrives as a fraction (0.0943 = 9.43%); 0 means the side has not quoted
 // yet. Two decimals because a percentage point of IV is real money on a

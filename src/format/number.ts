@@ -67,19 +67,58 @@ export const formatCompactInr = (value: number | null | undefined): string => {
   return `${sign}₹${String(Math.round(abs))}`;
 };
 
+const trimZeros = (s: string): string =>
+  s.includes('.') ? s.replace(/\.?0+$/, '') : s;
+
 /**
- * Crore-denominated figures, read the way an Indian investor says them out loud. Distinct from
- * `formatCompactInr`, which takes rupees — these values arrive already in crore, so dividing
- * again would be wrong by a factor of 1e7.
+ * A traded count on the Indian scale — session volume, open interest, share and contract
+ * quantities: `formatCompactQuantity(698_310_750)` → `69.83Cr`. No currency symbol: these are
+ * things, not rupees.
+ *
+ * Every one of these figures is read as a magnitude, not looked up digit by digit, and at market
+ * scale the raw grouping stops being readable — a session volume prints as "69,83,10,750", which
+ * nobody parses as "roughly seventy crore". The scale letters are the ones an Indian trader
+ * already reads on an exchange screen: K (1e3), L (lakh, 1e5), Cr (crore, 1e7).
+ *
+ * `formatQuantity` stays the choice for a figure meant to be read exactly — an order quantity, a
+ * lot size — where dropping digits would hide what the user is actually sending to the broker.
+ */
+// Web calls this `formatQuantity`. Core's `formatQuantity` already prints grouped whole units and
+// the apps read it for order quantities, so the compact one takes its own name rather than
+// changing what an existing name prints.
+export const formatCompactQuantity = (
+  value: number | null | undefined,
+  decimals = 2,
+): string => {
+  const amount = value ?? 0;
+  const sign = amount < 0 ? '-' : '';
+  const abs = Math.abs(amount);
+  if (abs >= 1e7) return `${sign}${trimZeros((abs / 1e7).toFixed(decimals))}Cr`;
+  if (abs >= 1e5) return `${sign}${trimZeros((abs / 1e5).toFixed(decimals))}L`;
+  if (abs >= 1e3) return `${sign}${trimZeros((abs / 1e3).toFixed(1))}K`;
+  return `${sign}${abs.toFixed(0)}`;
+};
+
+/**
+ * Crore-denominated figures, read the way an Indian investor says them out loud: a mega-cap is
+ * "₹11.50L Cr", not "1,150,000.00 Cr". Distinct from `formatCompactInr`, which takes rupees —
+ * these values arrive already in crore, so dividing again would be wrong by a factor of 1e7.
+ *
+ * Lakh crore is the only scale letter, because it is the only one anyone says. A ₹98,931 Cr
+ * company is "ninety-nine thousand crore", and the "₹98.93K Cr" this used to print mixes an
+ * English magnitude prefix into an Indian unit to save four characters — the reader spends them
+ * converting it back. Below a lakh crore the figure is simply grouped, which is how every Indian
+ * exchange, broker and newspaper prints it.
  */
 export const formatCroreCompact = (
   value: number | null | undefined,
 ): string => {
   if (value == null) return 'N/A';
   const abs = Math.abs(value);
-  if (abs >= 100_000) return `₹${(value / 100_000).toFixed(2)}L Cr`;
-  if (abs >= 1_000) return `₹${(value / 1_000).toFixed(2)}K Cr`;
-  return `₹${value.toFixed(0)} Cr`;
+  if (abs >= 1e5) return `₹${(value / 1e5).toFixed(2)}L Cr`;
+  // One decimal under ₹100 Cr: rounding a ₹40.4 Cr micro-cap to a whole number is fine, rounding
+  // a sub-crore figure to "₹0 Cr" is not.
+  return `₹${formatNumber(value, abs < 100 ? 1 : 0)} Cr`;
 };
 
 /** Prefix `+` on a positive value; formatted negatives already carry their `-`. */

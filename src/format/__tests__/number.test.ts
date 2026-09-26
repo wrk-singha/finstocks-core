@@ -6,6 +6,7 @@ import {
   formatAllocation,
   formatCompactINR,
   formatCompactInr,
+  formatCompactQuantity,
   formatCrore,
   formatCroreCompact,
   formatCurrency,
@@ -56,9 +57,48 @@ test('formatCompactInr abbreviates by crore, lakh, thousand', () => {
 
 test('formatCroreCompact takes values already in crore', () => {
   assert.equal(formatCroreCompact(null), 'N/A');
+  assert.equal(formatCroreCompact(undefined), 'N/A');
   assert.equal(formatCroreCompact(123_456), '₹1.23L Cr');
-  assert.equal(formatCroreCompact(1_234), '₹1.23K Cr');
-  assert.equal(formatCroreCompact(12.4), '₹12 Cr');
+  assert.equal(formatCroreCompact(1_150_000), '₹11.50L Cr');
+  assert.equal(formatCroreCompact(100_000), '₹1.00L Cr');
+});
+
+test('formatCroreCompact groups below a lakh crore instead of mixing in a K', () => {
+  assert.equal(formatCroreCompact(98_931), '₹98,931 Cr');
+  assert.equal(formatCroreCompact(1_234), '₹1,234 Cr');
+  assert.equal(formatCroreCompact(250), '₹250 Cr');
+  assert.equal(formatCroreCompact(1_234.6), '₹1,235 Cr');
+});
+
+test('formatCroreCompact keeps one decimal under ₹100 Cr, so a sub-crore figure is not ₹0', () => {
+  assert.equal(formatCroreCompact(40.4), '₹40.4 Cr');
+  assert.equal(formatCroreCompact(12.4), '₹12.4 Cr');
+  assert.equal(formatCroreCompact(0.4), '₹0.4 Cr');
+  assert.equal(formatCroreCompact(0), '₹0.0 Cr');
+});
+
+test('formatCompactQuantity reads a count on the Indian scale, without a ₹', () => {
+  assert.equal(formatCompactQuantity(698_310_750), '69.83Cr');
+  assert.equal(formatCompactQuantity(12_500_000), '1.25Cr');
+  assert.equal(formatCompactQuantity(20_000_000), '2Cr');
+  assert.equal(formatCompactQuantity(520_000), '5.2L');
+  assert.equal(formatCompactQuantity(100_000), '1L');
+  assert.equal(formatCompactQuantity(12_600), '12.6K');
+  assert.equal(formatCompactQuantity(1_000), '1K');
+  assert.equal(formatCompactQuantity(999), '999');
+  assert.equal(formatCompactQuantity(-12_500_000), '-1.25Cr');
+  assert.equal(formatCompactQuantity(-999), '-999');
+});
+
+test('formatCompactQuantity takes its decimals on lakh and crore, one on thousands', () => {
+  assert.equal(formatCompactQuantity(1_234_567, 1), '12.3L');
+  assert.equal(formatCompactQuantity(123_456_789, 0), '12Cr');
+  assert.equal(formatCompactQuantity(12_345, 0), '12.3K');
+});
+
+test('formatCompactQuantity reads an absent count as zero', () => {
+  assert.equal(formatCompactQuantity(null), '0');
+  assert.equal(formatCompactQuantity(undefined), '0');
 });
 
 test('withSign only adds a plus', () => {

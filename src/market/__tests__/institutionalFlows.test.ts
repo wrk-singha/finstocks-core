@@ -36,8 +36,9 @@ test('direction words and the signed crore figure', () => {
   assert.equal(flowVerb(-1), 'sold');
   assert.equal(flowVerb(2), 'bought');
   assert.equal(flowDirection(-1), 'selling');
-  assert.equal(signedCrore(1234), '+₹1.23K Cr');
+  assert.equal(signedCrore(1234), '+₹1,234 Cr');
   assert.equal(signedCrore(-250), '−₹250 Cr');
+  assert.equal(signedCrore(-123_456), '−₹1.23L Cr');
 });
 
 test('the pair is built newest-first with the streak of the latest direction', () => {

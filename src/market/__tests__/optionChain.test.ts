@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
+import {formatCompactQuantity} from '../../format/number.ts';
 import type {OptionChainRow} from '../../types/fno.ts';
 import {
   buildOiLadder,
@@ -126,6 +127,11 @@ test('OI, IV and premium formatters follow the Indian conventions', () => {
   assert.equal(formatIv(0), '—');
   assert.equal(formatPremium(1240.5), '₹1,240.50');
   assert.equal(formatPremium(null), '—');
+});
+
+test('open interest reads through the one compact count formatter', () => {
+  assert.equal(formatOi, formatCompactQuantity);
+  assert.equal(formatOi(1_234_567, 1), '12.3L');
 });
 
 const chain = [

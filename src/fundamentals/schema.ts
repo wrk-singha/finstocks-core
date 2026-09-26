@@ -135,11 +135,24 @@ export function resolveGroups(
   const claimed = new Set<string>();
   const out: ResolvedGroup[] = [];
 
+  // The lender's statement and the bank's quarter borrow general groups that
+  // name Interest and Depreciation a second time. One filed figure is one row:
+  // the spec that shows it soonest keeps it, the family's own on a tie since
+  // it comes first, so the line appears at the depth it always did and never
+  // twice under two names.
+  const owner = new Map<string, LineSpec>();
+  for (const group of groups) {
+    for (const spec of group.lines) {
+      const held = owner.get(spec.key);
+      if (!held || spec.tier < held.tier) owner.set(spec.key, spec);
+    }
+  }
+
   for (const group of groups) {
     const lines: ResolvedLine[] = [];
     for (const spec of group.lines) {
       const values = items[spec.key];
-      if (!hasSignal(values)) continue;
+      if (owner.get(spec.key) !== spec || !hasSignal(values)) continue;
       claimed.add(spec.key);
       lines.push({...spec, values, known: true});
     }

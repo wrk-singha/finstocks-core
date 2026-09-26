@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
 import {PROFIT_LOSS_SCHEMA} from '../profitLoss.ts';
+import {QUARTERLY_SCHEMA} from '../quarterly.ts';
 import {
   atTier,
   formatFamily,
@@ -194,4 +195,60 @@ test("a bank's total income, filed under other income, is on screen at tier 1", 
     ],
   );
   assert.equal(hiddenCount(groups, 1), 1);
+});
+
+test('every filed key comes back exactly once, whatever the family', () => {
+  for (const schema of [PROFIT_LOSS_SCHEMA, QUARTERLY_SCHEMA]) {
+    for (const groups of Object.values(schema)) {
+      const items = Object.fromEntries(
+        [
+          ...groups.flatMap(g => g.lines.map(l => l.key)),
+          'Vendor_new_line',
+        ].map(key => [key, [1]]),
+      );
+      const keys = keysOf(resolveGroups(groups, items));
+      assert.deepEqual([...keys].sort(), Object.keys(items).sort());
+    }
+  }
+});
+
+test('a line two specs name is read once, at the depth it first shows', () => {
+  const lender = resolveGroups(PROFIT_LOSS_SCHEMA.lender, {
+    Net_sales: [500],
+    Interest: [120],
+    Profit_before_tax: [200],
+  });
+  assert.deepEqual(
+    atTier(lender, 1).map(g => [g.id, g.lines.map(l => l.label)]),
+    [
+      ['revenue', ['Revenue from operations']],
+      ['costs', ['Finance cost']],
+      ['profit', ['Profit before tax']],
+    ],
+  );
+
+  const bankQuarter = resolveGroups(QUARTERLY_SCHEMA.bank, {
+    Net_Sales: [900],
+    Interest: [400],
+    Depreciation: [20],
+    Pbt: [150],
+  });
+  // Interest ties at tier 1 and stays with the bank's own costs; depreciation
+  // keeps the tier-1 row the borrowed profit group gives it, not the tier-3
+  // one under costs, so it is on screen exactly where it was.
+  assert.deepEqual(
+    bankQuarter.map(g => [g.id, g.lines.map(l => [l.key, l.label, l.tier])]),
+    [
+      ['income', [['Net_Sales', 'Interest earned', 1]]],
+      ['costs', [['Interest', 'Interest expended', 1]]],
+      [
+        'profit',
+        [
+          ['Depreciation', 'Depreciation', 1],
+          ['Pbt', 'Profit before tax', 1],
+        ],
+      ],
+    ],
+  );
+  assert.equal(hiddenCount(bankQuarter, 1), 0);
 });

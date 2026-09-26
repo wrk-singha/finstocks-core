@@ -29,8 +29,18 @@
  * Averages` is not, since an oscillator and an average volume are not price levels. The old app put
  * all thirteen in one section, which would have drawn volume averages as price lines.
  *
- * Web now carries 241 keys, so core is 19 behind. Those are web-only, with no second source, and
- * cannot be checked against the producer from here.
+ * 2026-09-26: +19 from web's `45b4d103`, taking this list to 241, web's full count. They are the
+ * twelve candle patterns and seven Heikin Ashi flags the 2026-09-07 drop removed, which that commit
+ * restored alongside the 23 above; the chart patterns stay dropped. This note used to call them
+ * web-only, but the old app never dropped them: its single file has carried all nineteen since
+ * `4f3549b` (2026-09-04), in its original Double Candle, Triple Candle and Heikin Ashi sections. So
+ * this is the two-source case again, and web's grouping and labels are followed: four doubles lead
+ * More Double Candle Patterns, and More Triple Candle Patterns and Heikin Ashi Patterns sit before
+ * Gaps & Range Breaks. Heikin Ashi returns as rows, not pattern chips: web's PATTERN_SECTIONS still
+ * leaves it out, because the Go side only approximates ha_open.
+ *
+ * What still differs from web (`dc29567e`) is order, not content: web appends Adaptive & Cycle after
+ * Standard MACD & Volume Averages, and here it sits before September Additions.
  */
 import {formatCurrency, formatNumber} from '../format/index.ts';
 import type {TechnicalIndicatorData} from '../types/indicators.ts';
@@ -815,6 +825,31 @@ const patternIndicatorSections: IndicatorSection[] = [
     title: 'More Double Candle Patterns',
     fields: [
       {
+        label: 'Bullish counter attack',
+        key: 'counter_attack_bullish',
+        getValue: data => flag(data.counter_attack_bullish),
+        description:
+          'Gap down that closes back at the prior close - sellers gained nothing',
+      },
+      {
+        label: 'Bearish counter attack',
+        key: 'counter_attack_bearish',
+        getValue: data => flag(data.counter_attack_bearish),
+        description: 'Gap up given back to the prior close within the session',
+      },
+      {
+        label: 'Bullish doji star',
+        key: 'doji_star_bullish',
+        getValue: data => flag(data.doji_star_bullish),
+        description: 'Doji gapping below a red body - the decline stalls',
+      },
+      {
+        label: 'Bearish doji star',
+        key: 'doji_star_bearish',
+        getValue: data => flag(data.doji_star_bearish),
+        description: 'Doji gapping above a green body - the advance stalls',
+      },
+      {
         label: 'In neck (bearish)',
         key: 'in_neck_bearish',
         getValue: data => flag(data.in_neck_bearish),
@@ -827,6 +862,112 @@ const patternIndicatorSections: IndicatorSection[] = [
         getValue: data => flag(data.thrusting_bearish),
         description:
           'Close pushes into but not past the prior red body midpoint',
+      },
+    ],
+  },
+  {
+    title: 'More Triple Candle Patterns',
+    fields: [
+      {
+        label: 'Three outside up',
+        key: 'three_outside_up',
+        getValue: data => flag(data.three_outside_up),
+        description: 'Bullish engulfing confirmed by a third higher close',
+      },
+      {
+        label: 'Three outside down',
+        key: 'three_outside_down',
+        getValue: data => flag(data.three_outside_down),
+        description: 'Bearish engulfing confirmed by a third lower close',
+      },
+      {
+        label: 'Advance block',
+        key: 'advance_block',
+        getValue: data => flag(data.advance_block),
+        description:
+          'Three higher closes on shrinking bodies - the push is being sold',
+      },
+      {
+        label: 'Deliberation',
+        key: 'deliberation',
+        getValue: data => flag(data.deliberation),
+        description:
+          'Two strong green bars then a third that barely moves - hesitation',
+      },
+      {
+        label: 'Homing pigeon',
+        key: 'homing_pigeon',
+        getValue: data => flag(data.homing_pigeon),
+        description:
+          'A small red body inside a larger one - selling is losing force',
+      },
+      {
+        label: 'Descending hawk',
+        key: 'descending_hawk',
+        getValue: data => flag(data.descending_hawk),
+        description:
+          'The bearish mirror of the homing pigeon - buying is losing force',
+      },
+      {
+        label: 'Bullish gap three methods',
+        key: 'gap_three_methods_bullish',
+        getValue: data => flag(data.gap_three_methods_bullish),
+        description: 'A gap up held through a shallow pause - continuation',
+      },
+      {
+        label: 'Bearish gap three methods',
+        key: 'gap_three_methods_bearish',
+        getValue: data => flag(data.gap_three_methods_bearish),
+        description: 'A gap down held through a shallow pause - continuation',
+      },
+    ],
+  },
+  {
+    title: 'Heikin Ashi Patterns',
+    fields: [
+      {
+        label: 'HA bullish initiation',
+        key: 'ha_bullish_initiation',
+        getValue: data => flag(data.ha_bullish_initiation),
+        description:
+          'Heikin Ashi turns green with no lower wick - a trend begins',
+      },
+      {
+        label: 'HA bearish initiation',
+        key: 'ha_bearish_initiation',
+        getValue: data => flag(data.ha_bearish_initiation),
+        description:
+          'Heikin Ashi turns red with no upper wick - a trend begins',
+      },
+      {
+        label: 'HA bullish continuation',
+        key: 'ha_bullish_continuation',
+        getValue: data => flag(data.ha_bullish_continuation),
+        description: 'Successive green Heikin Ashi bodies - the trend persists',
+      },
+      {
+        label: 'HA bearish continuation',
+        key: 'ha_bearish_continuation',
+        getValue: data => flag(data.ha_bearish_continuation),
+        description: 'Successive red Heikin Ashi bodies - the trend persists',
+      },
+      {
+        label: 'HA doji',
+        key: 'ha_doji',
+        getValue: data => flag(data.ha_doji),
+        description: 'A Heikin Ashi body near zero - the trend is undecided',
+      },
+      {
+        label: 'HA tick up',
+        key: 'ha_tick_up',
+        getValue: data => flag(data.ha_tick_up),
+        description: 'Heikin Ashi close ticks above the prior one',
+      },
+      {
+        label: 'HA tick down',
+        key: 'ha_tick_down',
+        getValue: data => flag(data.ha_tick_down),
+        description: 'Heikin Ashi close ticks below the prior one',
       },
     ],
   },

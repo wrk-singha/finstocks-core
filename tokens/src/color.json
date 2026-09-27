@@ -82,7 +82,18 @@
     "warning": ["#f59e0b", "#f59e0b"],
     "accent1": ["#7c3aed", "#7c3aed"],
     "accent2": ["#a78bfa", "#a78bfa"],
-    "neutral": ["#9ca3af", "#9ca3af"]
+    "neutral": ["#9ca3af", "#9ca3af"],
+    "series": {
+      "$description": "Categorical data-series hues: identity, not verdict. pl.profit and pl.loss mean gain and loss, so a revenue bar cannot borrow them. Stepped per theme and listed in the order an index-coloured chart walks them, grey last so an 'Others' slice reads as the remainder. Not held to the text or indicator floors (light green is 2.72:1 on base), so a series colour never carries a figure on its own.",
+      "green": ["#1baf7a", "#199e70"],
+      "blue": ["#2a78d6", "#3987e5"],
+      "orange": ["#eb6834", "#d95926"],
+      "violet": ["#4a3aa7", "#9085e9"],
+      "pink": ["#95185b", "#cf3085"],
+      "teal": ["#188095", "#30b4cf"],
+      "amber": ["#956718", "#cf9530"],
+      "grey": ["#8b8f96", "#8b8f96"]
+    }
   },
   "attn": {
     "value": ["#8c5c10", "#e6a84a"],

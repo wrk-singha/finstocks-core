@@ -75,3 +75,20 @@ export type {
   OwnershipBucketKey,
   OwnershipConstituent,
 } from './ownershipSummary.ts';
+
+export {
+  changeVsPrior,
+  compactCrore,
+  niceTicks,
+  performanceCagr,
+  performanceScale,
+  periodLabel,
+  toPoints,
+  ttmGrowth,
+} from './financialPerformance.ts';
+export type {
+  PerformanceFeed,
+  PerformanceMeasure,
+  PerformanceScale,
+  PeriodPoint,
+} from './financialPerformance.ts';

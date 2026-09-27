@@ -178,3 +178,33 @@ export type {
   LadderPoint,
   TradeGeometry,
 } from './tradeSetup.ts';
+
+export {
+  barsForIndex,
+  INDEX_WINDOWS,
+  marketForIndex,
+  windowAdvances,
+  windowChange,
+  windowDays,
+  windowRange,
+} from './worldIndexDetail.ts';
+export type {
+  IndexBar,
+  IndexWindow,
+  WindowAdvances,
+  WindowChange,
+  WindowRange,
+} from './worldIndexDetail.ts';
+
+export {
+  buildWorldMarkets,
+  formatIndexLevel,
+  globalIndexNameFromParam,
+  globalIndexParam,
+  globalIndexPath,
+  groupByRegion,
+  latestWorldClose,
+  parseGlobalIndexParam,
+  REGION_ORDER,
+} from './worldIndices.ts';
+export type {Region, RegionGroup, WorldMarketRow} from './worldIndices.ts';

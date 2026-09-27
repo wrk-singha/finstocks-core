@@ -9,6 +9,16 @@ const FNO_SYMBOL_RE =
   /^[A-Z0-9&-]+\d{2}[A-Z0-9]{1,5}(?:\d+(?:\.\d+)?(?:CE|PE)|FUT)$/;
 
 /**
+ * Whether a symbol is an F&O contract ticker rather than an equity symbol.
+ *
+ * The one place this grammar lives client-side. Every surface that routes a
+ * symbol to the F&O feeds asks here, so a contract the backend accepts cannot
+ * be classified differently by one caller and not another.
+ */
+export const isExchangeSymbol = (symbol: string): boolean =>
+  FNO_SYMBOL_RE.test(symbol);
+
+/**
  * The symbol to ask graph-data for when pricing a trade.
  *
  * A contract prices against its OWN premium series, not its underlying's:
@@ -19,7 +29,7 @@ const FNO_SYMBOL_RE =
  */
 export const priceSymbolFor = (stockSymbol: string): string => {
   const raw = (stockSymbol || '').trim().toUpperCase();
-  return FNO_SYMBOL_RE.test(raw) ? raw : extractUnderlyingSymbol(raw);
+  return isExchangeSymbol(raw) ? raw : extractUnderlyingSymbol(raw);
 };
 
 // Newest close in a symbol's series, looked up case-tolerantly and sorted by

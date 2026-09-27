@@ -23,7 +23,7 @@ export {
 } from './institutionalFlows.ts';
 export type {FlowSide} from './institutionalFlows.ts';
 
-export {livePriceFor, priceSymbolFor} from './livePrice.ts';
+export {isExchangeSymbol, livePriceFor, priceSymbolFor} from './livePrice.ts';
 
 export {
   addMarketDays,

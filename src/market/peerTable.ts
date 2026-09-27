@@ -44,6 +44,45 @@ export const narrowPeerColumnsForPhone = (ids: readonly string[]): string[] => {
   return [...preferred, ...rest].slice(0, PHONE_PEER_COLUMNS.length);
 };
 
+/** The column picker's first tab, ahead of the catalogue's own. */
+export const MOST_USED_PEER_TAB = 'most_used';
+
+/** The widest table the column picker builds. */
+export const MAX_PEER_COLUMNS = 20;
+
+/**
+ * The column picker's list. A search runs across the whole catalogue, because a reader who knows
+ * they want "pledge" should not have to guess which tab files it; otherwise a tab lists its own
+ * columns, and Most used lists the most read ones with every multi-year history.
+ */
+export const peerPickerColumns = (
+  columns: readonly PeerColumn[],
+  tab: string,
+  query: string,
+): PeerColumn[] => {
+  const term = query.trim().toLowerCase();
+  return columns.filter(column => {
+    if (term !== '') {
+      return (
+        column.label.toLowerCase().includes(term) ||
+        column.header.toLowerCase().includes(term)
+      );
+    }
+    return tab === MOST_USED_PEER_TAB
+      ? column.most_used || column.kind === 'historical'
+      : column.tab === tab;
+  });
+};
+
+/** A column in or out of the chosen set: taking one out always works, adding one stops at the cap. */
+export const togglePeerColumn = (
+  ids: readonly string[],
+  id: string,
+): string[] => {
+  if (ids.includes(id)) return ids.filter(chosen => chosen !== id);
+  return ids.length < MAX_PEER_COLUMNS ? [...ids, id] : [...ids];
+};
+
 export type PeerCompareSectionId =
   'valuation' | 'growth' | 'quality' | 'safety' | 'size' | 'returns';
 

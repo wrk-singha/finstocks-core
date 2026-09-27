@@ -4,6 +4,8 @@ import {test} from 'node:test';
 import type {PeerColumn, PeerRow} from '../../types/industries.ts';
 import {
   industryCrumbs,
+  MAX_PEER_COLUMNS,
+  MOST_USED_PEER_TAB,
   narrowPeerColumnsForPhone,
   PEER_COMPARE_COLUMNS,
   PEER_COMPARE_SECTIONS,
@@ -11,7 +13,9 @@ import {
   peerComparePair,
   peerCompareTally,
   peerCompareWinner,
+  peerPickerColumns,
   peerPinnedFrom,
+  togglePeerColumn,
 } from '../peerTable.ts';
 
 const row = (
@@ -157,4 +161,61 @@ test('each line is scaled to its own larger figure, with a sliver for the tiny o
     {pct: 2, isNegative: false},
     {pct: 2, isNegative: false},
   ]);
+});
+
+const column = (id: string, more: Partial<PeerColumn> = {}): PeerColumn => ({
+  id,
+  label: id,
+  header: id,
+  unit: 'pct',
+  tab: 'ratios',
+  kind: 'recent',
+  most_used: false,
+  default: false,
+  better: 0,
+  ...more,
+});
+
+test('the picker lists a tab, Most used with every history, or search results from anywhere', () => {
+  const catalogue = [
+    column('pe', {tab: 'valuation', most_used: true, header: 'P/E'}),
+    column('ev_ebitda', {tab: 'valuation', label: 'EV / EBITDA'}),
+    column('roce', {most_used: true, label: 'Return on capital employed'}),
+    column('roe_5y', {kind: 'historical', label: 'Average ROE 5 years'}),
+    column('pledged', {tab: 'shareholding', label: 'Pledged promoter shares'}),
+  ];
+  const ids = (list: readonly PeerColumn[]) => list.map(entry => entry.id);
+  assert.deepEqual(ids(peerPickerColumns(catalogue, MOST_USED_PEER_TAB, '')), [
+    'pe',
+    'roce',
+    'roe_5y',
+  ]);
+  assert.deepEqual(ids(peerPickerColumns(catalogue, 'valuation', '')), [
+    'pe',
+    'ev_ebitda',
+  ]);
+  // A search ignores the tab and matches the label or the header.
+  assert.deepEqual(ids(peerPickerColumns(catalogue, 'valuation', ' PLEDGE ')), [
+    'pledged',
+  ]);
+  assert.deepEqual(ids(peerPickerColumns(catalogue, 'ratios', 'p/e')), ['pe']);
+  assert.deepEqual(ids(peerPickerColumns(catalogue, 'ratios', 'zzz')), []);
+});
+
+test('a column toggles in and out, and none is added past twenty', () => {
+  assert.deepEqual(togglePeerColumn(['pe', 'roce'], 'roe'), [
+    'pe',
+    'roce',
+    'roe',
+  ]);
+  assert.deepEqual(togglePeerColumn(['pe', 'roce', 'roe'], 'roce'), [
+    'pe',
+    'roe',
+  ]);
+  const full = Array.from(
+    {length: MAX_PEER_COLUMNS},
+    (_, i) => `c${String(i)}`,
+  );
+  assert.deepEqual(togglePeerColumn(full, 'extra'), full);
+  assert.equal(togglePeerColumn(full, 'c3').length, MAX_PEER_COLUMNS - 1);
 });

@@ -17,7 +17,13 @@ import type {
   GetIndicatorsParams,
   TechnicalIndicatorData,
 } from '../types/indicators.ts';
-import type {IndustryTree} from '../types/industries.ts';
+import type {
+  IndustrySearchHit,
+  IndustryTree,
+  PeerColumnCatalog,
+  PeerTable,
+  PeerTableQuery,
+} from '../types/industries.ts';
 import type {
   InstitutionalFlowRow,
   MarketDepth,
@@ -570,6 +576,35 @@ export const marketApi = (http: HttpClient) => ({
 
   /** The four-level industry tree the sector picker and the industry pages read. */
   getIndustryTree: () => http.request<IndustryTree>('/news/industries'),
+
+  /** Every column a peer table can show, with the tabs the column picker files them under. */
+  getPeerColumnCatalog: () =>
+    http.request<PeerColumnCatalog>('/news/industries/columns'),
+
+  /**
+   * One page of an industry's companies: a node's, the industry a symbol is filed under, or an
+   * explicit set to compare. Unlike the symbol endpoints above, this one takes `symbols` and
+   * `columns` comma-joined, as web sends them.
+   */
+  getPeerTable: (request: PeerTableQuery) =>
+    http.request<PeerTable>(
+      `/news/industries/companies${query({
+        node: request.node,
+        symbol: request.symbol,
+        symbols: request.symbols?.join(','),
+        columns: request.columns.join(','),
+        sort: request.sort,
+        order: request.order,
+        page: request.page,
+        per_page: request.perPage,
+      })}`,
+    ),
+
+  /** Any listed company by ticker or name, not only the universe the global search knows. */
+  searchIndustryCompanies: (term: string) =>
+    http.request<IndustrySearchHit[]>(
+      `/news/industries/search${query({q: term})}`,
+    ),
 });
 
 export type MarketApi = ReturnType<typeof marketApi>;

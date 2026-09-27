@@ -63,6 +63,7 @@ export {
   formatIv,
   formatOi,
   formatPremium,
+  formatStrike,
   ivContext,
   nearestExpiry,
   optionContractLabel,

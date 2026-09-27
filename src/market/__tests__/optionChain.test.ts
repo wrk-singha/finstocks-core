@@ -14,6 +14,7 @@ import {
   formatIv,
   formatOi,
   formatPremium,
+  formatStrike,
   ivContext,
   nearestExpiry,
   optionContractLabel,
@@ -107,6 +108,18 @@ test('expiry labels are "DD Mon" with September trimmed to three letters', () =>
   assert.equal(
     optionContractLabel('nifty', '2026-08-18', 24550, 'CE'),
     'NIFTY 18 Aug 24,550 Call',
+  );
+});
+
+test('a strike prints exactly, keeping the fraction a stepped strike lists at', () => {
+  assert.equal(formatStrike(24550), '24,550');
+  assert.equal(formatStrike(187.5), '187.5');
+  assert.equal(formatStrike(1302.25), '1,302.25');
+  // A float that is a hair off its listed step still prints as that step.
+  assert.equal(formatStrike(187.50000000000003), '187.5');
+  assert.equal(
+    optionContractLabel('tatasteel', '2026-09-29', 187.5, 'CE'),
+    'TATASTEEL 29 Sep 187.5 Call',
   );
 });
 

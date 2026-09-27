@@ -75,6 +75,15 @@ export const formatExpiryLabel = (expiry: string | undefined): string => {
   );
 };
 
+// A strike names the contract, so it prints exactly: whole rupees without
+// decimals, and a strike NSE lists on a 2.5 or 0.5 step with its fraction.
+// Rounded to whole rupees, TATASTEEL's 187.5 call read as the 188 strike.
+export const formatStrike = (strike: number): string => {
+  const paise = Math.round(strike * 100);
+  const decimals = paise % 100 === 0 ? 0 : paise % 10 === 0 ? 1 : 2;
+  return formatNumber(strike, decimals);
+};
+
 /**
  * How a contract is named to a human: "NIFTY 18 Aug 24550 Call". The broker
  * symbol (`buildOptionContractSymbol`) is what goes on the order; this is what
@@ -89,7 +98,7 @@ export const optionContractLabel = (
   [
     underlying.toUpperCase(),
     expiry ? formatExpiryLabel(expiry) : '',
-    formatNumber(strike),
+    formatStrike(strike),
     right === 'CE' ? 'Call' : 'Put',
   ]
     .filter(Boolean)

@@ -54,12 +54,6 @@ test('news-prefixed reads repeat symbol params', async () => {
   await api.getDividends();
   await api.getFundamentals(['ACE', 'ESCORTS'], 'IN', 'summary');
   await api.getTechnicals({stocks: ['TCS'], market: 'IN', interval: '1d'});
-  await api.getStockEvents({
-    from: '2026-01-01',
-    category: ['results', 'dividend'],
-    symbol: ['TCS'],
-  });
-  await api.getStockEvents({});
   await api.getOwnership('M&M');
   assert.deepEqual(
     calls.map(c => c.path),
@@ -68,10 +62,62 @@ test('news-prefixed reads repeat symbol params', async () => {
       '/news/dividends?market=IN',
       '/news/fundamentals?symbols=ACE&symbols=ESCORTS&market=IN&fields=summary',
       '/news/technicals?symbols=TCS&market=IN&interval=1d',
-      '/news/stock-events?from=2026-01-01&category=results&category=dividend&symbol=TCS',
-      '/news/stock-events',
       '/news/ownership?symbol=M%26M',
     ],
+  );
+});
+
+test('stock events are posted, so a long symbol filter never meets a URL limit', async () => {
+  const {http, calls} = fakeHttp();
+  const api = marketApi(http);
+  const symbols = Array.from({length: 1200}, (_, i) => `SYM${String(i)}`);
+  const filtered = {
+    from: '2026-09-21',
+    to: '2026-10-06',
+    category: ['reverse_split' as const, 'dividend' as const],
+    cap: ['large' as const],
+    symbol: symbols,
+  };
+  await api.getStockEvents(filtered);
+  await api.getStockEvents({});
+  assert.deepEqual(
+    calls.map(c => [c.path, c.init?.method, c.init?.body]),
+    [
+      ['/news/stock-events', 'POST', filtered],
+      ['/news/stock-events', 'POST', {}],
+    ],
+  );
+});
+
+test('the stock-events key holds every filter the request sends', () => {
+  assert.deepEqual(queryKeys.market.stockEvents({}), [
+    'stock-events',
+    '',
+    '',
+    '',
+    '',
+    '',
+  ]);
+  assert.deepEqual(
+    queryKeys.market.stockEvents({
+      from: '2026-09-21',
+      to: '2026-10-06',
+      category: ['dividend', 'split'],
+      cap: ['mid'],
+      symbol: ['RELIANCE', 'TCS'],
+    }),
+    [
+      'stock-events',
+      '2026-09-21',
+      '2026-10-06',
+      'dividend,split',
+      'mid',
+      'RELIANCE,TCS',
+    ],
+  );
+  assert.notDeepEqual(
+    queryKeys.market.stockEvents({category: ['dividend']}),
+    queryKeys.market.stockEvents({cap: ['large']}),
   );
 });
 

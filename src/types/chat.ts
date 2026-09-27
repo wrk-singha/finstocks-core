@@ -81,6 +81,11 @@ export interface getAllChatsResponse {
   chats: Chat[];
   next_cursor: string | null;
   has_more: boolean;
+  /**
+   * How many chats the whole filtered set holds. The backend sends it on the first page only, so a
+   * later page, and a backend that predates it, leaves it out.
+   */
+  total?: number | null;
 }
 
 export interface getChatByIdRequest {

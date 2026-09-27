@@ -80,18 +80,19 @@ export const queryKeys = {
   chatsSurface: (surface: string) => ['chats', 'surface', surface],
 
   /**
-   * ["chats", "search", query, surface, category] — server-side title search.
+   * ["chats", "search", query, surface, category, days] — server-side title search.
    * Query, surface and category are part of the key so each term and chip
    * selection caches separately and a cleared search falls back to an
-   * already-warm list rather than refetching.
+   * already-warm list rather than refetching. `days` is the last-activity
+   * window (null for none), so a filtered list stays inside the family that
+   * pin, rename and delete writes reach by the ["chats", "search"] prefix.
    */
-  chatsSearch: (query: string, surface: string, category = '') => [
-    'chats',
-    'search',
-    query,
-    surface,
-    category,
-  ],
+  chatsSearch: (
+    query: string,
+    surface: string,
+    category = '',
+    days: number | null = null,
+  ) => ['chats', 'search', query, surface, category, days],
 
   /** ["notifications"] — the notification inbox (infinite list) */
   notifications: () => ['notifications'],

@@ -31,6 +31,8 @@ export interface ChatListQuery {
   q?: string;
   /** Comma-joined chat categories (`chatCategoryParam`); omitted entirely when none selected. */
   category?: string;
+  /** Last-activity window in days; left out when unset (or zero), which is no limit. */
+  days?: number | null;
 }
 
 /**
@@ -178,6 +180,7 @@ export const chatApi = (http: HttpClient) => ({
         symbol: params?.symbol,
         q: params?.q,
         category: params?.category,
+        days: (params?.days ?? 0) > 0 ? params?.days : undefined,
       })}`,
     ),
 

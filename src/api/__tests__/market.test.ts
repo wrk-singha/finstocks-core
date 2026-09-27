@@ -273,3 +273,59 @@ test('a screen run is posted with three minutes to build a cold universe', async
   assert.deepEqual(queryKeys.screen.run(request), ['screen', 'run', request]);
   assert.deepEqual(queryKeys.industries.tree(), ['industries', 'tree']);
 });
+
+const aiRequest = {
+  symbol: 'RELIANCE',
+  interval: '1d',
+  bars: [{t: 1_758_672_000, o: 1270, h: 1284, l: 1266, c: 1280, v: 900_000}],
+  last_bar_forming: true,
+};
+
+test('AI signals post the chart’s bars and are keyed on its closed ones', async () => {
+  const {http, last} = fakeHttp([
+    {symbol: 'RELIANCE', signals: [], pivots: [], standard_pivots: null},
+  ]);
+  await marketApi(http).postAISignals(aiRequest);
+  assert.deepEqual(
+    [last().path, last().init?.method, last().init?.body],
+    ['/market/ai-signals', 'POST', aiRequest],
+  );
+  assert.deepEqual(queryKeys.market.aiSignals('RELIANCE', '1D', '30:1:30'), [
+    'ai-signals',
+    'RELIANCE',
+    '1D',
+    '30:1:30',
+  ]);
+});
+
+test('an AI signals answer with null lists arrives with empty ones', async () => {
+  const {http} = fakeHttp([
+    {symbol: 'RELIANCE', signals: null, pivots: null, standard_pivots: null},
+    {
+      symbol: 'RELIANCE',
+      signals: [
+        {
+          key: 'a',
+          gates_passed: ['G1_MIN_PIVOTS'],
+          gates_failed: null,
+          points: null,
+          lines: null,
+        },
+      ],
+      pivots: [{time: 1, kind: 'H', price: 10, confirmed: true}],
+      standard_pivots: null,
+    },
+  ]);
+  const api = marketApi(http);
+  const empty = await api.postAISignals(aiRequest);
+  assert.deepEqual([empty.signals, empty.pivots], [[], []]);
+  const filled = await api.postAISignals(aiRequest);
+  assert.deepEqual(filled.signals[0], {
+    key: 'a',
+    gates_passed: ['G1_MIN_PIVOTS'],
+    gates_failed: [],
+    points: [],
+    lines: {},
+  });
+  assert.equal(filled.pivots.length, 1);
+});

@@ -291,6 +291,17 @@ export const queryKeys = {
       'screener-indicators',
       interval,
     ],
+    /**
+     * ["ai-signals", symbol, resolution, closedKey] — keyed on the closed bars the request sends,
+     * not the view, which pans, and not the forming candle, which the engine never reads: a live
+     * chart asks again once per closed bar and panning costs nothing.
+     */
+    aiSignals: (symbol: string, resolution: string, closedKey: string) => [
+      'ai-signals',
+      symbol,
+      resolution,
+      closedKey,
+    ],
   },
 
   fno: {

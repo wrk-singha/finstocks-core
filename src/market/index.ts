@@ -175,7 +175,12 @@ export {
 } from './stockWatchlists.ts';
 export type {WatchlistMembership} from './stockWatchlists.ts';
 
-export {extractUnderlyingSymbol, isFnOSymbol, stockLogoUrl} from './symbols.ts';
+export {
+  extractUnderlyingSymbol,
+  ipoLogoUrl,
+  isFnOSymbol,
+  stockLogoUrl,
+} from './symbols.ts';
 
 export {
   buildOscillators,

@@ -56,3 +56,17 @@ export function stockLogoUrl(stockSymbol: string): string {
   const underlying = extractUnderlyingSymbol(stockSymbol) || stockSymbol;
   return `https://storage.googleapis.com/finstocks_stock_logos/${underlying}.webp`;
 }
+
+/**
+ * An IPO's logo, or undefined when the issue has no fincode. An issue cannot be addressed by symbol
+ * the way a stock is — nse_symbol and bse_scrip_id are empty on almost every pending issue — so its
+ * logo is filed under fincode, which every issue has. A missing object 404s to the initials tile
+ * exactly as a missing stock logo does.
+ */
+export function ipoLogoUrl(
+  fincode: number | null | undefined,
+): string | undefined {
+  return fincode
+    ? `https://storage.googleapis.com/finstocks_stock_logos/ipo/${fincode}.webp`
+    : undefined;
+}

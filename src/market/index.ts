@@ -88,6 +88,14 @@ export type {
 } from './optionChain.ts';
 
 export {
+  exchangeSymbol,
+  isExchangeSymbol,
+  optionPath,
+  readOptionContract,
+} from './optionContract.ts';
+export type {OptionContract, OptionContractParams} from './optionContract.ts';
+
+export {
   costDrag,
   daysToExpiry,
   describeStructure,

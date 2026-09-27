@@ -317,6 +317,10 @@ export const queryKeys = {
   /** ["stockScore", symbol] — one stock's FinStocks score and pillars */
   stockScore: (symbol: string | null) => ['stockScore', symbol],
 
+  /** ["ownership", symbol] — one stock's holder register, bulk and block deals and insider
+   *  trades; no symbol is "" rather than null, as web keys it */
+  ownership: (symbol: string | null) => ['ownership', symbol ?? ''],
+
   portfolioAnalysis: {
     /** ["portfolioAnalysis"] — every mode and segment (pull-to-refresh) */
     all: () => ['portfolioAnalysis'],

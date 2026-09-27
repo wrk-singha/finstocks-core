@@ -163,6 +163,15 @@ const netWorthChartDateFormatter = new Intl.DateTimeFormat('en-IN', {
   timeZone: 'UTC',
 });
 
+// en-US and read by parts: en-GB and en-IN abbreviate September as "Sept" on current ICU, and
+// en-US alone would put the weekday first.
+const eventDayHeadingFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+});
+
 const notificationTime = cachedBy(
   (sameYear: boolean) =>
     new Intl.DateTimeFormat('en-IN', {
@@ -447,6 +456,12 @@ export const formatOrderDayHeading = (isoDate: string): string =>
 /** Net-worth chart readout for a bare YYYY-MM-DD, 2-digit year to keep the row compact: "9 Aug 26". */
 export const formatNetWorthChartDate = (isoDate: string): string =>
   netWorthChartDateFormatter.format(dayKeyToUtc(isoDate));
+
+/** Events-calendar day heading for an IST day key: "21 Sep, Mon". */
+export const formatEventDayHeading = (isoDate: string): string => {
+  const get = partsOf(eventDayHeadingFormatter, dayKeyToUtc(isoDate));
+  return `${get('day')} ${get('month')}, ${get('weekday')}`;
+};
 
 /** Orders-screen fill time, 12-hour IST clock: "9:05 AM". */
 export const formatOrderTime = (iso: string | null | undefined): string => {

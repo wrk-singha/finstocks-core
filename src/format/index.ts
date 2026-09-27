@@ -5,6 +5,7 @@ export {
   formatDateTimeStamp,
   formatDayMonthYear,
   formatDurationMins,
+  formatEventDayHeading,
   formatLastUpdatedIST,
   formatNetWorthChartDate,
   formatNotificationTime,

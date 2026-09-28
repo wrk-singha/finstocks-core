@@ -1,3 +1,8 @@
+import type {
+  AISignal,
+  AISignalsRequest,
+  AISignalsResponse,
+} from '../types/aiSignals.ts';
 import type {GetDividendsResponse} from '../types/dividends.ts';
 import type {
   FnoIdeasResponse,
@@ -329,6 +334,43 @@ const readFundamentalsDetail = ({
         ownership: {...ownership, categories: ownership.categories ?? []},
       };
 
+/**
+ * The signals as the server sends them. Go serialises a nil slice as null, so a chart with no
+ * setups, no swings or a signal with no failed gates can answer null where a list belongs; the
+ * readers iterate them, so each is filled once here rather than guarded in every one.
+ */
+type Nullable<T, K extends keyof T> = Omit<T, K> & {[P in K]: T[P] | null};
+
+type AISignalWire = Nullable<
+  AISignal,
+  'gates_passed' | 'gates_failed' | 'points' | 'lines'
+>;
+
+interface AISignalsWire extends Omit<
+  Nullable<AISignalsResponse, 'pivots'>,
+  'signals'
+> {
+  signals: AISignalWire[] | null;
+}
+
+const readAISignals = ({
+  signals,
+  pivots,
+  ...response
+}: AISignalsWire): AISignalsResponse => ({
+  ...response,
+  pivots: pivots ?? [],
+  signals: (signals ?? []).map(
+    ({gates_passed, gates_failed, points, lines, ...signal}) => ({
+      ...signal,
+      gates_passed: gates_passed ?? [],
+      gates_failed: gates_failed ?? [],
+      points: points ?? [],
+      lines: lines ?? {},
+    }),
+  ),
+});
+
 export const marketApi = (http: HttpClient) => ({
   getRecommendations: (params?: RecommendationsQuery) =>
     http.request<MarketRecommendationsResponse>(
@@ -541,6 +583,21 @@ export const marketApi = (http: HttpClient) => ({
       method: 'POST',
       body: params,
     }),
+
+  /**
+   * The pattern engine's trade plans on the bars a chart shows. The caller sends those bars —
+   * the newest `AI_SIGNALS_MAX_BARS`, oldest first — because the engine reads the candles on
+   * screen, not a series of its own, and a plan drawn on other candles would not line up.
+   */
+  postAISignals: async (
+    request: AISignalsRequest,
+  ): Promise<AISignalsResponse> =>
+    readAISignals(
+      await http.request<AISignalsWire>('/market/ai-signals', {
+        method: 'POST',
+        body: request,
+      }),
+    ),
 
   /** Web-only: the corporate-events calendar; every array filter is a repeated param. */
   getStockEvents: (params: GetStockEventsRequest) =>

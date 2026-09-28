@@ -1,3 +1,4 @@
+export type * from './aiSignals.ts';
 export type * from './alerts.ts';
 export type * from './auth.ts';
 export type * from './backtest.ts';

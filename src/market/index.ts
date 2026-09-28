@@ -1,3 +1,32 @@
+export {
+  AI_PIVOT_LAYERS,
+  AI_SIGNALS_MAX_BARS,
+  AI_SIGNALS_MIN_CONFIDENCE,
+  aiSignalsBars,
+  aiSignalsRequestBars,
+  closedBarsKey,
+  intervalSeconds,
+  isActionable,
+  isLiveTrade,
+  isSignalInView,
+  lastBarForming,
+  listSignals,
+  pivotLayerSource,
+  signalStatusOf,
+  trackRecord,
+  tradeSideOf,
+} from './aiSignals.ts';
+export type {
+  AIPivotLayer,
+  AIPivotSource,
+  AISignalLists,
+  AISignalStatus,
+  AISignalStatusKey,
+  AISignalsBars,
+  AISignalTone,
+  AISignalTrackRecord,
+} from './aiSignals.ts';
+
 export {readingFsm, readingLeaf} from './alertReading.ts';
 
 export {

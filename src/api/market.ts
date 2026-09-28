@@ -12,6 +12,8 @@ import type {
 } from '../types/fno.ts';
 import type {GetFundamentalsResponse} from '../types/fundamentals.ts';
 import type {
+  DeliverableRow,
+  FundamentalsDocuments,
   FundamentalsOwnership,
   FundamentalsSection,
   GetFundamentalsDetailResponse,
@@ -312,8 +314,9 @@ const readRecommendationReport = (
 
 /**
  * The filing as the server sends it. Go serialises a nil slice as null, so a company whose
- * shareholding rows carried no measure answers `categories: null`; the register readers iterate
- * it, so it is filled once here rather than guarded in every one of them.
+ * shareholding rows carried no measure answers `categories: null`, and one with no deliveries or
+ * no filings of a kind can answer null where those lists belong. The readers iterate them, so each
+ * is filled once here rather than guarded in every one of them.
  */
 interface FundamentalsOwnershipWire extends Omit<
   FundamentalsOwnership,
@@ -322,23 +325,41 @@ interface FundamentalsOwnershipWire extends Omit<
   categories: OwnershipCategory[] | null;
 }
 
+type FundamentalsDocumentsWire = {
+  [K in keyof FundamentalsDocuments]?: FundamentalsDocuments[K] | null;
+};
+
 interface FundamentalsDetailWire extends Omit<
   GetFundamentalsDetailResponse,
-  'ownership'
+  'ownership' | 'deliverables' | 'documents'
 > {
   ownership?: FundamentalsOwnershipWire | null;
+  deliverables?: DeliverableRow[] | null;
+  documents?: FundamentalsDocumentsWire | null;
 }
 
 const readFundamentalsDetail = ({
   ownership,
+  deliverables,
+  documents,
   ...detail
-}: FundamentalsDetailWire): GetFundamentalsDetailResponse =>
-  ownership == null
-    ? detail
+}: FundamentalsDetailWire): GetFundamentalsDetailResponse => ({
+  ...detail,
+  ...(ownership == null
+    ? {}
+    : {ownership: {...ownership, categories: ownership.categories ?? []}}),
+  ...(deliverables === undefined ? {} : {deliverables: deliverables ?? []}),
+  ...(documents == null
+    ? {}
     : {
-        ...detail,
-        ownership: {...ownership, categories: ownership.categories ?? []},
-      };
+        documents: {
+          announcements: documents.announcements ?? [],
+          annual_reports: documents.annual_reports ?? [],
+          credit_ratings: documents.credit_ratings ?? [],
+          concalls: documents.concalls ?? [],
+        },
+      }),
+});
 
 /**
  * The signals as the server sends them. Go serialises a nil slice as null, so a chart with no

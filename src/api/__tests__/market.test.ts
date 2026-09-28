@@ -257,6 +257,35 @@ test('a null shareholding category list arrives as an empty one', async () => {
   assert.deepEqual(deliveries?.deliverables, []);
 });
 
+test('null delivery rows and documents lists arrive as empty ones', async () => {
+  const {http} = fakeHttp([
+    detail({deliverables: null}),
+    detail({
+      documents: {
+        announcements: null,
+        annual_reports: [],
+        credit_ratings: null,
+        concalls: null,
+      },
+    }),
+    detail({documents: null}),
+  ]);
+  const api = marketApi(http);
+  assert.deepEqual(
+    (await api.getFundamentalsDetail('RELIANCE', ['deliverables']))
+      ?.deliverables,
+    [],
+  );
+  assert.deepEqual(
+    (await api.getFundamentalsDetail('RELIANCE', ['documents']))?.documents,
+    {announcements: [], annual_reports: [], credit_ratings: [], concalls: []},
+  );
+  const nothingOnFile = await api.getFundamentalsDetail('RELIANCE', [
+    'documents',
+  ]);
+  assert.equal(nothingOnFile !== null && 'documents' in nothingOnFile, false);
+});
+
 test('the fundamentals detail key is one entry per section set, whatever the order', () => {
   assert.deepEqual(
     queryKeys.fundamentalsDetail(

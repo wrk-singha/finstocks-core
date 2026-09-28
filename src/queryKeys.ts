@@ -400,4 +400,9 @@ export const queryKeys = {
     /** ["industries", "tree"] — the classification tree, refreshed with the daily master. */
     tree: () => ['industries', 'tree'],
   },
+
+  /** ["chart-manifest", 1] — the studies, with their aliases, that the chart shell's library can
+   *  draw, as the frontend publishes them beside the shell. Not an API read: the file lives on
+   *  the frontend origin, and the key carries its version as the file name does. */
+  chartManifest: () => ['chart-manifest', 1],
 };

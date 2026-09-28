@@ -78,6 +78,17 @@ export const colorLight = {
     accent1: '#7c3aed',
     accent2: '#a78bfa',
     neutral: '#9ca3af',
+    /** Categorical data-series hues: identity, not verdict. pl.profit and pl.loss mean gain and loss, so a revenue bar cannot borrow them. Stepped per theme and listed in the order an index-coloured chart walks them, grey last so an 'Others' slice reads as the remainder. Not held to the text or indicator floors (light green is 2.72:1 on base), so a series colour never carries a figure on its own. */
+    series: {
+      green: '#1baf7a',
+      blue: '#2a78d6',
+      orange: '#eb6834',
+      violet: '#4a3aa7',
+      pink: '#95185b',
+      teal: '#188095',
+      amber: '#956718',
+      grey: '#8b8f96',
+    },
   },
   /** "Worth a look", ranked below pl.loss. Carries regime words and conditions so profit/loss colour stays reserved for money. */
   attn: '#8c5c10',
@@ -172,6 +183,17 @@ export const colorDark = {
     accent1: '#7c3aed',
     accent2: '#a78bfa',
     neutral: '#9ca3af',
+    /** Categorical data-series hues: identity, not verdict. pl.profit and pl.loss mean gain and loss, so a revenue bar cannot borrow them. Stepped per theme and listed in the order an index-coloured chart walks them, grey last so an 'Others' slice reads as the remainder. Not held to the text or indicator floors (light green is 2.72:1 on base), so a series colour never carries a figure on its own. */
+    series: {
+      green: '#199e70',
+      blue: '#3987e5',
+      orange: '#d95926',
+      violet: '#9085e9',
+      pink: '#cf3085',
+      teal: '#30b4cf',
+      amber: '#cf9530',
+      grey: '#8b8f96',
+    },
   },
   /** "Worth a look", ranked below pl.loss. Carries regime words and conditions so profit/loss colour stays reserved for money. */
   attn: '#e6a84a',

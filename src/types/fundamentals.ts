@@ -167,6 +167,8 @@ export interface GetFundamentalsResponse {
   exchange_code_nse?: string | null;
   website?: string | null;
   company_description?: string | null;
+  /** Year of incorporation, as filed — a four-digit string, not a number. */
+  inc_year?: string | null;
   year_end?: number | null;
   created_at?: string | null;
   updated_at?: string | null;

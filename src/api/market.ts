@@ -371,6 +371,23 @@ const readAISignals = ({
   ),
 });
 
+/**
+ * The holder register, deals and insider trades as the server sends them. Go serialises a nil slice
+ * as null, as the filing above shows, so a stock with no deals can answer `deals: null`; every list
+ * is filled here once, and a missing register date reads as empty, rather than every reader
+ * carrying the guard.
+ */
+type OwnershipWire = {
+  [K in keyof GetOwnershipResponse]?: GetOwnershipResponse[K] | null;
+};
+
+const readOwnership = (wire: OwnershipWire | null): GetOwnershipResponse => ({
+  deals: wire?.deals ?? [],
+  insider: wire?.insider ?? [],
+  top_holders: wire?.top_holders ?? [],
+  holders_as_of: wire?.holders_as_of ?? '',
+});
+
 export const marketApi = (http: HttpClient) => ({
   getRecommendations: (params?: RecommendationsQuery) =>
     http.request<MarketRecommendationsResponse>(
@@ -616,9 +633,13 @@ export const marketApi = (http: HttpClient) => ({
       body: params,
     }),
 
-  /** Web-only: holders, insider trades and bulk deals for one symbol. */
-  getOwnership: (symbol: string) =>
-    http.request<GetOwnershipResponse>(`/news/ownership${query({symbol})}`),
+  /** The newest holder register, bulk and block deals and insider trades for one symbol. */
+  getOwnership: async (symbol: string): Promise<GetOwnershipResponse> =>
+    readOwnership(
+      await http.request<OwnershipWire | null>(
+        `/news/ownership${query({symbol})}`,
+      ),
+    ),
 
   /** Every field a screen can filter on or show, and the universes it can start from. */
   getScreenCatalog: () => http.request<ScreenCatalog>('/news/screen/fields'),

@@ -92,3 +92,15 @@ export type {
   PerformanceScale,
   PeriodPoint,
 } from './financialPerformance.ts';
+
+export {ownershipRowsAtTier, ownershipTableRows} from './ownershipTable.ts';
+export type {OwnershipMeasure, OwnershipTableRow} from './ownershipTable.ts';
+
+export {holderConcentration, isBuyDeal} from './ownershipRegister.ts';
+export type {HolderBand, HolderBandKey} from './ownershipRegister.ts';
+
+export {promoterPledge} from './promoterPledge.ts';
+export type {PledgeQuarter, PromoterPledge} from './promoterPledge.ts';
+
+export {DELIVERY_SESSIONS, deliveryTrend} from './deliveryTrend.ts';
+export type {DeliverySession, DeliveryTrend} from './deliveryTrend.ts';

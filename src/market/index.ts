@@ -26,6 +26,23 @@ export type {
   AISignalTone,
   AISignalTrackRecord,
 } from './aiSignals.ts';
+export {
+  alertFiredOn,
+  alertMarksFor,
+  alertsOnUnderlying,
+  CHART_SERIES,
+  liveMarksFor,
+  NO_ALERT_MARKS,
+} from './alertMarks.ts';
+export type {
+  AlertMarks,
+  AlertMarksOptions,
+  AlertPatternHit,
+  AlertWatch,
+  LiveMarks,
+  SignalRule,
+  SignalSide,
+} from './alertMarks.ts';
 
 export {readingFsm, readingLeaf} from './alertReading.ts';
 

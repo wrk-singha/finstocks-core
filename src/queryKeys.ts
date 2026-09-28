@@ -12,6 +12,7 @@ import type {
 } from './types/fundamentalsDetail.ts';
 import type {WatchlistSearchType} from './types/stockWatchlist.ts';
 import type {GetStockEventsRequest} from './types/stockEvents.ts';
+import type {PeerTableQuery} from './types/industries.ts';
 
 /**
  * Centralized React Query key factory.
@@ -427,6 +428,18 @@ export const queryKeys = {
   industries: {
     /** ["industries", "tree"] — the classification tree, refreshed with the daily master. */
     tree: () => ['industries', 'tree'],
+    /** ["industries", "columns"] — the peer tables' column catalogue, refreshed with it. */
+    columns: () => ['industries', 'columns'],
+    /** ["industries", "table", query] — one peer table page; whose companies, which columns,
+     *  the sort and the page all change the answer. */
+    table: (query: PeerTableQuery) => ['industries', 'table', query],
+    /** ["industries", "search", term] — trimmed and lower-cased, so a change of case never
+     *  splits the cache */
+    search: (term: string) => [
+      'industries',
+      'search',
+      term.trim().toLowerCase(),
+    ],
   },
 
   /** ["chart-manifest", 1] — the studies, with their aliases, that the chart shell's library can

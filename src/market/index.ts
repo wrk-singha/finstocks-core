@@ -243,6 +243,27 @@ export type {
   StructureMath,
 } from './optionStructures.ts';
 
+export {formatPeerValue, medianTone} from './peerFormat.ts';
+export type {MedianTone} from './peerFormat.ts';
+
+export {
+  industryCrumbs,
+  MAX_PEER_COLUMNS,
+  MOST_USED_PEER_TAB,
+  narrowPeerColumnsForPhone,
+  PEER_COMPARE_COLUMNS,
+  PEER_COMPARE_SECTIONS,
+  peerCompareBars,
+  peerComparePair,
+  peerCompareTally,
+  peerCompareWinner,
+  peerPickerColumns,
+  peerPinnedFrom,
+  PHONE_PEER_COLUMNS,
+  togglePeerColumn,
+} from './peerTable.ts';
+export type {PeerCompareBar, PeerCompareSectionId} from './peerTable.ts';
+
 export {
   alertCondition,
   alertReading,

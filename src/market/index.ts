@@ -52,6 +52,19 @@ export type {
   TrendLine,
 } from './alertRule.ts';
 
+export {
+  chartIntervalLabel,
+  chartIntervalMinutes,
+  chartIntervalToResolution,
+  isChartInterval,
+  isPresetChartInterval,
+  makeChartInterval,
+  MAX_CUSTOM_INTERVAL_COUNT,
+  parseChartInterval,
+  resolutionToChartInterval,
+} from './chartInterval.ts';
+export type {ParsedChartInterval} from './chartInterval.ts';
+
 export {blackScholesGreeks, impliedForward, yearsToExpiry} from './greeks.ts';
 export type {OptionGreeks} from './greeks.ts';
 

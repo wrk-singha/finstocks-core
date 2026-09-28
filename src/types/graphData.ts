@@ -52,14 +52,15 @@ export type Period =
 // bound for the wire must pass through `fetchIntervalFor` first.
 // drift resolved 2026-09-13: the web named the full resolution list `Interval`
 // and the mobile named the fetchable pair `Interval`; the pair keeps the name
-// because it is the backend contract, and the resolution list is `ChartInterval`.
+// because it is the backend contract, and the resolution list is
+// `PresetChartInterval` (web's `Interval`). `ChartInterval` is web's own name.
 export type Interval = '1m' | '1d';
 
-// What the chart's resolution picker offers. Every value besides "1m"/"1d" is
-// bucketed client-side from a "1m" fetch. "1w"/"1M" are the exception: the
-// TradingView datafeed builds those from daily bars itself. Note "1M" is a
-// month here, "1m" a minute.
-export type ChartInterval =
+// What the chart's resolution picker offers as presets. Every value besides
+// "1m"/"1d" is bucketed client-side from a "1m" fetch. "1w"/"1M" are the
+// exception: the TradingView datafeed builds those from daily bars itself. Note
+// "1M" is a month here, "1m" a minute.
+export type PresetChartInterval =
   | Interval
   | '2m'
   | '3m'
@@ -73,9 +74,20 @@ export type ChartInterval =
   | '1w'
   | '1M';
 
-// ChartInterval to the TradingView resolution string the datafeed expects.
-// Hours are named in minutes there ("60" is 1h).
-export const CHART_INTERVAL_RESOLUTION: Record<ChartInterval, string> = {
+export type ChartIntervalUnit = 'm' | 'h' | 'd' | 'w' | 'M';
+
+// What a chart can be DRAWN at, as opposed to what the picker lists: every
+// preset plus any count of a unit the datafeed can roll up from its minute and
+// daily series (7m, 45m, 3h, 2d, 6M). A chat plan can set any rung of the
+// chart's ladder and a user can add their own, so a stored or linked value is
+// validated with `isChartInterval` rather than looked up among the presets.
+export type ChartInterval =
+  PresetChartInterval | `${number}${ChartIntervalUnit}`;
+
+// PresetChartInterval to the TradingView resolution string the datafeed expects.
+// Hours are named in minutes there ("60" is 1h). `chartIntervalToResolution`
+// spells any other interval by the same rule.
+export const CHART_INTERVAL_RESOLUTION: Record<PresetChartInterval, string> = {
   '1m': '1',
   '2m': '2',
   '3m': '3',
@@ -98,7 +110,7 @@ export const CHART_INTERVAL_LABEL = Object.fromEntries(
     interval,
     /[DWM]$/.test(resolution) ? resolution : interval,
   ]),
-) as Record<ChartInterval, string>;
+) as Record<PresetChartInterval, string>;
 
 // Which of the two fetchable intervals backs a display resolution. Day and above
 // come off the daily series; everything below is bucketed from 1-minute bars.

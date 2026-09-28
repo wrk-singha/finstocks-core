@@ -131,9 +131,12 @@ export interface AlertMarks {
 
 export const NO_ALERT_MARKS: AlertMarks = {fires: [], hits: [], watches: []};
 
-/** "NSE:RELIANCE", "RELIANCE-EQ" and a Reliance option all name RELIANCE. */
-const underlyingOf = (symbol: string): string =>
-  extractUnderlyingSymbol(symbol.split(':').pop() ?? '');
+/**
+ * "NSE:RELIANCE", "RELIANCE-EQ" and a Reliance option all name RELIANCE. Total, as web's `ticker()`
+ * is: a match is server data, and one without a symbol names nothing rather than throwing.
+ */
+const tickerUnderlying = (symbol: string | null | undefined): string =>
+  extractUnderlyingSymbol((symbol ?? '').split(':').pop() ?? '');
 
 /**
  * The saved alerts on one underlying: a single stock's alert as itself, a list's through the match
@@ -143,10 +146,10 @@ export function alertsOnUnderlying(
   alerts: readonly SavedAlert[],
   underlying: string,
 ): SavedAlert[] {
-  const target = underlyingOf(underlying);
+  const target = tickerUnderlying(underlying);
   return alerts.filter(alert =>
     [alert.symbol, ...(alert.matches ?? []).map(match => match.symbol)].some(
-      symbol => !!symbol && underlyingOf(symbol) === target,
+      symbol => !!symbol && tickerUnderlying(symbol) === target,
     ),
   );
 }
@@ -159,11 +162,11 @@ export function alertFiredOn(
   alert: SavedAlert,
   underlying: string,
 ): string | null {
-  const target = underlyingOf(underlying);
+  const target = tickerUnderlying(underlying);
   return (
-    alert.matches?.find(match => underlyingOf(match.symbol) === target)
+    alert.matches?.find(match => tickerUnderlying(match.symbol) === target)
       ?.triggered_at ??
-    (alert.symbol && underlyingOf(alert.symbol) === target
+    (alert.symbol && tickerUnderlying(alert.symbol) === target
       ? (alert.last_triggered_at ?? null)
       : null)
   );

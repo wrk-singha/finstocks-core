@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import type {SavedAlert} from '../../types/savedAlert.ts';
+import type {AlertMatch, SavedAlert} from '../../types/savedAlert.ts';
 import {
   alertFiredOn,
   alertMarksFor,
@@ -210,6 +210,30 @@ test('a list alert fired where its match did; a stock’s alert when it did', ()
     alertFiredOn(alert({id: 'quiet', symbol: 'RELIANCE'}), 'RELIANCE'),
     null,
   );
+});
+
+test('a match without a symbol names nothing, and the others still count', () => {
+  // Server JSON: the type promises every match a symbol, the wire does not.
+  const nameless = [{symbol: null}, {}] as unknown as AlertMatch[];
+  const list = alert({
+    id: 'list',
+    matches: [...nameless, {symbol: 'RELIANCE', triggered_at: FIRED}],
+  });
+  assert.deepEqual(
+    alertsOnUnderlying([list], 'RELIANCE').map(entry => entry.id),
+    ['list'],
+  );
+  assert.equal(alertFiredOn(list, 'RELIANCE'), FIRED);
+  assert.deepEqual(alertMarksFor([list], 'RELIANCE').fires, [FIRED_S]);
+
+  const stock = alert({
+    id: 'stock',
+    symbol: 'RELIANCE',
+    matches: nameless,
+    last_triggered_at: FIRED,
+  });
+  assert.equal(alertFiredOn(stock, 'RELIANCE'), FIRED);
+  assert.deepEqual(alertMarksFor([stock], 'TCS'), NO_ALERT_MARKS);
 });
 
 test('marks: a flag where each plotted alert fired, and the watch its rule holds on since', () => {

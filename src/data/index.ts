@@ -60,6 +60,22 @@ export {
   defaultAlertPreferences,
 } from './alertChannels.ts';
 export {ALERT_READING_FIELDS} from './alertReadingFields.ts';
+export {
+  ALERT_FIELDS,
+  ALERT_TABS,
+  alertField,
+  EXPIRY_CHOICES,
+  findAlertField,
+  POPULAR_FIELD_IDS,
+  searchAlertFields,
+  sectionsOf,
+} from './alertFields.ts';
+export type {
+  AlertExpiry,
+  AlertField,
+  AlertFieldKind,
+  AlertTab,
+} from './alertFields.ts';
 export {ACTION_ICON_NAMES} from './actionIcons.ts';
 export type {ActionIconKey, ActionIconName} from './actionIcons.ts';
 export {CHAT_CATEGORIES, chatCategoryLabels} from './chatCategories.ts';

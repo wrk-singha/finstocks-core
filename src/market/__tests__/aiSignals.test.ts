@@ -14,11 +14,13 @@ import {
   closedBarsKey,
   intervalSeconds,
   isActionable,
+  isAlertable,
   isLiveTrade,
   isSignalInView,
   lastBarForming,
   listSignals,
   pivotLayerSource,
+  signalAlertSeed,
   signalStatusOf,
   trackRecord,
   tradeSideOf,
@@ -152,6 +154,43 @@ test('actionable means confident enough and either waiting for its entry or live
   );
   assert.equal(isActionable(signal({state: 'expired'}), 0.6), false);
   assert.equal(isActionable(signal({state: 'detected'}), 0), false);
+});
+
+test('an alert is offered only while a setup waits for the candle that confirms it', () => {
+  assert.equal(isAlertable(signal({state: 'armed'})), true);
+  // Confidence does not matter: a weak setup still waiting reads as history, and can still be watched.
+  assert.equal(isAlertable(signal({state: 'armed', confidence: 0.3})), true);
+  for (const state of [
+    'detected',
+    'triggered',
+    'expired',
+    'invalidated',
+  ] as const) {
+    assert.equal(isAlertable(signal({state})), false, state);
+  }
+});
+
+test('an alert seed crosses the entry the way the setup breaks, checked once a chart candle', () => {
+  assert.deepEqual(
+    signalAlertSeed(signal({direction: 'long', entry: 110.4}), 1),
+    {price: 110.4, op: 'rises_above', timeframe: '1m'},
+  );
+  assert.deepEqual(
+    signalAlertSeed(signal({direction: 'short', entry: 95.5}), 15),
+    {price: 95.5, op: 'falls_below', timeframe: '15m'},
+  );
+  const timeframeOn = (minutes: number) =>
+    signalAlertSeed(signal(), minutes).timeframe;
+  // The coarsest check that still looks at least once a candle.
+  assert.equal(timeframeOn(3), '1m');
+  assert.equal(timeframeOn(5), '5m');
+  assert.equal(timeframeOn(10), '5m');
+  assert.equal(timeframeOn(45), '15m');
+  assert.equal(timeframeOn(60), '15m');
+  assert.equal(timeframeOn(1440), '1d');
+  assert.equal(timeframeOn(7 * 1440), '1d');
+  // An interval with no width to read looks every minute rather than never.
+  assert.equal(timeframeOn(0), '1m');
 });
 
 test('the track record counts breakouts, T1s and stops taken before T1, and averages closed R', () => {

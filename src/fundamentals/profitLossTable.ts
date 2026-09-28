@@ -466,6 +466,18 @@ export function averageOf(values: Col, years: number): number | null {
 
 type PriceClose = {time: string; close: number};
 
+const DAY_MS = 86_400_000;
+
+// The day a bar closed on, as UTC midnight, read off its date digits. The wire
+// spells a bar "2026-06-30 00:00:00": V8 parses that as local time, but Hermes
+// returns Invalid Date for it, and a NaN date made every span start at the
+// first bar — a wrong CAGR on the phone rather than a missing one.
+const closeDay = (time: string): number | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(time);
+  if (!match) return null;
+  return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+};
+
 /** Price CAGR over `years`, reading the close on or just before that date. */
 export function priceCagr(
   series: readonly PriceClose[],
@@ -474,18 +486,22 @@ export function priceCagr(
   const first = series[0];
   const last = series.at(-1);
   if (series.length < 2 || !first || !last) return null;
-  const target = new Date(last.time);
-  target.setFullYear(target.getFullYear() - years);
+  const end = closeDay(last.time);
+  const begin = closeDay(first.time);
+  if (end == null || begin == null) return null;
+  const target = new Date(end);
+  target.setUTCFullYear(target.getUTCFullYear() - years);
   const t = target.getTime();
   let start: PriceClose | undefined;
   for (const p of series) {
-    if (new Date(p.time).getTime() <= t) start = p;
+    const day = closeDay(p.time);
+    if (day != null && day <= t) start = p;
     else break;
   }
   // A history that begins after the target date cannot answer for the span;
   // a week's slack covers holidays and a downsampled series.
   if (!start) {
-    if (new Date(first.time).getTime() - t > 7 * 86400000) return null;
+    if (begin - t > 7 * DAY_MS) return null;
     start = first;
   }
   if (start.close <= 0 || last.close <= 0) return null;

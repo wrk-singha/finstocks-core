@@ -447,3 +447,57 @@ test('priceCagr allows a week of slack before the first close, and needs real pr
   );
   assert.equal(priceCagr([], 1), null);
 });
+
+// The graph-data wire spells a daily bar with a space and no zone.
+const WIRE_PRICES = [
+  {time: '2016-06-30 00:00:00', close: 100},
+  {time: '2021-06-30 00:00:00', close: 200},
+  {time: '2025-06-30 00:00:00', close: 350},
+  {time: '2026-06-30 00:00:00', close: 400},
+];
+
+const wireCagrs = (): (number | null)[] =>
+  round([1, 3, 5, 10, 20].map(years => priceCagr(WIRE_PRICES, years)));
+
+const expectedWireCagrs = round([
+  (Math.pow(400 / 350, 1) - 1) * 100,
+  (Math.pow(2, 1 / 3) - 1) * 100,
+  (Math.pow(2, 1 / 5) - 1) * 100,
+  (Math.pow(4, 1 / 10) - 1) * 100,
+  null,
+]);
+
+test('priceCagr reads the wire spelling of a daily bar', () => {
+  assert.deepEqual(wireCagrs(), expectedWireCagrs);
+  assert.equal(
+    priceCagr(
+      [
+        {time: 'yesterday', close: 100},
+        {time: '2026-06-30 00:00:00', close: 400},
+      ],
+      1,
+    ),
+    null,
+  );
+});
+
+test('priceCagr gives the same answer where Date cannot parse the wire spelling, as on Hermes', () => {
+  const RealDate = Date;
+  // Hermes answers "2026-06-30 00:00:00" with Invalid Date where V8 reads it as local time.
+  class HermesDate extends RealDate {
+    constructor(value?: string | number | Date) {
+      super(
+        typeof value === 'string' && value.includes(' ')
+          ? Number.NaN
+          : (value ?? RealDate.now()),
+      );
+    }
+  }
+  globalThis.Date = HermesDate as DateConstructor;
+  try {
+    assert.ok(Number.isNaN(new Date('2026-06-30 00:00:00').getTime()));
+    assert.deepEqual(wireCagrs(), expectedWireCagrs);
+  } finally {
+    globalThis.Date = RealDate;
+  }
+});

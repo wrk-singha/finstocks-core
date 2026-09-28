@@ -446,4 +446,8 @@ export const queryKeys = {
    *  draw, as the frontend publishes them beside the shell. Not an API read: the file lives on
    *  the frontend origin, and the key carries its version as the file name does. */
   chartManifest: () => ['chart-manifest', 1],
+
+  /** ["custom-indicators"] — the indicators the user built in the chart chat and saved, newest
+   *  first; the chat card and the chart picker's Custom tab read the same list. */
+  customIndicators: () => ['custom-indicators'],
 };

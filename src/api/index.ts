@@ -118,3 +118,6 @@ export type {SavedAlertsApi} from './savedAlerts.ts';
 
 export {stockWatchlistsApi} from './stockWatchlists.ts';
 export type {StockWatchlistsApi} from './stockWatchlists.ts';
+
+export {customIndicatorsApi} from './customIndicators.ts';
+export type {CustomIndicatorsApi} from './customIndicators.ts';

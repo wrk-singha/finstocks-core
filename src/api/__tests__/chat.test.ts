@@ -78,6 +78,35 @@ test('an activity window is sent only when set, and keys its own entry in the se
   assert.deepEqual(week.slice(0, 2), queryKeys.chatsSearch('', '').slice(0, 2));
 });
 
+test('an empty string param is left out like an unset one, as web sends the list', async () => {
+  const {http, calls} = fakeHttp();
+  const api = chatApi(http);
+  await api.getAllChats({
+    cursor: '',
+    surface: '',
+    symbol: '',
+    q: '',
+    category: '',
+    days: 3,
+  });
+  await api.getAllChats({
+    limit: 30,
+    surface: '',
+    q: '',
+    category: 'strategy',
+    days: null,
+  });
+  await api.getAllChats({cursor: 'c2', limit: 30, surface: '', q: 'nifty'});
+  assert.deepEqual(
+    calls.map(call => call.path),
+    [
+      '/chats?days=3',
+      '/chats?limit=30&category=strategy',
+      '/chats?cursor=c2&limit=30&q=nifty',
+    ],
+  );
+});
+
 test('the total rides on the first page and is optional on the wire', async () => {
   const {http} = fakeHttp([
     {chats: [], next_cursor: 'c2', has_more: true, total: 42},

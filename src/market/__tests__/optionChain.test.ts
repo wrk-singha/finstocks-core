@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
 import {test} from 'node:test';
 
 import {formatCompactQuantity} from '../../format/number.ts';
@@ -98,6 +99,22 @@ test('nearest expiry is the first still ahead, else the furthest listed', () => 
   );
   assert.equal(nearestExpiry(['2026-09-01', '2026-09-09'], now), '2026-09-09');
   assert.equal(nearestExpiry([], now), undefined);
+});
+
+test('an ISO expiry prints as its own day west of UTC too', () => {
+  // A zone is fixed when the process starts, so the check runs in one started west of UTC.
+  const module = new URL('../optionChain.ts', import.meta.url).href;
+  const printed = execFileSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      `const {formatExpiryLabel} = await import(${JSON.stringify(module)});
+       process.stdout.write(formatExpiryLabel('2026-08-18') + '|' + formatExpiryLabel('18 Aug 2026'));`,
+    ],
+    {env: {...process.env, TZ: 'America/New_York'}, encoding: 'utf8'},
+  );
+  assert.equal(printed, '18 Aug|18 Aug');
 });
 
 test('expiry labels are "DD Mon" with September trimmed to three letters', () => {

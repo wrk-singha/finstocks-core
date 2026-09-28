@@ -59,6 +59,16 @@ const expiryLabelFormatter = new Intl.DateTimeFormat('en-IN', {
   month: 'short',
 });
 
+// An ISO day parses as UTC midnight, so printed in the device's zone it reads as the day before
+// anywhere west of UTC. It is a calendar date, not an instant, so it prints in UTC; the other
+// broker spellings parse as local time and print in it.
+const isoDayLabelFormatter = new Intl.DateTimeFormat('en-IN', {
+  day: '2-digit',
+  month: 'short',
+  timeZone: 'UTC',
+});
+const ISO_DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 // Expiry token → "18 Aug" for the chain header and basket legs. Broker expiry
 // formats vary, so a token that isn't a parseable date passes through as-is
 // rather than becoming "Invalid Date".
@@ -66,8 +76,11 @@ export const formatExpiryLabel = (expiry: string | undefined): string => {
   if (!expiry) return '—';
   const parsed = Date.parse(expiry);
   if (Number.isNaN(parsed)) return expiry;
+  const formatter = ISO_DAY_RE.test(expiry)
+    ? isoDayLabelFormatter
+    : expiryLabelFormatter;
   return (
-    expiryLabelFormatter
+    formatter
       .format(new Date(parsed))
       // "Sept" is the only four-letter short month Intl emits, so it alone
       // breaks the three-letter rhythm of an expiry column.

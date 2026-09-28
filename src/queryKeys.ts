@@ -11,6 +11,7 @@ import type {
   StatementBasis,
 } from './types/fundamentalsDetail.ts';
 import type {WatchlistSearchType} from './types/stockWatchlist.ts';
+import type {GetStockEventsRequest} from './types/stockEvents.ts';
 
 /**
  * Centralized React Query key factory.
@@ -272,6 +273,17 @@ export const queryKeys = {
     movers: () => ['market-movers'],
     news: () => ['market-news'],
     events: () => ['market-events'],
+    /** ["stock-events", from, to, categories, caps, symbols] — each list joined in the order
+     *  sent, and "" for a filter left out, so a request without dates keys apart from any
+     *  window the server might answer it with. */
+    stockEvents: (params: GetStockEventsRequest) => [
+      'stock-events',
+      params.from ?? '',
+      params.to ?? '',
+      (params.category ?? []).join(','),
+      (params.cap ?? []).join(','),
+      (params.symbol ?? []).join(','),
+    ],
     /** ["market-depth", symbol] */
     depth: (symbol: string | null) => ['market-depth', symbol],
     /** ["market-screener-stocks", filters] — every field the request sends must

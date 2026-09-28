@@ -62,7 +62,7 @@ import type {
 } from '../types/stockEvents.ts';
 import type {HttpClient} from './http.ts';
 import {query, statusOf} from './http.ts';
-import {joinQuery, repeatedParam, symbolQuery} from './params.ts';
+import {joinQuery, symbolQuery} from './params.ts';
 
 export interface RecommendationsQuery {
   horizon?: string;
@@ -599,16 +599,17 @@ export const marketApi = (http: HttpClient) => ({
       }),
     ),
 
-  /** Web-only: the corporate-events calendar; every array filter is a repeated param. */
+  /**
+   * The corporate-events calendar. POST, not GET: a watchlist or holdings filter can name
+   * thousands of symbols, more than a URL holds. The body carries the fields the GET params
+   * did; a request without dates lets the server pick the window, which it names in
+   * `from`/`to`.
+   */
   getStockEvents: (params: GetStockEventsRequest) =>
-    http.request<GetStockEventsResponse>(
-      `/news/stock-events${joinQuery(
-        query({from: params.from, to: params.to}),
-        repeatedParam('category', params.category ?? []),
-        repeatedParam('cap', params.cap ?? []),
-        repeatedParam('symbol', params.symbol ?? []),
-      )}`,
-    ),
+    http.request<GetStockEventsResponse>('/news/stock-events', {
+      method: 'POST',
+      body: params,
+    }),
 
   /** Web-only: holders, insider trades and bulk deals for one symbol. */
   getOwnership: (symbol: string) =>

@@ -7,6 +7,7 @@ import {
   formatDateTimeStamp,
   formatDayMonthYear,
   formatDurationMins,
+  formatEventDayHeading,
   formatLastUpdatedIST,
   formatNetWorthChartDate,
   formatNotificationTime,
@@ -229,6 +230,12 @@ test('formatLastUpdatedIST buckets today and yesterday on the IST calendar', () 
 test('day-key headings render the day they name in every timezone', () => {
   assert.equal(formatOrderDayHeading('2026-08-09'), '09 Aug 2026');
   assert.equal(formatNetWorthChartDate('2026-08-09'), '9 Aug 26');
+});
+
+test('the events heading reads day, short month, then weekday', () => {
+  assert.equal(formatEventDayHeading('2026-09-21'), '21 Sep, Mon');
+  assert.equal(formatEventDayHeading('2026-10-04'), '4 Oct, Sun');
+  assert.equal(formatEventDayHeading('2027-01-01'), '1 Jan, Fri');
 });
 
 test('formatOrderTime and formatNotificationTime print the IST clock in uppercase', () => {

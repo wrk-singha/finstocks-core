@@ -2,6 +2,7 @@ export type StockEventCategory =
   | 'dividend'
   | 'bonus'
   | 'split'
+  | 'reverse_split'
   | 'rights'
   | 'merger'
   | 'demerger'

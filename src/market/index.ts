@@ -63,6 +63,7 @@ export {
   formatIv,
   formatOi,
   formatPremium,
+  formatStrike,
   ivContext,
   nearestExpiry,
   optionContractLabel,
@@ -86,6 +87,14 @@ export type {
   PositioningStance,
   PositioningVerdict,
 } from './optionChain.ts';
+
+export {
+  exchangeSymbol,
+  isExchangeSymbol,
+  optionPath,
+  readOptionContract,
+} from './optionContract.ts';
+export type {OptionContract, OptionContractParams} from './optionContract.ts';
 
 export {
   costDrag,

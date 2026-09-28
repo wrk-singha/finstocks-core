@@ -1,6 +1,7 @@
 import {extractUnderlyingSymbol} from './symbols.ts';
 
-const MONTHS = [
+/** The month tokens every exchange contract ticker spells its expiry with. */
+export const MONTHS = [
   'JAN',
   'FEB',
   'MAR',

@@ -1,12 +1,6 @@
 import type {StockGraphData} from '../types/graphData.ts';
+import {isExchangeSymbol} from './optionContract.ts';
 import {extractUnderlyingSymbol} from './symbols.ts';
-
-// Kept in step with fnoSymbolRe in backend-go/handlers/trading/graph.go, which
-// decides the same question server-side to pick fno_ohlcv_1m over ohlcv_1m.
-// The strike allows a decimal point: NSE spaces some underlyings' strikes at
-// 2.5 or 5 rupees near the money, not just whole rupees.
-const FNO_SYMBOL_RE =
-  /^[A-Z0-9&-]+\d{2}[A-Z0-9]{1,5}(?:\d+(?:\.\d+)?(?:CE|PE)|FUT)$/;
 
 /**
  * The symbol to ask graph-data for when pricing a trade.
@@ -19,7 +13,7 @@ const FNO_SYMBOL_RE =
  */
 export const priceSymbolFor = (stockSymbol: string): string => {
   const raw = (stockSymbol || '').trim().toUpperCase();
-  return FNO_SYMBOL_RE.test(raw) ? raw : extractUnderlyingSymbol(raw);
+  return isExchangeSymbol(raw) ? raw : extractUnderlyingSymbol(raw);
 };
 
 // Newest close in a symbol's series, looked up case-tolerantly and sorted by

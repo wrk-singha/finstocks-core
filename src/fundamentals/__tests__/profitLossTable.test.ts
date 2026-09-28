@@ -481,10 +481,10 @@ test('priceCagr reads the wire spelling of a daily bar', () => {
   );
 });
 
-test('priceCagr gives the same answer where Date cannot parse the wire spelling, as on Hermes', () => {
+test('priceCagr gives the same answer where Date cannot parse the wire spelling', () => {
   const RealDate = Date;
-  // Hermes answers "2026-06-30 00:00:00" with Invalid Date where V8 reads it as local time.
-  class HermesDate extends RealDate {
+  // An engine may answer "2026-06-30 00:00:00" with Invalid Date where V8 reads it as local time.
+  class RejectingDate extends RealDate {
     constructor(value?: string | number | Date) {
       super(
         typeof value === 'string' && value.includes(' ')
@@ -493,7 +493,7 @@ test('priceCagr gives the same answer where Date cannot parse the wire spelling,
       );
     }
   }
-  globalThis.Date = HermesDate as DateConstructor;
+  globalThis.Date = RejectingDate as DateConstructor;
   try {
     assert.ok(Number.isNaN(new Date('2026-06-30 00:00:00').getTime()));
     assert.deepEqual(wireCagrs(), expectedWireCagrs);

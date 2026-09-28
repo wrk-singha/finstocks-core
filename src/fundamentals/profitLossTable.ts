@@ -469,9 +469,10 @@ type PriceClose = {time: string; close: number};
 const DAY_MS = 86_400_000;
 
 // The day a bar closed on, as UTC midnight, read off its date digits. The wire
-// spells a bar "2026-06-30 00:00:00": V8 parses that as local time, but Hermes
-// returns Invalid Date for it, and a NaN date made every span start at the
-// first bar — a wrong CAGR on the phone rather than a missing one.
+// spells a bar "2026-06-30 00:00:00", which is not an ISO timestamp, so how Date
+// reads it is up to the engine: V8 takes it as local time, and an engine that
+// rejects it returns Invalid Date, where a NaN date made every span start at
+// the first bar — a wrong CAGR rather than a missing one.
 const closeDay = (time: string): number | null => {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(time);
   if (!match) return null;

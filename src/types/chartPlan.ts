@@ -471,6 +471,10 @@ export type ClarifyOp = OpBase & {
 export type PlanOp =
   ChartOp | StudyOp | DrawOp | RenderOp | EditOp | LayoutOp | ClarifyOp;
 
+/**
+ * `answer` is a reply in words that changes nothing on the chart, so it is the third intent, with
+ * `refuse` and `clarify`, whose plan may carry no ops.
+ */
 export type PlanIntent =
   | 'chart_control'
   | 'indicator'
@@ -478,7 +482,8 @@ export type PlanIntent =
   | 'annotate'
   | 'edit'
   | 'clarify'
-  | 'refuse';
+  | 'refuse'
+  | 'answer';
 
 /** The chart state the ops were resolved against, echoed back by the model. */
 export interface ChartPlanContext {
@@ -496,6 +501,8 @@ export interface ChartPlan {
   confidence?: number;
   undo_group: string;
   assumptions?: string[];
+  /** The message this plan answers, kept on what it draws. */
+  asked?: string;
   ops: PlanOp[];
   /**
    * The ops ride a turn already answered elsewhere, so this plan's prose lives on the message

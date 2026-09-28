@@ -63,6 +63,38 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.4.0** — web parity phase 3, first layer: what 25 mobile features read. A minor because
+  one change breaks callers:
+  - **Chart intervals are open** (web de4023e9): `ChartInterval` is any count and unit the
+    chart accepts (`45m`, `3h`, `2d`), not the preset ladder, so code that indexed
+    `CHART_INTERVAL_LABEL` or `CHART_INTERVAL_RESOLUTION` with one calls `chartIntervalLabel` /
+    `chartIntervalToResolution`; `parseChartInterval`, `makeChartInterval`,
+    `chartIntervalMinutes` and `resolutionToChartInterval` read and build them.
+
+  Added: the New alert form's fields, clauses, sentences and monitor-FSM compiler
+  (`data/alertFields.ts`, `market/alertRule.ts`; web 6fb2ccdc, 0c327488); AI signal types,
+  helpers and `marketApi.postAISignals`, whose reader fills the lists Go sends as null (web
+  19886306 and the signals series); fired-alert chart marks, `alertMarksFor` (web 0fc15a01,
+  564af137); the option contract address, `readOptionContract` / `exchangeSymbol` /
+  `optionPath`, with `isExchangeSymbol` as the one home of the contract grammar (web c696d9c4,
+  f6e527c1); the world indices table and one-index window (web 28a97cf5, a50f1d2f); IPO lot,
+  schedule and financials maths, keys and `ipoLogoUrl` (web 28a97cf5); the industry peer table
+  client, keys, compare and column-picker helpers (web 95fda334, 74fecbb1); the full
+  shareholding pattern, holder register, pledge and delivery readers, with `getOwnership`
+  filling null lists (web 74fecbb1, 8589ddf8); per-period revenue and profit for the overview
+  chart, the incorporation year and categorical chart series hues (web 6e4b8a95, e9e33bc0);
+  the chat list's `days` window and `total`, with empty params left out (web ee2d1df9,
+  bf4b9c8b); the F&O card's option order draft (web 094912d5); `queryKeys.chartManifest()`;
+  and the events calendar's day heading. `getStockEvents` is a POST now, because a watchlist
+  or holdings filter can name more symbols than a URL holds (web 34224b5d), and
+  `queryKeys.market.stockEvents` keys it by every filter.
+
+  Fixed: a price CAGR reads bar dates off their digits, so an engine that cannot parse the
+  wire's "YYYY-MM-DD HH:MM:SS" no longer starts every span at the first bar; a decimal strike
+  prints with its fraction; the filing reader fills null delivery rows and documents lists as
+  it did categories; `readOptionContract` reads a repeated link field's first value instead of
+  throwing; `formatExpiryLabel` prints an ISO expiry as its own day west of UTC; an alert match
+  without a symbol names no stock instead of throwing.
 - **v0.3.0** — web parity phase 2, the foundations the phase-3 features stand on. A minor
   because two changes break callers:
   - **Saved alerts renamed** (web 21aeeca2): the `/watchlists` records are `SavedAlert`,

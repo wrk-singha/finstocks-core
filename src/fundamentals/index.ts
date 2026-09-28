@@ -104,3 +104,12 @@ export type {PledgeQuarter, PromoterPledge} from './promoterPledge.ts';
 
 export {DELIVERY_SESSIONS, deliveryTrend} from './deliveryTrend.ts';
 export type {DeliverySession, DeliveryTrend} from './deliveryTrend.ts';
+
+export {
+  availablePeriods,
+  FUNDAMENTAL_PERIODS,
+  isFundamentalPeriod,
+  isReported,
+  reportedGroups,
+  reportedMetrics,
+} from './fundamentalSeries.ts';

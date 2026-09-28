@@ -67,6 +67,82 @@ test('news-prefixed reads repeat symbol params', async () => {
   );
 });
 
+test('dividends take a stock and an upcoming filter, each sent only when set', async () => {
+  const {http, calls} = fakeHttp();
+  const api = marketApi(http);
+  await api.getDividends('IN', {symbol: 'M&M'});
+  await api.getDividends('IN', {upcoming: true});
+  await api.getDividends('IN', {symbol: '', upcoming: false});
+  assert.deepEqual(
+    calls.map(c => c.path),
+    [
+      '/news/dividends?market=IN&symbol=M%26M',
+      '/news/dividends?market=IN&upcoming=true',
+      '/news/dividends?market=IN',
+    ],
+  );
+});
+
+test('one stock’s filings and dividends arrive as empty lists when Go sends null', async () => {
+  const {http, calls} = fakeHttp([null, null, null]);
+  const api = marketApi(http);
+  assert.deepEqual(await api.getAnnouncements({symbol: 'RELIANCE'}), []);
+  assert.deepEqual(await api.getCorporateFilings('RELIANCE'), []);
+  assert.deepEqual(await api.getDividends('IN', {symbol: 'RELIANCE'}), []);
+  assert.deepEqual(
+    calls.map(c => c.path),
+    [
+      '/market/announcements?symbol=RELIANCE',
+      '/market/corporate-filings?symbol=RELIANCE',
+      '/news/dividends?market=IN&symbol=RELIANCE',
+    ],
+  );
+  const filings = [
+    {
+      news_id: 'n1',
+      datetime: '2025-11-14',
+      caption: 'Allotment under ESOS',
+      details: '',
+      attachment_url: '',
+      category: 'esop' as const,
+    },
+  ];
+  assert.deepEqual(
+    await marketApi(fakeHttp([filings]).http).getCorporateFilings('RELIANCE'),
+    filings,
+  );
+});
+
+test('the dividends key holds the stock and the filter, and one stock’s filings key apart', () => {
+  assert.deepEqual(queryKeys.dividends('IN'), ['dividends', 'IN', '', false]);
+  assert.deepEqual(queryKeys.dividends('IN', 'RELIANCE'), [
+    'dividends',
+    'IN',
+    'RELIANCE',
+    false,
+  ]);
+  assert.deepEqual(queryKeys.dividends('IN', undefined, true), [
+    'dividends',
+    'IN',
+    '',
+    true,
+  ]);
+  assert.deepEqual(queryKeys.market.corporateFilings('RELIANCE'), [
+    'corporate-filings',
+    'RELIANCE',
+  ]);
+  assert.deepEqual(queryKeys.market.symbolAnnouncements('RELIANCE'), [
+    'announcements',
+    'symbol',
+    'RELIANCE',
+  ]);
+  assert.deepEqual(queryKeys.market.symbolAnnouncements(null), [
+    'announcements',
+    'symbol',
+    '',
+  ]);
+});
+
 test('stock events are posted, so a long symbol filter never meets a URL limit', async () => {
   const {http, calls} = fakeHttp();
   const api = marketApi(http);

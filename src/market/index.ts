@@ -111,6 +111,27 @@ export {
 } from './chartInterval.ts';
 export type {ParsedChartInterval} from './chartInterval.ts';
 
+export {
+  ACTION_GROUPS,
+  actionGroupOf,
+  buildCorporateActions,
+  buildExchangeFilings,
+  CAPITAL_FAMILIES,
+  capitalActionsByYear,
+  eventTime,
+  familyOf,
+  filingKind,
+  filingTitle,
+  groupCorporateActions,
+  isValidDate,
+} from './corporateActions.ts';
+export type {
+  ActionGroup,
+  ActionGroupKey,
+  CapitalAction,
+  CorporateActionFeeds,
+} from './corporateActions.ts';
+
 export {blackScholesGreeks, impliedForward, yearsToExpiry} from './greeks.ts';
 export type {OptionGreeks} from './greeks.ts';
 

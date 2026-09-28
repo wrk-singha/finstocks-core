@@ -1,5 +1,9 @@
 export interface GetDividendsParams {
   market: 'IN';
+  /** One stock's dividends, history included, rather than the market's feed. */
+  symbol?: string;
+  /** Only dividends whose ex-date has not passed. */
+  upcoming?: boolean;
 }
 
 export interface GetDividendsResponse {

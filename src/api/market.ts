@@ -3,7 +3,10 @@ import type {
   AISignalsRequest,
   AISignalsResponse,
 } from '../types/aiSignals.ts';
-import type {GetDividendsResponse} from '../types/dividends.ts';
+import type {
+  GetDividendsParams,
+  GetDividendsResponse,
+} from '../types/dividends.ts';
 import type {
   FnoIdeasResponse,
   FnoPositionsResponse,
@@ -65,6 +68,7 @@ import type {
   ScreenerTimeframe,
 } from '../types/screenerFilters.ts';
 import type {
+  CorporateFiling,
   GetStockEventsRequest,
   GetStockEventsResponse,
 } from '../types/stockEvents.ts';
@@ -547,10 +551,22 @@ export const marketApi = (http: HttpClient) => ({
       `/market/nps/sectors${query({fund_id: fundId})}`,
     ),
 
-  getAnnouncements: (params?: AnnouncementsQuery) =>
-    http.request<AnnouncementRow[]>(
+  /**
+   * Go serialises a nil slice as null, so a company that has filed nothing can answer null; it
+   * arrives as an empty list. The corporate filings and dividends reads fill it the same way.
+   */
+  getAnnouncements: async (
+    params?: AnnouncementsQuery,
+  ): Promise<AnnouncementRow[]> =>
+    (await http.request<AnnouncementRow[] | null>(
       `/market/announcements${query({...params})}`,
-    ),
+    )) ?? [],
+
+  /** One stock's buyback, ESOP, preferential-issue and merger filings, tagged by the backend. */
+  getCorporateFilings: async (symbol: string): Promise<CorporateFiling[]> =>
+    (await http.request<CorporateFiling[] | null>(
+      `/market/corporate-filings${query({symbol})}`,
+    )) ?? [],
 
   getAccordNews: (params?: AccordNewsQuery) =>
     http.request<AccordNewsRow[]>(`/market/accord-news${query({...params})}`),
@@ -559,8 +575,21 @@ export const marketApi = (http: HttpClient) => ({
   getNewsFeed: (params: GetAccordNewsParams = {}) =>
     http.request<AccordNewsResponse>(`/news/feed${query({...params})}`),
 
-  getDividends: (market: 'IN' = 'IN') =>
-    http.request<GetDividendsResponse[]>(`/news/dividends${query({market})}`),
+  /**
+   * The market's dividend feed, or one stock's whole history with `symbol`; `upcoming` keeps the
+   * ex-dates still ahead. Each filter is sent only when set, as web sends them.
+   */
+  getDividends: async (
+    market: 'IN' = 'IN',
+    {symbol, upcoming}: Omit<GetDividendsParams, 'market'> = {},
+  ): Promise<GetDividendsResponse[]> =>
+    (await http.request<GetDividendsResponse[] | null>(
+      `/news/dividends${query({
+        market,
+        symbol: symbol === '' ? undefined : symbol,
+        upcoming: upcoming === true ? true : undefined,
+      })}`,
+    )) ?? [],
 
   /**
    * `fields: "summary"` drops the per-period arrays for peer-comparison

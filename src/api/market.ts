@@ -50,6 +50,12 @@ import type {
   PatternScanParams,
   PatternScanResponse,
 } from '../types/patternScan.ts';
+import type {
+  RelatedPartyColumn,
+  RelatedPartyResponse,
+  RelatedPartyRow,
+  RelatedPartyTxnRow,
+} from '../types/relatedParty.ts';
 import type {StockScoreResponse} from '../types/scores.ts';
 import type {
   ScreenCatalog,
@@ -64,6 +70,11 @@ import type {
   ScreenerBackendFilters,
   ScreenerTimeframe,
 } from '../types/screenerFilters.ts';
+import type {
+  SegmentPeriod,
+  SegmentSeries,
+  SegmentsResponse,
+} from '../types/segments.ts';
 import type {
   GetStockEventsRequest,
   GetStockEventsResponse,
@@ -415,6 +426,88 @@ const readOwnership = (wire: OwnershipWire | null): GetOwnershipResponse => ({
   holders_as_of: wire?.holders_as_of ?? '',
 });
 
+/**
+ * The segment note as the server sends it. Go serialises a nil slice as null, so a company whose
+ * note carried no segment, period or filing can answer null where those lists belong, and so can a
+ * segment's series; the table reads every one of them, so each is filled once here.
+ */
+type SegmentSeriesWire = Nullable<
+  SegmentSeries,
+  'revenue' | 'result' | 'capital_employed'
+>;
+
+interface SegmentsWire extends Omit<
+  Nullable<
+    SegmentsResponse,
+    'basis_available' | 'period_available' | 'periods' | 'filings'
+  >,
+  'segments'
+> {
+  segments: SegmentSeriesWire[] | null;
+}
+
+const readSegments = ({
+  basis_available,
+  period_available,
+  periods,
+  segments,
+  filings,
+  ...note
+}: SegmentsWire): SegmentsResponse => ({
+  ...note,
+  basis_available: basis_available ?? [],
+  period_available: period_available ?? [],
+  periods: periods ?? [],
+  segments: (segments ?? []).map(
+    ({revenue, result, capital_employed, ...segment}) => ({
+      ...segment,
+      revenue: revenue ?? [],
+      result: result ?? [],
+      capital_employed: capital_employed ?? [],
+    }),
+  ),
+  filings: filings ?? [],
+});
+
+/**
+ * The related-party table as the server sends it, with the same nil-slice nulls: a year with no
+ * source, a party with no transaction or a row with no figures. Filled here once, as above.
+ */
+type RelatedPartyColumnWire = Nullable<RelatedPartyColumn, 'sources'>;
+type RelatedPartyTxnWire = Nullable<RelatedPartyTxnRow, 'values'>;
+
+interface RelatedPartyRowWire extends Omit<
+  Nullable<RelatedPartyRow, 'values'>,
+  'txns'
+> {
+  txns: RelatedPartyTxnWire[] | null;
+}
+
+interface RelatedPartyWire extends Omit<
+  RelatedPartyResponse,
+  'columns' | 'parties'
+> {
+  columns: RelatedPartyColumnWire[] | null;
+  parties: RelatedPartyRowWire[] | null;
+}
+
+const readRelatedParty = ({
+  columns,
+  parties,
+  ...table
+}: RelatedPartyWire): RelatedPartyResponse => ({
+  ...table,
+  columns: (columns ?? []).map(({sources, ...column}) => ({
+    ...column,
+    sources: sources ?? [],
+  })),
+  parties: (parties ?? []).map(({values, txns, ...party}) => ({
+    ...party,
+    values: values ?? [],
+    txns: (txns ?? []).map(txn => ({...txn, values: txn.values ?? []})),
+  })),
+});
+
 export const marketApi = (http: HttpClient) => ({
   getRecommendations: (params?: RecommendationsQuery) =>
     http.request<MarketRecommendationsResponse>(
@@ -604,6 +697,51 @@ export const marketApi = (http: HttpClient) => ({
     try {
       return readFundamentalsDetail(
         await http.request<FundamentalsDetailWire>(path),
+      );
+    } catch (error) {
+      if (statusOf(error) === 404) return null;
+      throw error;
+    }
+  },
+
+  /**
+   * One company's segment note: revenue, result and capital employed for each reportable segment,
+   * on the basis and at the frequency asked. The answer names the basis it was served on, which
+   * falls back to the other one when the asked basis was not filed.
+   *
+   * 404 means nothing was extracted for the company and resolves to null. Every other status
+   * throws, so a blip is never cached as "no segments".
+   */
+  getSegments: async (
+    symbol: string,
+    basis: StatementBasis,
+    period: SegmentPeriod,
+  ): Promise<SegmentsResponse | null> => {
+    try {
+      return readSegments(
+        await http.request<SegmentsWire>(
+          `/news/segments${query({symbol, basis, period})}`,
+        ),
+      );
+    } catch (error) {
+      if (statusOf(error) === 404) return null;
+      throw error;
+    }
+  },
+
+  /**
+   * One company's related-party transactions, a column per fiscal year. 404 means no such company
+   * and resolves to null, as the filing detail does; every other status throws, so a blip is never
+   * cached as "none filed".
+   */
+  getRelatedParty: async (
+    symbol: string,
+  ): Promise<RelatedPartyResponse | null> => {
+    try {
+      return readRelatedParty(
+        await http.request<RelatedPartyWire>(
+          `/news/related-party${query({symbol})}`,
+        ),
       );
     } catch (error) {
       if (statusOf(error) === 404) return null;

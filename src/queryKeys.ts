@@ -13,6 +13,7 @@ import type {
 import type {WatchlistSearchType} from './types/stockWatchlist.ts';
 import type {GetStockEventsRequest} from './types/stockEvents.ts';
 import type {PeerTableQuery} from './types/industries.ts';
+import type {SegmentPeriod} from './types/segments.ts';
 
 /**
  * Centralized React Query key factory.
@@ -182,6 +183,19 @@ export const queryKeys = {
     periods,
     limit,
   ],
+  /**
+   * ["segments", symbol, basis, period] — one company's segment note, keyed by the basis and
+   * frequency asked. The answer can be on the other basis when the asked one was not filed, so the
+   * key is the question rather than the answer, and asking again is served from cache.
+   */
+  segments: (symbol: string, basis: StatementBasis, period: SegmentPeriod) => [
+    'segments',
+    symbol,
+    basis,
+    period,
+  ],
+  /** ["related-party", symbol] — one company's related-party transactions, every year at once */
+  relatedParty: (symbol: string) => ['related-party', symbol],
   /** ["technicals", symbols, market, timeframe] */
   technicals: (symbols: string[], market: string, timeframe: string) => [
     'technicals',

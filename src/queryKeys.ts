@@ -293,6 +293,10 @@ export const queryKeys = {
     ],
     /** ["market-depth", symbol] */
     depth: (symbol: string | null) => ['market-depth', symbol],
+    /** ["ipo-list", status] — one IPO board ("open", "closed", "upcoming"). */
+    ipoList: (status: string) => ['ipo-list', status],
+    /** ["ipo-detail", ipocode] — one issue, by the vendor's `ipocode`. */
+    ipoDetail: (ipocode: number | null) => ['ipo-detail', ipocode],
     /** ["market-screener-stocks", filters] — every field the request sends must
      *  be in the key, or two different server queries share one cache entry. */
     screenerStocks: (filters?: ScreenerBackendFilters) => [

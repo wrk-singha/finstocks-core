@@ -124,6 +124,27 @@ export {
 } from './institutionalFlows.ts';
 export type {FlowSide} from './institutionalFlows.ts';
 
+export {
+  buildFinancialSeries,
+  buildIPOSchedule,
+  FINANCIAL_METRIC_KEYS,
+  findManagingDirector,
+  IPO_CATEGORIES,
+  IPO_CATEGORY_CAPS,
+  ipoIssueSizeCrore,
+  ipoLotSize,
+  ipoMinInvestment,
+  isBiddable,
+} from './ipo.ts';
+export type {
+  FinancialBar,
+  FinancialMetric,
+  IPOCategory,
+  IPOScheduleStep,
+  IPOScheduleStepKey,
+  IPOStepState,
+} from './ipo.ts';
+
 export {livePriceFor, priceSymbolFor} from './livePrice.ts';
 
 export {
@@ -264,7 +285,12 @@ export {
 } from './stockWatchlists.ts';
 export type {WatchlistMembership} from './stockWatchlists.ts';
 
-export {extractUnderlyingSymbol, isFnOSymbol, stockLogoUrl} from './symbols.ts';
+export {
+  extractUnderlyingSymbol,
+  ipoLogoUrl,
+  isFnOSymbol,
+  stockLogoUrl,
+} from './symbols.ts';
 
 export {
   buildOscillators,

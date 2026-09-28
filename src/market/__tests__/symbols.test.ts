@@ -3,6 +3,7 @@ import {test} from 'node:test';
 
 import {
   extractUnderlyingSymbol,
+  ipoLogoUrl,
   isFnOSymbol,
   stockLogoUrl,
 } from '../symbols.ts';
@@ -38,4 +39,13 @@ test('stockLogoUrl points at the logo bucket by underlying', () => {
     stockLogoUrl('NIFTY BANK'),
     'https://storage.googleapis.com/finstocks_stock_logos/BANKNIFTY.webp',
   );
+});
+
+test('an IPO logo is filed under its fincode, and an issue without one has none', () => {
+  assert.equal(
+    ipoLogoUrl(88001),
+    'https://storage.googleapis.com/finstocks_stock_logos/ipo/88001.webp',
+  );
+  assert.equal(ipoLogoUrl(undefined), undefined);
+  assert.equal(ipoLogoUrl(0), undefined);
 });

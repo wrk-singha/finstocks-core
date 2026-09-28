@@ -51,8 +51,18 @@ function isIsoDate(value: string): boolean {
   );
 }
 
-function strikeOf(value: OptionContractParams['strike']): number | null {
-  const text = typeof value === 'number' ? String(value) : (value ?? '').trim();
+// A link's query reaches the screen through query-string, which hands a repeated key over as an
+// array, and a hand-typed link can carry anything. The first value is read, as URLSearchParams.get
+// reads it, and a value that is not text is no value, so an odd link lands on "not a contract"
+// instead of throwing.
+function textOf(value: unknown): string {
+  const first: unknown = Array.isArray(value) ? value[0] : value;
+  return typeof first === 'string' ? first.trim() : '';
+}
+
+function strikeOf(value: unknown): number | null {
+  const first: unknown = Array.isArray(value) ? value[0] : value;
+  const text = typeof first === 'number' ? String(first) : textOf(first);
   if (!STRIKE_RE.test(text)) return null;
   const strike = Number(text);
   return strike > 0 ? strike : null;
@@ -67,10 +77,10 @@ function strikeOf(value: OptionContractParams['strike']): number | null {
 export function readOptionContract(
   params: OptionContractParams,
 ): OptionContract | null {
-  const underlying = (params.underlying ?? '').trim().toUpperCase();
-  const expiry = (params.expiry ?? '').trim();
+  const underlying = textOf(params.underlying).toUpperCase();
+  const expiry = textOf(params.expiry);
   const strike = strikeOf(params.strike);
-  const right = params.right ?? '';
+  const right = textOf(params.right);
 
   if (!UNDERLYING_RE.test(underlying) || !isIsoDate(expiry)) return null;
   if (strike === null || !isRight(right)) return null;

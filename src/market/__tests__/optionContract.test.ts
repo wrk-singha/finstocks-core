@@ -86,6 +86,36 @@ test('an address missing or garbling any field names no contract', () => {
   }
 });
 
+test('a link that repeats a field reads its first value, and a field that is not text reads as none', () => {
+  // query-string hands a repeated key over as an array; web's URLSearchParams.get takes the first.
+  const repeated = {
+    underlying: ['TATASTEEL', 'INFY'],
+    expiry: ['2026-09-29', '2026-10-27'],
+    strike: ['187.5', '190'],
+    right: ['CE', 'PE'],
+  } as unknown as OptionContractParams;
+  assert.deepEqual(readOptionContract(repeated), tataSteel);
+
+  const valid = {
+    underlying: 'TATASTEEL',
+    expiry: '2026-09-29',
+    strike: '187.5',
+    right: 'CE',
+  };
+  const odd: Record<string, unknown> = {
+    'an object underlying': {underlying: {name: 'TATASTEEL'}},
+    'a numeric expiry': {expiry: 20260929},
+    'an empty expiry list': {expiry: []},
+    'an object strike': {strike: {value: 187.5}},
+    'a boolean right': {right: true},
+  };
+  for (const [reason, patch] of Object.entries(odd)) {
+    const params = {...valid, ...(patch as object)} as OptionContractParams;
+    assert.doesNotThrow(() => readOptionContract(params), reason);
+    assert.equal(readOptionContract(params), null, reason);
+  }
+});
+
 test('the exchange ticker keeps a decimal strike and the odd underlyings', () => {
   assert.equal(exchangeSymbol(tataSteel), 'TATASTEEL26SEP187.5CE');
   assert.equal(

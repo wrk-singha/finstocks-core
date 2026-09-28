@@ -64,10 +64,11 @@ export type ChatCard =
    */
   | {type: 'actions'; payload: {actions: FindingAction[]}}
   /**
-   * A derivatives turn. Carries only the underlyings, which the backend has already checked
-   * have contracts trading — the chain itself streams live on the client.
+   * A derivatives turn. Carries the underlyings, which the backend has already checked have
+   * contracts trading — the chain itself streams live on the client — and, when the user
+   * described an option order, what they named of it.
    */
-  | {type: 'fno'; payload: {underlyings: string[]}}
+  | {type: 'fno'; payload: {underlyings: string[]; draft?: FnoOrderDraft}}
   /**
    * An order the assistant read off the user's instruction. It does NOT place anything: the
    * ticket renders pre-filled and the user confirms it there, through the same path as every
@@ -94,6 +95,21 @@ export type ChatCard =
         order_id?: string;
       };
     };
+
+/**
+ * An option order the user described in chat — only the parts they named. The chain's ticket opens
+ * on it; the premium stays the live one.
+ */
+export interface FnoOrderDraft {
+  underlying: string;
+  side: 'buy' | 'sell';
+  lots?: number;
+  /** Absent means the at-the-money strike. */
+  strike?: number;
+  right?: 'CE' | 'PE';
+  /** YYYY-MM-DD; absent means the nearest expiry. */
+  expiry?: string;
+}
 
 export type ChatCardType = ChatCard['type'];
 

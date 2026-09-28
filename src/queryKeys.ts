@@ -270,6 +270,13 @@ export const queryKeys = {
     overview: () => ['market-overview'],
     /** ["institutional-flows", days] */
     institutionalFlows: (days: number) => ['institutional-flows', days],
+    /** ["world-indices", days, indexId] — a one-index window and the full table are different
+     *  responses, so the id (null for the table) is part of the key. */
+    worldIndices: (days: number, indexId?: number | null) => [
+      'world-indices',
+      days,
+      indexId ?? null,
+    ],
     movers: () => ['market-movers'],
     news: () => ['market-news'],
     events: () => ['market-events'],

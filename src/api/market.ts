@@ -444,10 +444,15 @@ export const marketApi = (http: HttpClient) => ({
       `/market/institutional-flows${query({days, source})}`,
     ),
 
-  /** Web-only from here to the announcements: the Other Markets surface. */
-  getWorldIndices: (days = 30) =>
-    http.request<WorldIndexRow[]>(`/market/world-indices${query({days})}`),
+  /** `indexId` narrows the window to one benchmark. The table wants all sixteen; a detail page
+   *  drawing one line does not, and at a 1Y window the difference is sixteen indices of daily
+   *  history fetched to render one. */
+  getWorldIndices: (days = 30, indexId?: number) =>
+    http.request<WorldIndexRow[]>(
+      `/market/world-indices${query({days, index_id: indexId})}`,
+    ),
 
+  /** Web-only from here to the announcements: the Other Markets surface. */
   getWorldIndicesMaster: () =>
     http.request<WorldIndexRow[]>('/market/world-indices/master'),
 

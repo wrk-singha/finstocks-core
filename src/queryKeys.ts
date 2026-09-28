@@ -327,6 +327,9 @@ export const queryKeys = {
       resolution,
       closedKey,
     ],
+    /** ["pattern-vocab"] — every pattern the scanner answers: the registry compiled into the
+     *  backend, the same for every symbol and day, so it is fetched once and kept. */
+    patternVocab: () => ['pattern-vocab'],
   },
 
   fno: {

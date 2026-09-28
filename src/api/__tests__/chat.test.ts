@@ -43,6 +43,7 @@ test('a category search sends the param and keys on the same value', async () =>
     'nifty',
     'chart',
     'autopilot,portfolio',
+    null,
   ]);
   assert.deepEqual(queryKeys.chatsSearch('nifty', 'chart'), [
     'chats',
@@ -50,7 +51,72 @@ test('a category search sends the param and keys on the same value', async () =>
     'nifty',
     'chart',
     '',
+    null,
   ]);
+});
+
+test('an activity window is sent only when set, and keys its own entry in the search family', async () => {
+  const {http, calls} = fakeHttp();
+  const api = chatApi(http);
+  await api.getAllChats({category: 'strategy', days: 7});
+  await api.getAllChats({days: null});
+  await api.getAllChats({days: 0});
+  await api.getAllChats({limit: 30, days: 1});
+  assert.deepEqual(
+    calls.map(call => call.path),
+    [
+      '/chats?category=strategy&days=7',
+      '/chats',
+      '/chats',
+      '/chats?limit=30&days=1',
+    ],
+  );
+  const week = queryKeys.chatsSearch('', '', 'strategy', 7);
+  assert.deepEqual(week, ['chats', 'search', '', '', 'strategy', 7]);
+  assert.notDeepEqual(week, queryKeys.chatsSearch('', '', 'strategy', 30));
+  assert.notDeepEqual(week, queryKeys.chatsSearch('', '', 'strategy'));
+  assert.deepEqual(week.slice(0, 2), queryKeys.chatsSearch('', '').slice(0, 2));
+});
+
+test('an empty string param is left out like an unset one, as web sends the list', async () => {
+  const {http, calls} = fakeHttp();
+  const api = chatApi(http);
+  await api.getAllChats({
+    cursor: '',
+    surface: '',
+    symbol: '',
+    q: '',
+    category: '',
+    days: 3,
+  });
+  await api.getAllChats({
+    limit: 30,
+    surface: '',
+    q: '',
+    category: 'strategy',
+    days: null,
+  });
+  await api.getAllChats({cursor: 'c2', limit: 30, surface: '', q: 'nifty'});
+  assert.deepEqual(
+    calls.map(call => call.path),
+    [
+      '/chats?days=3',
+      '/chats?limit=30&category=strategy',
+      '/chats?cursor=c2&limit=30&q=nifty',
+    ],
+  );
+});
+
+test('the total rides on the first page and is optional on the wire', async () => {
+  const {http} = fakeHttp([
+    {chats: [], next_cursor: 'c2', has_more: true, total: 42},
+    {chats: [], next_cursor: null, has_more: false},
+  ]);
+  const api = chatApi(http);
+  const first = await api.getAllChats({days: 3});
+  const second = await api.getAllChats({cursor: 'c2', days: 3});
+  assert.equal(first.total, 42);
+  assert.equal(second.total, undefined);
 });
 
 test('list queries only carry the params that were set', async () => {

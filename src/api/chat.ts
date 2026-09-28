@@ -18,6 +18,7 @@ import type {
 import type {HttpClient} from './http.ts';
 import {query} from './http.ts';
 
+/** A string param that is empty is left out like an unset one, as web's client leaves it out. */
 export interface ChatListQuery {
   /** Opaque keyset token echoed back as `next_cursor`; the backend defaults limit to 30 and caps it at 100. */
   cursor?: string | null;
@@ -31,6 +32,8 @@ export interface ChatListQuery {
   q?: string;
   /** Comma-joined chat categories (`chatCategoryParam`); omitted entirely when none selected. */
   category?: string;
+  /** Last-activity window in days; left out when unset (or zero), which is no limit. */
+  days?: number | null;
 }
 
 /**
@@ -166,18 +169,24 @@ export type ChatWsClientMessage =
       data: {chat_id: string; plan_id: string; ok: boolean; detail?: string};
     };
 
+// An empty search or surface is no filter at all: sent as `surface=`, it would leave the backend to
+// guess that the empty value means the unscoped dashboard bucket.
+const present = (value: string | null | undefined): string | undefined =>
+  value === null || value === undefined || value === '' ? undefined : value;
+
 export const chatApi = (http: HttpClient) => ({
   // drift resolved 2026-09-13: the web forced limit=30 client-side, the mobile left it to
   // the backend default (also 30) and added category; the mobile copy won.
   getAllChats: (params?: ChatListQuery) =>
     http.request<getAllChatsResponse>(
       `/chats${query({
-        cursor: params?.cursor,
+        cursor: present(params?.cursor),
         limit: params?.limit,
-        surface: params?.surface,
-        symbol: params?.symbol,
-        q: params?.q,
-        category: params?.category,
+        surface: present(params?.surface),
+        symbol: present(params?.symbol),
+        q: present(params?.q),
+        category: present(params?.category),
+        days: (params?.days ?? 0) > 0 ? params?.days : undefined,
       })}`,
     ),
 

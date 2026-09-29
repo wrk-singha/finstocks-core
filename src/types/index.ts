@@ -9,6 +9,7 @@ export type * from './chartPlan.ts';
 export type * from './chat.ts';
 export type * from './chatCards.ts';
 export type * from './console.ts';
+export type * from './customIndicator.ts';
 export type * from './dataTable.ts';
 export type * from './dividends.ts';
 export type * from './fno.ts';

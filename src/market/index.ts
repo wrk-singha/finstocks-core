@@ -111,6 +111,16 @@ export {
 } from './chartInterval.ts';
 export type {ParsedChartInterval} from './chartInterval.ts';
 
+export {
+  customIndicatorDefinition,
+  customIndicatorMatches,
+  customIndicatorSaveRequest,
+  isSavedVersion,
+  replaceCustomIndicator,
+  savedCustomIndicator,
+  upsertCustomIndicator,
+} from './customIndicators.ts';
+
 export {blackScholesGreeks, impliedForward, yearsToExpiry} from './greeks.ts';
 export type {OptionGreeks} from './greeks.ts';
 

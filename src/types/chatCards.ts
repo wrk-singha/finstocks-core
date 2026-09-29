@@ -1,4 +1,5 @@
 import type {BacktestSetup, BacktestSweep, StrategySetup} from './backtest.ts';
+import type {CustomIndicatorDraft} from './customIndicator.ts';
 import type {DataTablePayload} from './dataTable.ts';
 import type {
   FindingAction,
@@ -69,6 +70,12 @@ export type ChatCard =
    * described an option order, what they named of it.
    */
   | {type: 'fno'; payload: {underlyings: string[]; draft?: FnoOrderDraft}}
+  /**
+   * An indicator the assistant built from what the user brought — English, Pine Script, AFL, a
+   * formula. Offered, not kept: it is saved only when the user presses Save, and only then lists
+   * in the chart picker.
+   */
+  | {type: 'custom_indicator'; payload: CustomIndicatorDraft}
   /**
    * An order the assistant read off the user's instruction. It does NOT place anything: the
    * ticket renders pre-filled and the user confirms it there, through the same path as every

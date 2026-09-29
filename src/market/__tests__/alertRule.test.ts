@@ -94,6 +94,35 @@ test('a seed names a field or the line it crosses, and keeps what it says', () =
   assert.equal(clauseFromSeed({field: 'rsi14'}).value, 30);
 });
 
+test('a seed can name a trendline, which the price crosses with no level of its own', () => {
+  const crossing = clauseFromSeed({field: 'close_price', line: LINE});
+  assert.deepEqual(crossing.line, LINE);
+  assert.equal(crossing.value, null);
+  assert.equal(crossing.target, undefined);
+  assert.equal(clauseComplete(crossing), true);
+  assert.equal(
+    describeClause(crossing),
+    'price crosses above the trendline from ₹1,200.00 to ₹1,260.00',
+  );
+  const below = clauseFromSeed({
+    field: 'close_price',
+    op: 'falls_below',
+    line: LINE,
+  });
+  assert.equal(opVerb(below), 'crosses_below');
+  // Compiled as the strategy compiler writes a trendline: a level that moves with the bar's time.
+  assert.deepEqual(
+    entry(buildAlert('TCS', [below], 'AND', '5m', DEFAULT_CONTRACT))?.condition,
+    {
+      var: 'close_price',
+      op: 'crosses_below',
+      val: '1200 + 0.000694444444 * (time_now - 1758000000)',
+    },
+  );
+  // Without one, a seed is as it was.
+  assert.equal(clauseFromSeed({field: 'close_price'}).line, undefined);
+});
+
 test('operators read as the field’s sentence', () => {
   const words = (c: AlertClause) => opsFor(c).map(o => o.verb);
   assert.deepEqual(words(clause('bullish_engulfing', 'appears', null)), [

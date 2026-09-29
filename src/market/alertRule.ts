@@ -243,6 +243,8 @@ export type AlertClauseSeed = {
   value?: number | null | undefined;
   /** A line the price crosses, which then names the clause's field itself. */
   target?: string | undefined;
+  /** A trendline the price crosses, by the two anchors drawn on the chart. */
+  line?: TrendLine | undefined;
 };
 
 export const clauseFromSeed = (seed: AlertClauseSeed): AlertClause => {
@@ -251,6 +253,7 @@ export const clauseFromSeed = (seed: AlertClauseSeed): AlertClause => {
   const clause = clauseFor(seed.target ?? seed.field);
   if (seed.op !== undefined) clause.op = seed.op;
   if (seed.value !== undefined) clause.value = seed.value;
+  if (seed.line !== undefined) clause.line = seed.line;
   return clause;
 };
 

@@ -85,54 +85,6 @@ export type RangeExpr =
 
 export const DEFAULT_RANGE: RangeExpr = {scope: 'visible'};
 
-export type PredicateOp =
-  | '>'
-  | '>='
-  | '<'
-  | '<='
-  | '=='
-  | '!='
-  | 'crosses_above'
-  | 'crosses_below'
-  | 'between'
-  | 'near';
-
-export type AggFn =
-  'avg' | 'median' | 'stdev' | 'max' | 'min' | 'sum' | 'percentile';
-
-export type PredicateValue =
-  | number
-  | boolean
-  | {field: BarField}
-  | {
-      agg: AggFn;
-      field: BarField;
-      window?: number;
-      mult?: number;
-      percentile?: number;
-    }
-  | {study: string | {ref: string}; plot: string}
-  | {entity: string; prop: string}
-  | {ref: string}
-  | PriceExpr;
-
-export interface ComparisonPredicate {
-  field?: BarField;
-  study?: string | {ref: string};
-  plot?: string;
-  op: PredicateOp;
-  value: PredicateValue;
-  /** Second bound for `between`, tolerance band for `near`. */
-  value2?: PredicateValue;
-  tolerance?: OffsetExpr;
-}
-
-export type Predicate =
-  | ComparisonPredicate
-  | {all: Predicate[]}
-  | {any: Predicate[]}
-  | {not: Predicate};
-
 export type EntityScope = 'auto' | 'user' | 'all';
 
 /**
@@ -181,7 +133,7 @@ export type MarkShape =
 
 export interface StyleSpec {
   color?: ColorExpr;
-  /** Resolves a per-item colour inside a for_each, e.g. "$item.direction". */
+  /** Resolves a per-mark colour off a render.mark_bars bar, e.g. "$item.direction". */
   color_by?: string;
   width?: 1 | 2 | 3 | 4;
   style?: 'solid' | 'dashed' | 'dotted';
@@ -218,16 +170,12 @@ export interface OpBase {
    * that op and no other.
    */
   on_chart?: string;
-  /** Iterates a referenced collection, binding each element to $item. */
-  for_each?: {$ref: string};
   /**
    * Semantic role for the entity a `draw.*`/`edit.*` op creates or touches. Not yet emitted by
    * the LLM — the executor reads it when present and falls back to a structural guess.
    */
   role?: EntityRole;
 }
-
-export type Ref = {$ref: string};
 
 /** A single server-computed hit — the wire shape `expand.py` emits for pattern/predicate matches. */
 export interface LiteralBar {
@@ -256,17 +204,10 @@ export interface LiteralBar {
   role?: 'setup' | 'trigger';
 }
 
-/** A literal, already-computed bar list — no `$ref` indirection into the (inert) compute DAG. */
+/** A literal, already-computed bar list — what `render.mark_bars` draws. */
 export interface LiteralBarsSource {
   bars: LiteralBar[];
 }
-
-/**
- * `render.mark_bars.source` accepts either a `$ref` into the compute DAG (unreachable in
- * production — the LLM has no `compute.*` ops to populate one) or a literal bar list a
- * server-side stage already computed. Only the literal branch is exercised today.
- */
-export type BarsSource = Ref | LiteralBarsSource;
 
 export type ChartStyleName =
   | 'candles'
@@ -292,7 +233,7 @@ export type ChartOp =
   | (OpBase & {op: 'chart.set_symbol'; symbol: string})
   | (OpBase & {op: 'chart.set_resolution'; resolution: string})
   | (OpBase & {op: 'chart.set_chart_type'; type: ChartStyleName})
-  | (OpBase & {op: 'chart.set_visible_range'; range: RangeExpr | Ref})
+  | (OpBase & {op: 'chart.set_visible_range'; range: RangeExpr})
   | (OpBase & {op: 'chart.set_period'; period: PeriodToken})
   | (OpBase & {op: 'chart.scroll_to'; time: TimeExpr})
   | (OpBase & {
@@ -338,119 +279,6 @@ export type StudyOp =
   | (OpBase & {op: 'study.move_pane'; target: Target; pane: PaneTarget})
   | (OpBase & {op: 'study.remove_all'; scope?: EntityScope})
   | (OpBase & {op: 'study.apply_template'; name: string});
-
-export type PatternName =
-  | 'doji'
-  | 'dragonfly_doji'
-  | 'gravestone_doji'
-  | 'hammer'
-  | 'inverted_hammer'
-  | 'shooting_star'
-  | 'hanging_man'
-  | 'marubozu'
-  | 'spinning_top'
-  | 'bullish_engulfing'
-  | 'bearish_engulfing'
-  | 'piercing_line'
-  | 'dark_cloud_cover'
-  | 'morning_star'
-  | 'evening_star'
-  | 'three_white_soldiers'
-  | 'three_black_crows'
-  | 'harami'
-  | 'harami_cross'
-  | 'tweezer_top'
-  | 'tweezer_bottom'
-  | 'inside_bar'
-  | 'outside_bar'
-  | 'pin_bar'
-  | 'gap_up'
-  | 'gap_down';
-
-export type ExtremaKind = 'swing_high' | 'swing_low' | 'both' | 'high' | 'low';
-
-export type LevelMethod =
-  | 'swing_cluster'
-  | 'pivot'
-  | 'volume_profile'
-  | 'round_number'
-  | 'fractal'
-  | 'prev_session';
-
-export type SeriesExpr =
-  Ref | {field: BarField} | {study: string; plot?: string};
-
-export type ComputeOp =
-  | (OpBase & {
-      op: 'compute.load_bars';
-      range?: RangeExpr;
-      fields?: BarField[];
-    })
-  | (OpBase & {
-      op: 'compute.detect_pattern';
-      pattern: PatternName;
-      params?: Record<string, number>;
-      range?: RangeExpr;
-      limit?: number;
-    })
-  | (OpBase & {
-      op: 'compute.extrema';
-      kind: ExtremaKind;
-      lookback?: number;
-      range?: RangeExpr;
-      top_n?: number;
-    })
-  | (OpBase & {
-      op: 'compute.levels';
-      method: LevelMethod;
-      source?: Ref;
-      range?: RangeExpr;
-      tolerance?: OffsetExpr;
-      min_touches?: number;
-      top_n?: number;
-      side?: 'support' | 'resistance' | 'both';
-    })
-  | (OpBase & {
-      op: 'compute.crossover';
-      series_a: SeriesExpr;
-      series_b: SeriesExpr | {value: number};
-      direction?: 'up' | 'down' | 'both';
-      range?: RangeExpr;
-    })
-  | (OpBase & {
-      op: 'compute.divergence';
-      indicator: string | Ref;
-      kind?: 'regular' | 'hidden';
-      direction?: 'bullish' | 'bearish' | 'both';
-      range?: RangeExpr;
-    })
-  | (OpBase & {op: 'compute.gaps'; range?: RangeExpr; min_pct?: number})
-  | (OpBase & {op: 'compute.filter'; source: Ref; predicate: Predicate})
-  | (OpBase & {
-      op: 'compute.sort';
-      source: Ref;
-      by: BarField | (string & {});
-      order?: 'asc' | 'desc';
-      limit?: number;
-    })
-  | (OpBase & {
-      op: 'compute.aggregate';
-      source?: Ref;
-      range?: RangeExpr;
-      fn: AggFn | 'minmax';
-      field?: BarField | 'hl';
-    })
-  | (OpBase & {op: 'compute.stats'; range?: RangeExpr})
-  | (OpBase & {
-      op: 'compute.indicator_value';
-      study: string | Ref;
-      plot?: string;
-      at?: TimeExpr;
-    })
-  | (OpBase & {
-      op: 'compute.session';
-      which?: 'today' | 'prev' | 'pre' | 'post';
-    });
 
 export interface PointExpr {
   time: TimeExpr;
@@ -582,23 +410,16 @@ export type DrawOp =
     });
 
 export type RenderOp =
-  | (OpBase & {op: 'render.mark_bars'; source: BarsSource; style?: StyleSpec})
+  | (OpBase & {
+      op: 'render.mark_bars';
+      source: LiteralBarsSource;
+      style?: StyleSpec;
+    })
   | (OpBase & {
       op: 'render.highlight_range';
       from: TimeExpr;
       to: TimeExpr;
       style?: StyleSpec;
-    })
-  | (OpBase & {
-      op: 'render.color_bars';
-      predicate: Predicate;
-      color: ColorExpr;
-      range?: RangeExpr;
-    })
-  | (OpBase & {
-      op: 'render.color_bars';
-      source: LiteralBarsSource;
-      color: ColorExpr;
     })
   | (OpBase & {op: 'render.clear'; tag: string});
 
@@ -648,15 +469,12 @@ export type ClarifyOp = OpBase & {
 };
 
 export type PlanOp =
-  | ChartOp
-  | StudyOp
-  | ComputeOp
-  | DrawOp
-  | RenderOp
-  | EditOp
-  | LayoutOp
-  | ClarifyOp;
+  ChartOp | StudyOp | DrawOp | RenderOp | EditOp | LayoutOp | ClarifyOp;
 
+/**
+ * `answer` is a reply in words that changes nothing on the chart, so it is the third intent, with
+ * `refuse` and `clarify`, whose plan may carry no ops.
+ */
 export type PlanIntent =
   | 'chart_control'
   | 'indicator'
@@ -664,7 +482,8 @@ export type PlanIntent =
   | 'annotate'
   | 'edit'
   | 'clarify'
-  | 'refuse';
+  | 'refuse'
+  | 'answer';
 
 /** The chart state the ops were resolved against, echoed back by the model. */
 export interface ChartPlanContext {
@@ -682,6 +501,8 @@ export interface ChartPlan {
   confidence?: number;
   undo_group: string;
   assumptions?: string[];
+  /** The message this plan answers, kept on what it draws. */
+  asked?: string;
   ops: PlanOp[];
   /**
    * The ops ride a turn already answered elsewhere, so this plan's prose lives on the message
@@ -703,76 +524,11 @@ export interface ComputedBar {
   low: number;
   close: number;
   volume: number;
-  /** Set by ops that classify each hit, e.g. crossover direction. */
-  direction?: 'up' | 'down' | 'bullish' | 'bearish';
-  label?: string;
-}
-
-export interface ComputedPoint {
-  time: number;
-  price: number;
-  kind?: 'high' | 'low';
-}
-
-export interface ComputedLevel {
-  price: number;
-  touches: number;
-  strength: number;
-  first_time: number;
-  last_time: number;
-  touch_bars: ComputedBar[];
-  side?: 'support' | 'resistance';
-}
-
-export interface ComputedSegment {
-  from: number;
-  to: number;
-  kind?: string;
-  from_price?: number;
-  to_price?: number;
-}
-
-export interface ComputedStats {
-  atr: number;
-  stdev: number;
-  range: number;
-  range_pct: number;
-  avg_volume: number;
-  bar_count: number;
-  trend_slope: number;
-  r2: number;
-}
-
-export interface ComputedSession {
-  range: {from: number; to: number};
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-}
-
-/** Union of everything a compute.* op can return; keys are what `$ref` addresses. */
-export interface ComputeResult {
-  bars?: ComputedBar[];
-  points?: ComputedPoint[];
-  levels?: ComputedLevel[];
-  segments?: ComputedSegment[];
-  value?: number;
-  min?: number;
-  max?: number;
-  range?: {from: number; to: number};
-  stats?: ComputedStats;
-  session?: ComputedSession;
-  open?: number;
-  high?: number;
-  low?: number;
-  close?: number;
 }
 
 /**
- * Anything an op id can resolve to: a compute result, or the entities an op created. Both
- * entity spellings together, not either-or: a later `$ref` picks `entity_id` to name ONE
- * (which is how two instances of the same study are told apart) or `entity_ids` for the batch.
+ * What an op id resolves to: the entities that op created. Both entity spellings together, not
+ * either-or: a later `{ref}` picks `entity_id` to name ONE (which is how two instances of the
+ * same study are told apart) or `entity_ids` for the batch.
  */
-export type OpResult =
-  ComputeResult | {entity_id: string; entity_ids: string[]};
+export type OpResult = {entity_id: string; entity_ids: string[]};

@@ -10,6 +10,7 @@ import type {
   FundamentalsSection,
   StatementBasis,
 } from './types/fundamentalsDetail.ts';
+import type {FundamentalPeriod} from './types/fundamentalSeries.ts';
 import type {WatchlistSearchType} from './types/stockWatchlist.ts';
 import type {GetStockEventsRequest} from './types/stockEvents.ts';
 import type {PeerTableQuery} from './types/industries.ts';
@@ -182,6 +183,26 @@ export const queryKeys = {
     periods,
     limit,
   ],
+  /** ["fundamental-catalog", symbol] — the lines a company's filings chart as, with how many
+   *  points it has at each period */
+  fundamentalCatalog: (symbol: string) => ['fundamental-catalog', symbol],
+  /** ["fundamental-series", symbol, metric, period] — one of those lines as points to chart */
+  fundamentalSeries: (
+    symbol: string,
+    metric: string,
+    period: FundamentalPeriod,
+  ) => ['fundamental-series', symbol, metric, period],
+  /**
+   * ["fundamental-series-live", symbol, metric, price, at] — a daily line ending at the chart's
+   * live price. A family of its own, so the stored daily line is never overwritten by one asked at
+   * a price that is superseded within seconds.
+   */
+  fundamentalSeriesLive: (
+    symbol: string,
+    metric: string,
+    price: number,
+    at: number,
+  ) => ['fundamental-series-live', symbol, metric, price, at],
   /** ["technicals", symbols, market, timeframe] */
   technicals: (symbols: string[], market: string, timeframe: string) => [
     'technicals',

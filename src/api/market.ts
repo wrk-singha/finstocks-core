@@ -21,6 +21,15 @@ import type {
   StatementBasis,
 } from '../types/fundamentalsDetail.ts';
 import type {
+  FundamentalCatalog,
+  FundamentalGroup,
+  FundamentalLivePrice,
+  FundamentalMetric,
+  FundamentalPeriod,
+  FundamentalPoint,
+  FundamentalSeries,
+} from '../types/fundamentalSeries.ts';
+import type {
   GetIndicatorsParams,
   TechnicalIndicatorData,
 } from '../types/indicators.ts';
@@ -364,6 +373,70 @@ const readFundamentalsDetail = ({
 });
 
 /**
+ * The fundamentals catalogue and series as the server sends them. Go serialises a nil slice or map
+ * as null, so a company with nothing on file can answer null where a list belongs, and a line with
+ * no aliases or no counts null for those. Lists are filled once here. A null count map is left out
+ * rather than emptied: it is a map nobody filled, which offers every period, where an empty one
+ * offers none.
+ */
+interface FundamentalMetricWire extends Omit<
+  FundamentalMetric,
+  'periods' | 'aliases' | 'available'
+> {
+  periods: FundamentalPeriod[] | null;
+  aliases?: string[] | null;
+  available?: FundamentalMetric['available'] | null;
+}
+
+interface FundamentalCatalogWire extends Omit<
+  FundamentalCatalog,
+  'groups' | 'metrics'
+> {
+  groups: FundamentalGroup[] | null;
+  metrics: FundamentalMetricWire[] | null;
+}
+
+interface FundamentalSeriesWire extends Omit<
+  FundamentalSeries,
+  'metric' | 'points'
+> {
+  metric: FundamentalMetricWire;
+  points: FundamentalPoint[] | null;
+}
+
+const readFundamentalMetric = ({
+  periods,
+  aliases,
+  available,
+  ...metric
+}: FundamentalMetricWire): FundamentalMetric => ({
+  ...metric,
+  periods: periods ?? [],
+  ...(aliases == null ? {} : {aliases}),
+  ...(available == null ? {} : {available}),
+});
+
+const readFundamentalCatalog = ({
+  groups,
+  metrics,
+  ...catalog
+}: FundamentalCatalogWire): FundamentalCatalog => ({
+  ...catalog,
+  groups: groups ?? [],
+  metrics: (metrics ?? []).map(readFundamentalMetric),
+});
+
+const readFundamentalSeries = ({
+  metric,
+  points,
+  ...series
+}: FundamentalSeriesWire): FundamentalSeries => ({
+  ...series,
+  metric: readFundamentalMetric(metric),
+  points: points ?? [],
+});
+
+/**
  * The signals as the server sends them. Go serialises a nil slice as null, so a chart with no
  * setups, no swings or a signal with no failed gates can answer null where a list belongs; the
  * readers iterate them, so each is filled once here rather than guarded in every one.
@@ -632,6 +705,39 @@ export const marketApi = (http: HttpClient) => ({
       throw error;
     }
   },
+
+  /**
+   * Every line a company's filings can be charted as, grouped by statement in the backend's order,
+   * each with how many points this company has at each period.
+   */
+  getFundamentalCatalog: async (symbol: string): Promise<FundamentalCatalog> =>
+    readFundamentalCatalog(
+      await http.request<FundamentalCatalogWire>(
+        `/news/fundamentals/metrics${query({symbol})}`,
+      ),
+    ),
+
+  /**
+   * One line of a company's filings as points to chart. `live` asks for a daily series that ends
+   * on the value at the chart's last traded price, dated to the session of the bar it traded in.
+   */
+  getFundamentalSeries: async (
+    symbol: string,
+    metric: string,
+    period: FundamentalPeriod,
+    live?: FundamentalLivePrice,
+  ): Promise<FundamentalSeries> =>
+    readFundamentalSeries(
+      await http.request<FundamentalSeriesWire>(
+        `/news/fundamentals/series${query({
+          symbol,
+          metric,
+          period,
+          live_price: live?.price,
+          live_at: live?.at,
+        })}`,
+      ),
+    ),
 
   getTechnicals: (params: GetIndicatorsParams) =>
     http.request<TechnicalIndicatorData[]>(

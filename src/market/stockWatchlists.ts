@@ -1,5 +1,7 @@
 import type {
+  FlagColor,
   StockWatchlist,
+  StockWatchlistFlag,
   StockWatchlistSection,
 } from '../types/stockWatchlist.ts';
 
@@ -101,3 +103,105 @@ export const watchlistMembership = (
   }
   return {byListId, all};
 };
+
+/** The seven flag colours, in the order TradingView offers them. */
+export const FLAG_COLORS: readonly FlagColor[] = [
+  'red',
+  'blue',
+  'green',
+  'orange',
+  'purple',
+  'cyan',
+  'pink',
+];
+
+/** Each flagged symbol's colour, read off the flags the server keeps. */
+export const flagsBySymbol = (
+  flags: readonly StockWatchlistFlag[],
+): Map<string, FlagColor> => {
+  const out = new Map<string, FlagColor>();
+  for (const flag of flags) out.set(flag.symbol, flag.color);
+  return out;
+};
+
+/**
+ * The flags with `symbol`'s set to `color`, or cleared when it is null. A symbol carries one flag,
+ * so a new colour replaces the old one, and goes first as the newest.
+ */
+export const withFlag = (
+  flags: readonly StockWatchlistFlag[] | undefined,
+  symbol: string,
+  color: FlagColor | null,
+  at: string,
+): StockWatchlistFlag[] => {
+  const rest = (flags ?? []).filter(flag => flag.symbol !== symbol);
+  return color === null ? rest : [{symbol, color, updated_at: at}, ...rest];
+};
+
+/** The symbols one colour flags, in the flags' own order: a flag colour opened as a list. */
+export const flaggedSymbols = (
+  flags: ReadonlyMap<string, FlagColor>,
+  color: FlagColor,
+): string[] =>
+  [...flags.entries()]
+    .filter(([, flagged]) => flagged === color)
+    .map(([symbol]) => symbol);
+
+/** How many symbols each colour flags; a colour that flags none is left out. */
+export const flagCounts = (
+  flags: ReadonlyMap<string, FlagColor>,
+): Map<FlagColor, number> => {
+  const counts = new Map<FlagColor, number>();
+  for (const color of flags.values())
+    counts.set(color, (counts.get(color) ?? 0) + 1);
+  return counts;
+};
+
+/** Whether the list has a section of that name; names are compared case aside. */
+export const hasSection = (
+  sections: readonly StockWatchlistSection[],
+  name: string,
+): boolean =>
+  sections.some(section => section.name.toLowerCase() === name.toLowerCase());
+
+/** The sections with `symbol` filed under `section` at its end, or under none when it is null. */
+export const withSymbolMoved = (
+  sections: readonly StockWatchlistSection[],
+  symbol: string,
+  section: string | null,
+): StockWatchlistSection[] =>
+  sections.map(entry => {
+    const symbols = entry.symbols.filter(filed => filed !== symbol);
+    return {
+      ...entry,
+      symbols: entry.name === section ? [...symbols, symbol] : symbols,
+    };
+  });
+
+/** The sections with one renamed; its symbols stay under it. */
+export const withSectionRenamed = (
+  sections: readonly StockWatchlistSection[],
+  from: string,
+  to: string,
+): StockWatchlistSection[] =>
+  sections.map(section =>
+    section.name === from ? {...section, name: to} : section,
+  );
+
+/** The sections without one; its symbols stay on the list, filed under none. */
+export const withoutSection = (
+  sections: readonly StockWatchlistSection[],
+  name: string,
+): StockWatchlistSection[] => sections.filter(section => section.name !== name);
+
+/** What Clear list leaves: no symbols, and every section still there, empty. */
+export const clearedItems = (
+  list: Pick<StockWatchlist, 'sections'>,
+): {symbols: string[]; sections: StockWatchlistSection[]} => ({
+  symbols: [],
+  sections: list.sections.map(section => ({...section, symbols: []})),
+});
+
+/** Where a list with a public link opens, under the web app's origin. */
+export const sharedWatchlistPath = (shareId: string): string =>
+  `/watchlist/shared/${encodeURIComponent(shareId)}`;

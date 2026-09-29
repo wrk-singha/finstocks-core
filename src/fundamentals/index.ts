@@ -54,6 +54,13 @@ export {buildBalanceSheetTable} from './balanceSheetTable.ts';
 export {buildCashFlowTable} from './cashFlowTable.ts';
 export {buildRatiosTable} from './ratiosTable.ts';
 
+export {buildSegmentRows, SEGMENT_BLOCKS} from './segmentRows.ts';
+export {
+  buildRelatedPartyRows,
+  RELATED_PARTY_TOP,
+  relatedPartyHalf,
+} from './relatedPartyRows.ts';
+
 export {buildEquityHistory} from './equityHistory.ts';
 export type {EquityYear} from './equityHistory.ts';
 

@@ -57,6 +57,48 @@ export const isAwaitingStart = (strategy: StrategyStatusSource): boolean =>
 export const isPaused = (strategy: StrategyStatusSource): boolean =>
   statusOf(strategy) === 'PAUSED';
 
+/** The three states a running strategy's status tells apart. */
+export type StrategyRunState = 'running' | 'waiting' | 'paused';
+
+/**
+ * Read off the status, never the mode: web's dot once keyed off mock mode, so every row in mock
+ * read the same whether it was running or not.
+ */
+export const runStateOf = (strategy: StrategyStatusSource): StrategyRunState =>
+  isPaused(strategy)
+    ? 'paused'
+    : isAwaitingStart(strategy)
+      ? 'waiting'
+      : 'running';
+
+/** The fields `isConsoleActive` reads; both apps' Strategy rows satisfy it. */
+export interface ConsoleActiveSource extends StrategyStatusSource {
+  strategy_id: string;
+  is_mock?: boolean | null;
+}
+
+/**
+ * The rows the Strategy Console's Active tab actually renders — and therefore
+ * the only correct basis for any "N active strategies" count.
+ *
+ * Three separate definitions of "active" had drifted apart: the composer pill
+ * carried its own copy of LIVE_OPEN_STATUSES and counted `AP-` rows, while the
+ * rail, the sidebar and "Halt all" all excluded them. Autopilot's placeholder
+ * strategies are folded into one synthetic Autopilot row and have no card of
+ * their own, so counting them promised a strategy the destination never shows.
+ *
+ * `!!is_mock` because the API can send it null; the console rail already
+ * coerces, and an uncoerced compare would count a row the rail drops.
+ */
+export const isConsoleActive = (
+  strategy: ConsoleActiveSource,
+  isMock: boolean,
+): boolean =>
+  !strategy.is_backtest &&
+  !!strategy.is_mock === isMock &&
+  !strategy.strategy_id.startsWith('AP-') &&
+  LIVE_OPEN_STATUSES.includes(statusOf(strategy));
+
 /** True while a backtest is queued or actively running (not yet completed/failed). */
 export const isBacktestInProgress = (strategy: StrategyStatusSource): boolean =>
   statusOf(strategy) === 'BACKTEST_PENDING' ||

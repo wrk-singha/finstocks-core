@@ -53,6 +53,8 @@ export type {MonthCell} from './recommendationReport.ts';
 export {
   conflictWarning,
   findConflictingStrategies,
+  strategiesMatchingSymbols,
+  underlyingsOf,
 } from './strategyConflicts.ts';
 export {exitHint, valueHint} from './ruleHint.ts';
 export {STRATEGY_INDICATOR_OPTIONS} from './strategyIndicators.ts';
@@ -122,14 +124,20 @@ export {
   isAwaitingStart,
   isBacktestInProgress,
   isCompletedBacktest,
+  isConsoleActive,
   isInProgress,
   isPaused,
   isTerminalStatus,
   LIVE_OPEN_STATUSES,
+  runStateOf,
   statusOf,
   TERMINAL_STATUSES,
 } from './strategyStatus.ts';
-export type {StrategyStatusSource} from './strategyStatus.ts';
+export type {
+  ConsoleActiveSource,
+  StrategyRunState,
+  StrategyStatusSource,
+} from './strategyStatus.ts';
 export {
   normalizeStrategyTimeframe,
   STRATEGY_TIMEFRAMES,

@@ -5,6 +5,11 @@ import type {
 } from '../types/aiSignals.ts';
 import type {ComputedBar} from '../types/chartPlan.ts';
 import type {OrderSide} from '../types/trade.ts';
+import {
+  type AlertOp,
+  type AlertTimeframe,
+  timeframeForCandle,
+} from './alertRule.ts';
 import {isMarketOpen} from './marketHours.ts';
 
 const DAY = 86_400;
@@ -92,6 +97,38 @@ export const isLiveTrade = (signal: AISignal): boolean =>
 export function isActionable(signal: AISignal, minConfidence: number): boolean {
   if (signal.confidence < minConfidence) return false;
   return signal.state === 'armed' || isLiveTrade(signal);
+}
+
+/**
+ * Whether "Set alert" is offered: only on a setup still waiting for the candle that confirms it. A
+ * live one is already past its entry, and a finished one has nothing left to cross.
+ */
+export const isAlertable = (signal: AISignal): boolean =>
+  signal.state === 'armed';
+
+/** What "Set alert" opens the New alert form on. */
+export interface AISignalAlertSeed {
+  /** The entry: the level a candle closes through to confirm the setup. */
+  price: number;
+  /** Through the entry the way the setup breaks: up for a long, down for a short. */
+  op: Extract<AlertOp, 'rises_above' | 'falls_below'>;
+  /** The coarsest check that still looks once per candle of the chart the setup was found on. */
+  timeframe: AlertTimeframe;
+}
+
+/**
+ * A price alert at the signal's entry, crossed the way the setup breaks: a short breaks down, so its
+ * alert is price falling below the entry, never rising above it.
+ */
+export function signalAlertSeed(
+  signal: AISignal,
+  chartMinutes: number,
+): AISignalAlertSeed {
+  return {
+    price: signal.entry,
+    op: signal.direction === 'long' ? 'rises_above' : 'falls_below',
+    timeframe: timeframeForCandle(chartMinutes),
+  };
 }
 
 export interface AISignalTrackRecord {

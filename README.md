@@ -63,6 +63,28 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.5.0** — web parity phase 3, second layer: what 19 more mobile features read. A minor
+  because one change breaks callers:
+  - **Chart plans lose their compute ops** (web f2229fc8): the planner no longer emits
+    `compute.*`, `render.color_bars` or the `for_each`/`$ref` plumbing, so `PredicateOp`,
+    `Predicate`, `ComputeOp`, `Ref`, `BarsSource`, the pattern, extrema and level names and the
+    compute result shapes are gone; `render.mark_bars` takes a literal bar list, and
+    `ComputedBar` keeps only its OHLCV.
+
+  Added: words-only answer plans (`intent: 'answer'`) and the `asked` message a plan answers
+  (web c17294ea, b099e32e); saved custom indicators, their chat card and helpers (web 34224b5d,
+  a8422658); a company's filings as chart lines, `getFundamentalCatalog` /
+  `getFundamentalSeries` with their keys (web 34224b5d, 19886306, b099e32e); the view pattern
+  scan's types and `getPatternVocab` (web 74480d81); a signal's alert seeded from its direction
+  and candle (web c4641a75); the IPO application form's bid arithmetic (web 28a97cf5,
+  e9e33bc0); a stock's corporate actions merged from four feeds, `getCorporateFilings`, and
+  `getDividends` for one stock or upcoming ex-dates, whose key now carries the symbol and
+  filter (web e141e79a, 6e4b8a95, e9e33bc0, 6fb2ccdc, e7476c63); segment notes and
+  related-party transactions, `getSegments` / `getRelatedParty` (web 6fb2ccdc).
+
+  Back to web's reading: a line two schemas name is listed under each again, and ownership's
+  Government bucket reads `INcgovt` and `INDcgovt`, so a government promoter counts in both
+  Promoters and Government, as on web (reverts 5380474 and 9e70544).
 - **v0.4.0** — web parity phase 3, first layer: what 25 mobile features read. A minor because
   one change breaks callers:
   - **Chart intervals are open** (web de4023e9): `ChartInterval` is any count and unit the

@@ -404,3 +404,39 @@ test('an AI signals answer with null lists arrives with empty ones', async () =>
   });
   assert.equal(filled.pivots.length, 1);
 });
+
+const doji = {
+  id: 'doji',
+  label: 'Doji',
+  sense: 'neutral',
+  kind: 'reversal',
+  family: 'candlestick' as const,
+  bars: 1,
+  meaning: 'Open and close almost equal: indecision.',
+  aliases: ['doji star'],
+};
+
+test('the pattern vocabulary is read once from its own path, and keyed alone', async () => {
+  const {http, last} = fakeHttp([{patterns: [doji]}]);
+  const vocab = await marketApi(http).getPatternVocab();
+  assert.deepEqual(
+    [last().path, last().init?.method, last().init?.body],
+    ['/market/patterns', undefined, undefined],
+  );
+  assert.deepEqual(vocab, {patterns: [doji]});
+  assert.deepEqual(queryKeys.market.patternVocab(), ['pattern-vocab']);
+});
+
+test('a vocabulary with null lists arrives with empty ones', async () => {
+  const {http} = fakeHttp([
+    {patterns: null},
+    null,
+    {patterns: [{...doji, aliases: null}]},
+  ]);
+  const api = marketApi(http);
+  assert.deepEqual(await api.getPatternVocab(), {patterns: []});
+  assert.deepEqual(await api.getPatternVocab(), {patterns: []});
+  assert.deepEqual(await api.getPatternVocab(), {
+    patterns: [{...doji, aliases: []}],
+  });
+});

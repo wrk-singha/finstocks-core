@@ -49,6 +49,8 @@ import type {
   PatternDetectResponse,
   PatternScanParams,
   PatternScanResponse,
+  PatternVocabEntry,
+  PatternVocabResponse,
 } from '../types/patternScan.ts';
 import type {StockScoreResponse} from '../types/scores.ts';
 import type {
@@ -415,6 +417,26 @@ const readOwnership = (wire: OwnershipWire | null): GetOwnershipResponse => ({
   holders_as_of: wire?.holders_as_of ?? '',
 });
 
+/**
+ * The pattern vocabulary as the server sends it. Go serialises a nil slice as null, so a pattern
+ * with no other spellings can answer `aliases: null`, and a registry with nothing in it
+ * `patterns: null`; a picker searches every entry's aliases, so both are filled once here.
+ */
+type PatternVocabEntryWire = Nullable<PatternVocabEntry, 'aliases'>;
+
+interface PatternVocabWire {
+  patterns: PatternVocabEntryWire[] | null;
+}
+
+const readPatternVocab = (
+  wire: PatternVocabWire | null,
+): PatternVocabResponse => ({
+  patterns: (wire?.patterns ?? []).map(({aliases, ...entry}) => ({
+    ...entry,
+    aliases: aliases ?? [],
+  })),
+});
+
 export const marketApi = (http: HttpClient) => ({
   getRecommendations: (params?: RecommendationsQuery) =>
     http.request<MarketRecommendationsResponse>(
@@ -632,6 +654,15 @@ export const marketApi = (http: HttpClient) => ({
       method: 'POST',
       body: params,
     }),
+
+  /**
+   * Every pattern the scanner can answer, whether or not a chart shows it: the catalogue the
+   * Indicators picker lists. The same for every symbol and day, so a caller fetches it once.
+   */
+  getPatternVocab: async (): Promise<PatternVocabResponse> =>
+    readPatternVocab(
+      await http.request<PatternVocabWire | null>('/market/patterns'),
+    ),
 
   /**
    * The pattern engine's trade plans on the bars a chart shows. The caller sends those bars —

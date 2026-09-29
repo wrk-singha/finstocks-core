@@ -24,10 +24,47 @@ export interface PatternScanRangeHit {
    *  happens next, which is why those are the patterns the scan bands by
    *  default. */
   kind: string;
+  /** What the pattern IS, where `kind` is what it claims happens next. A
+   *  hammer and a head-and-shoulders are both reversals and differ here. */
+  family: PatternFamily;
   bars: number;
   meaning: string;
   from_epoch: number;
   to_epoch: number;
+  /** The swing points a chart pattern is drawn through, in time order. Absent
+   *  on a candlestick, whose shape IS the candles the span already covers. */
+  points?: FormationPoint[];
+  /** "breakout" | "breakdown" | absent while price is still inside the shape. */
+  state?: string;
+}
+
+/** Which of the two things a reader means by "pattern". */
+export type PatternFamily = 'candlestick' | 'chart';
+
+/** One swing a formation is drawn through. `kind` distinguishes the head from
+ *  the neckline without re-deriving the shape. */
+export interface FormationPoint {
+  epoch: number;
+  price: number;
+  kind: 'high' | 'low';
+}
+
+/** One pattern the scanner can answer, whether or not it is in any result.
+ *  The catalogue a picker offers, as opposed to what a given box contained. */
+export interface PatternVocabEntry {
+  id: string;
+  label: string;
+  sense: string;
+  kind: string;
+  family: PatternFamily;
+  bars: number;
+  meaning: string;
+  aliases: string[];
+}
+
+/** GET /market/patterns: the registry compiled into the backend, the same for every symbol. */
+export interface PatternVocabResponse {
+  patterns: PatternVocabEntry[];
 }
 
 export interface PatternScanMatch {
@@ -54,6 +91,56 @@ export interface PatternScanResponse {
   /** Which universe `matches` came from — "fno" or "equity". */
   scanned_scope?: string;
   /** Names with no detector. Never render these as "not found" — nothing looked. */
+  unknown: string[];
+}
+
+/**
+ * One candle as the chart drew it, for POST /market/pattern-detect. Short keys because a week of
+ * minute bars is thousands of rows. Web calls these the PatternDetect types; here they are named
+ * for the view, because core's PatternDetect types are the older /news/pattern-detect below.
+ */
+export interface ViewPatternBar {
+  t: number;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v?: number;
+}
+
+/** Patterns detected on the chart's own candles, at its own resolution. */
+export interface ViewPatternParams {
+  interval: string;
+  bars: ViewPatternBar[];
+  /** The time range on screen, epoch seconds. */
+  view_from: number;
+  view_to: number;
+  patterns?: string[];
+}
+
+/** One pattern found somewhere in the supplied candles. */
+export interface ViewPatternSummary {
+  pattern: string;
+  /** Distinct occurrences on screen: a run of consecutive candles counts once,
+   *  and a formation reported at every swing it advanced over counts once. */
+  in_view: number;
+  total: number;
+  /** The nearest occurrence either side of the view. */
+  before?: PatternScanRangeHit;
+  after?: PatternScanRangeHit;
+}
+
+export interface ViewPatternResponse {
+  interval: string;
+  bars: number;
+  from_epoch: number;
+  to_epoch: number;
+  view_from: number;
+  view_to: number;
+  /** Every occurrence on screen, with its geometry. `meaning` is blank — the
+   *  vocabulary carries it once per pattern. */
+  in_view: PatternScanRangeHit[];
+  summary: ViewPatternSummary[];
   unknown: string[];
 }
 

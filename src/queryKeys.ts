@@ -148,8 +148,13 @@ export const queryKeys = {
     withRules: (isMockEnabled: boolean) => ['status', isMockEnabled, 'rules'],
   },
 
-  /** ["dividends", market] */
-  dividends: (market: string) => ['dividends', market],
+  /** ["dividends", market, symbol, upcoming] — "" and false for the market's whole feed. */
+  dividends: (market: string, symbol?: string, upcoming?: boolean) => [
+    'dividends',
+    market,
+    symbol ?? '',
+    upcoming ?? false,
+  ],
   /** ["accord-news", section, search] */
   accordNews: (section: string, search: string) => [
     'accord-news',
@@ -312,6 +317,17 @@ export const queryKeys = {
       (params.category ?? []).join(','),
       (params.cap ?? []).join(','),
       (params.symbol ?? []).join(','),
+    ],
+    /** ["corporate-filings", symbol] — one stock's classified capital-action filings. */
+    corporateFilings: (symbol: string | null) => [
+      'corporate-filings',
+      symbol ?? '',
+    ],
+    /** ["announcements", "symbol", symbol] — one stock's exchange filings. */
+    symbolAnnouncements: (symbol: string | null) => [
+      'announcements',
+      'symbol',
+      symbol ?? '',
     ],
     /** ["market-depth", symbol] */
     depth: (symbol: string | null) => ['market-depth', symbol],

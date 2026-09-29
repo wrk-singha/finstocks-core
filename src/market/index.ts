@@ -138,8 +138,11 @@ export {
 export type {FlowSide} from './institutionalFlows.ts';
 
 export {
+  bidValue,
+  blockedAmount,
   buildFinancialSeries,
   buildIPOSchedule,
+  clampShares,
   FINANCIAL_METRIC_KEYS,
   findManagingDirector,
   IPO_CATEGORIES,
@@ -148,10 +151,15 @@ export {
   ipoLotSize,
   ipoMinInvestment,
   isBiddable,
+  lotValue,
+  MAX_BIDS,
+  maxLotsFor,
+  minLotsFor,
 } from './ipo.ts';
 export type {
   FinancialBar,
   FinancialMetric,
+  IPOBid,
   IPOCategory,
   IPOScheduleStep,
   IPOScheduleStepKey,

@@ -11,7 +11,7 @@ import {
 } from './marketHours.ts';
 
 /**
- * What an IPO board and an issue's page work out from the vendor's rows.
+ * What an IPO board, an issue's page and its application form work out from the vendor's rows.
  *
  * None of it is fetched: SEBI fixes the category ceilings, the T+3 timeline dates everything after
  * the book closes, and the rest falls out of the issue's own lot size and price band, both of which
@@ -37,6 +37,85 @@ export const IPO_CATEGORY_CAPS: Readonly<
 > = {
   regular: {min: 0, max: 200_000},
   hni: {min: 200_000, max: 500_000},
+};
+
+/** Three bids per application is the exchange limit, not a UI choice. */
+export const MAX_BIDS = 3;
+
+/** One price an application is bid at; an application carries up to `MAX_BIDS` of them. */
+export interface IPOBid {
+  id: number;
+  /** Always a whole multiple of the lot size. */
+  shares: number;
+  /** Only read when `cutoff` is false. */
+  price: number;
+  cutoff: boolean;
+  maxLots: boolean;
+}
+
+/** What one lot costs at the top of the band — the number every cap divides. */
+export const lotValue = (lotSize: number, priceMax: number): number =>
+  lotSize * priceMax;
+
+/** The most lots a bid in this category may carry, never fewer than one. */
+export const maxLotsFor = (
+  category: IPOCategory,
+  lotSize: number,
+  priceMax: number,
+): number => {
+  const per = lotValue(lotSize, priceMax);
+  if (per <= 0) return 1;
+  return Math.max(1, Math.floor(IPO_CATEGORY_CAPS[category].max / per));
+};
+
+/**
+ * The smallest bid that still belongs to the category. Retail starts at one lot; HNI only begins
+ * once the application is worth *more* than ₹2L, so a one-lot HNI bid is not a thing and the
+ * stepper must not offer it.
+ */
+export const minLotsFor = (
+  category: IPOCategory,
+  lotSize: number,
+  priceMax: number,
+): number => {
+  const per = lotValue(lotSize, priceMax);
+  if (per <= 0) return 1;
+  const floorValue = IPO_CATEGORY_CAPS[category].min;
+  if (floorValue <= 0) return 1;
+  return Math.max(1, Math.floor(floorValue / per) + 1);
+};
+
+/** The rupee value of a single bid, priced at cutoff unless one was typed. */
+export const bidValue = (
+  bid: Pick<IPOBid, 'shares' | 'price' | 'cutoff'>,
+  priceMax: number,
+): number => bid.shares * (bid.cutoff ? priceMax : bid.price);
+
+/**
+ * What the bank actually earmarks.
+ *
+ * The three bids are alternative prices for one application, not three applications — at most one
+ * can be allotted, so ASBA blocks the largest of them rather than their sum. Adding a cheaper
+ * second bid therefore leaves the blocked figure alone, which is correct and is why the field
+ * carries a tooltip saying so.
+ */
+export const blockedAmount = (
+  bids: readonly Pick<IPOBid, 'shares' | 'price' | 'cutoff'>[],
+  priceMax: number,
+): number =>
+  bids.reduce((most, bid) => Math.max(most, bidValue(bid, priceMax)), 0);
+
+/** Rounds a share count onto the lot grid and into the category's range. */
+export const clampShares = (
+  shares: number,
+  lotSize: number,
+  category: IPOCategory,
+  priceMax: number,
+): number => {
+  const lots = Math.round(shares / lotSize);
+  const min = minLotsFor(category, lotSize, priceMax);
+  const max = maxLotsFor(category, lotSize, priceMax);
+  return Math.min(max, Math.max(min, lots || min)) * lotSize;
 };
 
 /**

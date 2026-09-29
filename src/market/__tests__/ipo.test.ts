@@ -4,8 +4,11 @@ import {test} from 'node:test';
 import {queryKeys} from '../../queryKeys.ts';
 import type {FinancialPeriodRow} from '../../types/fundamentals.ts';
 import {
+  bidValue,
+  blockedAmount,
   buildFinancialSeries,
   buildIPOSchedule,
+  clampShares,
   FINANCIAL_METRIC_KEYS,
   findManagingDirector,
   IPO_CATEGORIES,
@@ -14,6 +17,10 @@ import {
   ipoLotSize,
   ipoMinInvestment,
   isBiddable,
+  lotValue,
+  MAX_BIDS,
+  maxLotsFor,
+  minLotsFor,
 } from '../ipo.ts';
 
 test('the lot size reads min_investment before market_lot and trusts neither at 1', () => {
@@ -42,6 +49,84 @@ test('the category caps stop at the UPI mandate limit, retail first', () => {
   assert.deepEqual(IPO_CATEGORIES, ['regular', 'hni']);
   assert.deepEqual(IPO_CATEGORY_CAPS.regular, {min: 0, max: 200_000});
   assert.deepEqual(IPO_CATEGORY_CAPS.hni, {min: 200_000, max: 500_000});
+});
+
+// A 54-share lot at the ₹270 top of the band is worth ₹14,580.
+const LOT = 54;
+const TOP = 270;
+
+test('a lot is valued at the top of the band, and three bids is the limit', () => {
+  assert.equal(lotValue(LOT, TOP), 14_580);
+  assert.equal(MAX_BIDS, 3);
+});
+
+test('each category tops out at the most whole lots its cap holds', () => {
+  // 13 lots is ₹1,89,540; a 14th would cross ₹2L.
+  assert.equal(maxLotsFor('regular', LOT, TOP), 13);
+  // 34 lots is ₹4,95,720; a 35th would cross the ₹5L mandate limit.
+  assert.equal(maxLotsFor('hni', LOT, TOP), 34);
+  // An SME lot of 1,200 at ₹100 is ₹1.2L: one retail lot, four HNI ones.
+  assert.equal(maxLotsFor('regular', 1200, 100), 1);
+  assert.equal(maxLotsFor('hni', 1200, 100), 4);
+});
+
+test('a category never offers fewer than one lot, even when one lot is over its cap', () => {
+  assert.equal(maxLotsFor('regular', 1000, 300), 1);
+  assert.equal(maxLotsFor('hni', 1000, 600), 1);
+  assert.equal(maxLotsFor('hni', 0, TOP), 1);
+  assert.equal(maxLotsFor('regular', LOT, 0), 1);
+});
+
+test('retail starts at one lot and HNI at the first lot worth more than ₹2L', () => {
+  assert.equal(minLotsFor('regular', LOT, TOP), 1);
+  // 13 lots is still retail; the 14th, ₹2,04,120, is the first HNI bid.
+  assert.equal(minLotsFor('hni', LOT, TOP), 14);
+  assert.equal(minLotsFor('hni', 1200, 100), 2);
+  // Exactly ₹2L is the top of retail, so HNI begins a lot above it.
+  assert.equal(minLotsFor('hni', 100, 200), 11);
+  assert.equal(minLotsFor('hni', 0, TOP), 1);
+  assert.equal(minLotsFor('hni', LOT, 0), 1);
+});
+
+test('the HNI floor never passes its ceiling, whatever a lot is worth', () => {
+  for (let per = 1_000; per <= 800_000; per += 1_000) {
+    assert.ok(
+      minLotsFor('hni', per, 1) <= maxLotsFor('hni', per, 1),
+      `a lot worth ₹${String(per)}`,
+    );
+  }
+});
+
+test('a bid is priced at the top of the band at cutoff, else at its own price', () => {
+  assert.equal(bidValue({shares: 108, price: 262, cutoff: true}, TOP), 29_160);
+  assert.equal(bidValue({shares: 108, price: 262, cutoff: false}, TOP), 28_296);
+});
+
+test('the bank blocks the largest bid, not the sum of them', () => {
+  const bids = [
+    {shares: 162, price: 270, cutoff: true},
+    {shares: 108, price: 262, cutoff: false},
+    {shares: 216, price: 260, cutoff: false},
+  ];
+  // 216 x 260 = 56,160 outbids 162 at cutoff (43,740) and 108 x 262 (28,296).
+  assert.equal(blockedAmount(bids, TOP), 56_160);
+  // A cheaper second bid leaves the figure where it was.
+  assert.equal(blockedAmount(bids.slice(0, 2), TOP), 43_740);
+  assert.equal(blockedAmount([], TOP), 0);
+});
+
+test('a share count snaps to the nearest lot and into the category', () => {
+  // 100 shares is nearer two lots than one; 80 is nearer one.
+  assert.equal(clampShares(100, LOT, 'regular', TOP), 108);
+  assert.equal(clampShares(80, LOT, 'regular', TOP), 54);
+  assert.equal(clampShares(10_000, LOT, 'regular', TOP), 13 * LOT);
+  // One lot is below HNI's floor, so it lifts to the first HNI bid.
+  assert.equal(clampShares(LOT, LOT, 'hni', TOP), 14 * LOT);
+  assert.equal(clampShares(10_000, LOT, 'hni', TOP), 34 * LOT);
+  // Nothing typed, or less than half a lot, is the category's smallest bid rather than none.
+  assert.equal(clampShares(0, LOT, 'regular', TOP), LOT);
+  assert.equal(clampShares(20, LOT, 'hni', TOP), 14 * LOT);
+  assert.equal(clampShares(Number.NaN, LOT, 'regular', TOP), LOT);
 });
 
 test('the issue size prices the share count at the top of the band, else the struck price', () => {

@@ -63,6 +63,15 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.6.0** — web parity phase 3, fourth layer. A minor because one change breaks callers:
+  - **Pattern alerts read the field list** (web 564af137): `liveMarksFor(condition)` finds a
+    pattern field through `findAlertField`'s `kind: 'pattern'`, so its `isPattern` parameter and
+    `AlertMarksOptions.isPattern` are gone.
+
+  Added: `alertPatternWatches` and `alertPatternHits`, the patterns a plotted, fired alert keeps
+  the view scan on for and the hits marked on its candles (web 564af137); the OI and ATM panels'
+  chain figures, `oiTotals`, `atmRowOf`, `straddlePremium` and `strikeIv`, which
+  `computeChainSentiment` now reads through (web c55b19da, 5e4fdac7).
 - **v0.5.1** — web parity phase 3, third layer; additive only. The plan terms carry a composed
   script, its hash, thresholds, catalogue and `runnable`, and a strategy setup may be at stage
   `script_preview` (web df887153, 36719121, 7100bf8f). Watchlist flags (`FLAG_COLORS`, `withFlag`,

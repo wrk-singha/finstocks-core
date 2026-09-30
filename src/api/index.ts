@@ -12,6 +12,7 @@ export {authApi} from './auth.ts';
 export type {AuthApi} from './auth.ts';
 
 export {
+  chartAckMessage,
   chatApi,
   chatCategoryParam,
   chatResumeStreamPath,
@@ -20,6 +21,10 @@ export {
   chatWsPath,
 } from './chat.ts';
 export type {
+  ChartAck,
+  ChartAckMessage,
+  ChartAckOutcome,
+  ChartAckResult,
   ChatAnalysisEvent,
   ChatApi,
   ChatConnectionEvent,

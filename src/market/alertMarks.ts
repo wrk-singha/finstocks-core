@@ -1,3 +1,4 @@
+import {findAlertField} from '../data/alertFields.ts';
 import type {SavedAlert} from '../types/savedAlert.ts';
 import {extractUnderlyingSymbol} from './symbols.ts';
 
@@ -68,17 +69,15 @@ export type LiveMarks =
 const sideOf = (value: unknown): SignalSide | undefined =>
   typeof value === 'number' ? {value} : own(CHART_SERIES, String(value));
 
-const noPatterns = (): boolean => false;
+/** A yes/no pattern in the alert form's field list, which the chart's view scan finds. */
+const isPatternField = (fieldId: string): boolean =>
+  findAlertField(fieldId)?.kind === 'pattern';
 
 /**
  * An alert's own rule ({var, op, val} leaves, at most one AND/OR group deep) as the chart can
- * mark it. `isPattern` says which alert fields are yes/no patterns — the alert field list's
- * `kind: 'pattern'` on web. Without one, no field is, and a pattern alert keeps only its flag.
+ * mark it. Which fields are patterns is the alert field list's `kind: 'pattern'`.
  */
-export function liveMarksFor(
-  condition: unknown,
-  isPattern: (fieldId: string) => boolean = noPatterns,
-): LiveMarks {
+export function liveMarksFor(condition: unknown): LiveMarks {
   if (!condition || typeof condition !== 'object') return null;
   const node = condition as {logic?: unknown; conditions?: unknown};
   const leaves = (
@@ -93,7 +92,7 @@ export function liveMarksFor(
     return null;
   const fields = (leaves as Leaf[]).map(leaf => String(leaf.var));
 
-  const patterns = fields.filter(id => isPattern(id));
+  const patterns = fields.filter(isPatternField);
   if (patterns.length === leaves.length) {
     // Several patterns on one candle is not something the scan answers.
     return join === 'OR' || patterns.length === 1 ? {patterns} : null;
@@ -178,16 +177,69 @@ export interface AlertPatternHit {
   to_epoch: number;
 }
 
+/** A fired pattern alert's pattern, marked wherever the scan finds it from `from` (epoch seconds). */
+export interface AlertPatternWatch {
+  readonly pattern: string;
+  readonly from: number;
+}
+
 export interface AlertMarksOptions {
   /** Whether an alert is marked on the chart; every one is unless the user turned it off. */
   isPlotted?: (id: string) => boolean;
-  /** See `liveMarksFor`. */
-  isPattern?: (fieldId: string) => boolean;
   /** The view scan's hits; a fired pattern alert is marked where its pattern completes since. */
   patternHits?: readonly AlertPatternHit[];
 }
 
 const always = (): boolean => true;
+
+/** Each plotted alert that has fired on this underlying: from when, and how it is marked since. */
+function plottedFires(
+  alerts: readonly SavedAlert[],
+  underlying: string,
+  isPlotted: (id: string) => boolean,
+): {from: number; live: LiveMarks}[] {
+  return alertsOnUnderlying(alerts, underlying).flatMap(alert => {
+    const at = alertFiredOn(alert, underlying);
+    const from = at ? Date.parse(at) / 1000 : NaN;
+    if (!Number.isFinite(from) || !isPlotted(alert.id)) return [];
+    return [{from, live: liveMarksFor(alert.condition)}];
+  });
+}
+
+const patternWatchesOf = (
+  fires: readonly {from: number; live: LiveMarks}[],
+): AlertPatternWatch[] =>
+  fires.flatMap(({from, live}) =>
+    live && 'patterns' in live
+      ? live.patterns.map(pattern => ({pattern, from}))
+      : [],
+  );
+
+/**
+ * The patterns the plotted, fired alerts on this underlying are marked by: while there are any, the
+ * chart has to scan its view for them, whether or not anything else asked for a scan.
+ */
+export function alertPatternWatches(
+  alerts: readonly SavedAlert[],
+  underlying: string,
+  {isPlotted = always}: Pick<AlertMarksOptions, 'isPlotted'> = {},
+): AlertPatternWatch[] {
+  return patternWatchesOf(plottedFires(alerts, underlying, isPlotted));
+}
+
+/** Where the scan found a watched pattern completing at or after its alert fired, epoch seconds. */
+export function alertPatternHits(
+  watches: readonly AlertPatternWatch[],
+  patternHits: readonly AlertPatternHit[],
+): number[] {
+  return patternHits
+    .filter(hit =>
+      watches.some(
+        watch => watch.pattern === hit.pattern && hit.to_epoch >= watch.from,
+      ),
+    )
+    .map(hit => hit.to_epoch);
+}
 
 /**
  * Each plotted alert that has fired on this underlying: a flag where it fired, then every candle
@@ -198,26 +250,12 @@ const always = (): boolean => true;
 export function alertMarksFor(
   alerts: readonly SavedAlert[],
   underlying: string,
-  {isPlotted = always, isPattern, patternHits = []}: AlertMarksOptions = {},
+  {isPlotted = always, patternHits = []}: AlertMarksOptions = {},
 ): AlertMarks {
-  const plotted = alertsOnUnderlying(alerts, underlying).flatMap(alert => {
-    const at = alertFiredOn(alert, underlying);
-    const from = at ? Date.parse(at) / 1000 : NaN;
-    if (!Number.isFinite(from) || !isPlotted(alert.id)) return [];
-    return [{from, live: liveMarksFor(alert.condition, isPattern)}];
-  });
-  const patternWatches = plotted.flatMap(({from, live}) =>
-    live && 'patterns' in live ? live.patterns.map(id => ({id, from})) : [],
-  );
+  const plotted = plottedFires(alerts, underlying, isPlotted);
   return {
     fires: plotted.map(({from}) => from),
-    hits: patternHits
-      .filter(hit =>
-        patternWatches.some(
-          watch => watch.id === hit.pattern && hit.to_epoch >= watch.from,
-        ),
-      )
-      .map(hit => hit.to_epoch),
+    hits: alertPatternHits(patternWatchesOf(plotted), patternHits),
     watches: plotted.flatMap(({from, live}) =>
       live && 'rules' in live
         ? [{rules: live.rules, join: live.join, from}]

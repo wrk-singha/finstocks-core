@@ -8,9 +8,11 @@ import {
   isAwaitingStart,
   isBacktestInProgress,
   isCompletedBacktest,
+  isConsoleActive,
   isInProgress,
   isPaused,
   isTerminalStatus,
+  runStateOf,
   statusOf,
 } from '../strategyStatus.ts';
 
@@ -65,4 +67,34 @@ test('findBacktestPayloadLog picks the results row of the right strategy', () =>
   assert.equal(findBacktestPayloadLog('a', logs)?.payload?.initial_balance, 1);
   assert.equal(findBacktestPayloadLog('c', logs), undefined);
   assert.equal(findBacktestPayloadLog('a', undefined), undefined);
+});
+
+test('runStateOf reads paused, then waiting to start, and calls every other status running', () => {
+  assert.equal(runStateOf({status: 'paused'}), 'paused');
+  assert.equal(runStateOf({status: 'PENDING'}), 'waiting');
+  assert.equal(runStateOf({status: 'waiting'}), 'waiting');
+  assert.equal(runStateOf({status: 'RUNNING'}), 'running');
+  assert.equal(runStateOf({status: 'ACTIVE'}), 'running');
+  assert.equal(runStateOf({}), 'running');
+});
+
+test('isConsoleActive is the Active rail for one book: live-open, no backtests, no autopilot rows', () => {
+  const row = (o: {
+    status?: string;
+    is_mock?: boolean | null;
+    is_backtest?: boolean;
+    strategy_id?: string;
+  }) => ({strategy_id: 'S-1', status: 'RUNNING', is_mock: true, ...o});
+  for (const status of ['RUNNING', 'active', 'PENDING', 'WAITING', 'PAUSED']) {
+    assert.equal(isConsoleActive(row({status}), true), true, status);
+  }
+  // A backtest in flight is in progress, but the rail files it under Archived.
+  assert.equal(isConsoleActive(row({status: 'BACKTESTING'}), true), false);
+  assert.equal(isConsoleActive(row({status: 'COMPLETED'}), true), false);
+  assert.equal(isConsoleActive(row({is_backtest: true}), true), false);
+  assert.equal(isConsoleActive(row({strategy_id: 'AP-7'}), true), false);
+  assert.equal(isConsoleActive(row({}), false), false);
+  // The API can send is_mock null: that row belongs to the live book.
+  assert.equal(isConsoleActive(row({is_mock: null}), false), true);
+  assert.equal(isConsoleActive(row({is_mock: null}), true), false);
 });

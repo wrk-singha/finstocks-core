@@ -94,7 +94,10 @@ export const chatStreamPath = '/chats/stream/sse';
 /** Web-only: GET re-attaches to a running turn; 204 when none is in flight. */
 export const chatResumeStreamPath = (chatId: string) =>
   `/chats/${chatId}/stream`;
-/** Web-only: the websocket transport; the bearer rides in the query because browsers cannot set WS headers. */
+/**
+ * The websocket transport; the bearer rides in the query because browsers cannot set WS headers.
+ * Web streams its turns here; mobile streams over SSE and opens it only to send `chart_ack`s.
+ */
 export const chatWsPath = (token: string) => `/chats/ws${query({token})}`;
 
 export interface ChatTokenEvent {
@@ -160,14 +163,102 @@ export type ChatStreamEvent =
   | ChatTurnEndEvent
   | ChatConnectionEvent;
 
+/** Whether a chart plan the assistant already answered about actually applied. */
+export interface ChartAck {
+  chat_id: string;
+  /** The plan's `undo_group`, its identity on both ends. */
+  plan_id: string;
+  ok: boolean;
+  /** What did not happen, in words; left out when the plan applied as written. */
+  detail?: string;
+}
+
+export interface ChartAckMessage {
+  type: 'chart_ack';
+  data: ChartAck;
+}
+
 /** Frames a client writes to the websocket. */
 export type ChatWsClientMessage =
   | {type: 'chat_message'; data: ChatStreamRequest}
   | {type: 'stop'; data: {chat_id: string}}
-  | {
-      type: 'chart_ack';
-      data: {chat_id: string; plan_id: string; ok: boolean; detail?: string};
-    };
+  | ChartAckMessage;
+
+/** One step of a chart plan as the chart's receipt reports it: the fields an ack reads. */
+export interface ChartAckOutcome {
+  readonly op: string;
+  readonly ok: boolean;
+  readonly error?: string | undefined;
+  /** What the step did, in words, when it can say. */
+  readonly did?: string | undefined;
+  /** What it could not carry, when it did only part of what was asked. */
+  readonly partial?: string | undefined;
+}
+
+/** A chart plan's receipt once it has run (never while it is running): the fields an ack reads. */
+export interface ChartAckResult {
+  readonly undoGroup: string;
+  readonly outcomes: readonly ChartAckOutcome[];
+  readonly mutated: boolean;
+  readonly reply: string;
+}
+
+/** Only the first few failures are told: the planner needs to know what failed, not every line. */
+const MAX_FAILURES_TOLD = 2;
+
+const isSaid = (text: string | undefined): text is string =>
+  text !== undefined && text !== '';
+
+/**
+ * The ack for a chart plan once its receipt is in, sent fire-and-forget on the chat socket. The
+ * backend never waits on it: it corrects what the NEXT turn's planner is told, so a plan that failed
+ * or applied only in part is disclosed rather than narrated as done a second time.
+ *
+ * A plan that asked for nothing, an answer in words, succeeded by changing nothing; only a plan
+ * with steps can fail to apply them. A step done only in part is not done as written, so it fails
+ * the ack as a failed step does.
+ */
+export const chartAckMessage = (
+  chatId: string,
+  plan: {readonly ops?: readonly unknown[] | undefined},
+  result: ChartAckResult,
+): ChartAckMessage => {
+  const failed = result.outcomes.filter(outcome => !outcome.ok);
+  const partial = result.outcomes.filter(
+    outcome => outcome.ok && isSaid(outcome.partial),
+  );
+  const askedNothing = (plan.ops ?? []).length === 0;
+  const ok =
+    result.outcomes.length > 0
+      ? failed.length === 0 && partial.length === 0
+      : result.mutated || askedNothing;
+  const detail =
+    failed.length > 0 || partial.length > 0
+      ? [
+          ...failed
+            .slice(0, MAX_FAILURES_TOLD)
+            .map(
+              outcome =>
+                `Not done: ${isSaid(outcome.error) ? outcome.error : 'the page could not do this step'}`,
+            ),
+          ...partial.map(
+            outcome =>
+              `${outcome.did ?? 'Done'}, without ${outcome.partial ?? ''}`,
+          ),
+        ].join('; ')
+      : ok
+        ? undefined
+        : result.reply;
+  return {
+    type: 'chart_ack',
+    data: {
+      chat_id: chatId,
+      plan_id: result.undoGroup,
+      ok,
+      ...(detail === undefined ? {} : {detail}),
+    },
+  };
+};
 
 // An empty search or surface is no filter at all: sent as `surface=`, it would leave the backend to
 // guess that the empty value means the unscoped dashboard bucket.

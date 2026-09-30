@@ -1,16 +1,30 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import type {StockWatchlist} from '../../types/stockWatchlist.ts';
+import type {
+  StockWatchlist,
+  StockWatchlistFlag,
+} from '../../types/stockWatchlist.ts';
 import {
+  clearedItems,
   exceedsWatchlistCap,
+  FLAG_COLORS,
+  flagCounts,
+  flaggedSymbols,
+  flagsBySymbol,
   freshSymbols,
+  hasSection,
   MAX_WATCHLIST_ITEMS,
   MAX_WATCHLISTS,
   pruneSections,
+  sharedWatchlistPath,
   upsertWatchlist,
   watchlistMembership,
+  withFlag,
   withItemsReplaced,
+  withoutSection,
+  withSectionRenamed,
+  withSymbolMoved,
   withSymbolRemoved,
   withSymbolsAdded,
 } from '../stockWatchlists.ts';
@@ -120,4 +134,110 @@ test('membership answers "on this list" and "on any list"', () => {
   assert.equal(byListId.get('b')?.has('INFY'), false);
   assert.deepEqual([...all].sort(), ['INFY', 'RELIANCE', 'TCS']);
   assert.equal(watchlistMembership([]).all.size, 0);
+});
+
+const flag = (
+  symbol: string,
+  color: StockWatchlistFlag['color'],
+): StockWatchlistFlag => ({
+  symbol,
+  color,
+  updated_at: '2026-09-01T00:00:00Z',
+});
+
+test('the seven flag colours run in TradingView’s order', () => {
+  assert.deepEqual(FLAG_COLORS, [
+    'red',
+    'blue',
+    'green',
+    'orange',
+    'purple',
+    'cyan',
+    'pink',
+  ]);
+});
+
+test('a flag set goes first and replaces the symbol’s old colour; null clears it', () => {
+  const flags = [flag('TCS', 'red'), flag('INFY', 'blue')];
+  const set = withFlag(flags, 'INFY', 'green', '2026-09-30T00:00:00Z');
+  assert.deepEqual(set, [
+    {symbol: 'INFY', color: 'green', updated_at: '2026-09-30T00:00:00Z'},
+    flag('TCS', 'red'),
+  ]);
+  assert.deepEqual(withFlag(flags, 'TCS', null, 'now'), [flag('INFY', 'blue')]);
+  assert.deepEqual(withFlag(undefined, 'SBIN', 'red', 'now'), [
+    {symbol: 'SBIN', color: 'red', updated_at: 'now'},
+  ]);
+  assert.equal(flags.length, 2);
+});
+
+test('flags read as one colour a symbol, a colour opens as its symbols, and counts skip the unused', () => {
+  const bySymbol = flagsBySymbol([
+    flag('TCS', 'red'),
+    flag('INFY', 'blue'),
+    flag('SBIN', 'red'),
+  ]);
+  assert.equal(bySymbol.get('INFY'), 'blue');
+  assert.equal(bySymbol.get('WIPRO'), undefined);
+  assert.deepEqual(flaggedSymbols(bySymbol, 'red'), ['TCS', 'SBIN']);
+  assert.deepEqual(flaggedSymbols(bySymbol, 'pink'), []);
+  assert.deepEqual(
+    [...flagCounts(bySymbol)],
+    [
+      ['red', 2],
+      ['blue', 1],
+    ],
+  );
+});
+
+test('a section name matches whatever its case', () => {
+  const sections = [{name: 'Banks', symbols: []}];
+  assert.equal(hasSection(sections, 'banks'), true);
+  assert.equal(hasSection(sections, 'IT'), false);
+});
+
+test('a move files the symbol at the end of one section and takes it out of any other', () => {
+  const sections = [
+    {name: 'Banks', symbols: ['SBIN', 'HDFCBANK']},
+    {name: 'IT', symbols: ['TCS']},
+  ];
+  assert.deepEqual(withSymbolMoved(sections, 'SBIN', 'IT'), [
+    {name: 'Banks', symbols: ['HDFCBANK']},
+    {name: 'IT', symbols: ['TCS', 'SBIN']},
+  ]);
+  assert.deepEqual(withSymbolMoved(sections, 'SBIN', null), [
+    {name: 'Banks', symbols: ['HDFCBANK']},
+    {name: 'IT', symbols: ['TCS']},
+  ]);
+  assert.deepEqual(withSymbolMoved(sections, 'TCS', 'IT'), sections);
+  assert.deepEqual(sections[0]?.symbols, ['SBIN', 'HDFCBANK']);
+});
+
+test('a section renamed keeps its symbols; one removed leaves them unfiled', () => {
+  const sections = [
+    {name: 'Banks', symbols: ['SBIN']},
+    {name: 'IT', symbols: ['TCS']},
+  ];
+  assert.deepEqual(withSectionRenamed(sections, 'IT', 'Tech'), [
+    {name: 'Banks', symbols: ['SBIN']},
+    {name: 'Tech', symbols: ['TCS']},
+  ]);
+  assert.deepEqual(withoutSection(sections, 'Banks'), [
+    {name: 'IT', symbols: ['TCS']},
+  ]);
+});
+
+test('Clear list takes every symbol off and keeps the sections, empty', () => {
+  const cleared = clearedItems(
+    list('a', ['TCS', 'SBIN'], [{name: 'Banks', symbols: ['SBIN']}]),
+  );
+  assert.deepEqual(cleared, {
+    symbols: [],
+    sections: [{name: 'Banks', symbols: []}],
+  });
+});
+
+test('a shared list opens under /watchlist/shared', () => {
+  assert.equal(sharedWatchlistPath('ab12'), '/watchlist/shared/ab12');
+  assert.equal(sharedWatchlistPath('a/b'), '/watchlist/shared/a%2Fb');
 });

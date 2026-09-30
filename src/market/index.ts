@@ -335,18 +335,44 @@ export type {
 } from './stockSignals.ts';
 
 export {
+  clearedItems,
   exceedsWatchlistCap,
+  FLAG_COLORS,
+  flagCounts,
+  flaggedSymbols,
+  flagsBySymbol,
   freshSymbols,
+  hasSection,
   MAX_WATCHLIST_ITEMS,
   MAX_WATCHLISTS,
   pruneSections,
+  sharedWatchlistPath,
   upsertWatchlist,
   watchlistMembership,
+  withFlag,
   withItemsReplaced,
+  withoutSection,
+  withSectionRenamed,
+  withSymbolMoved,
   withSymbolRemoved,
   withSymbolsAdded,
 } from './stockWatchlists.ts';
 export type {WatchlistMembership} from './stockWatchlists.ts';
+export {
+  CSV_BOM,
+  csvCell,
+  exportFileName,
+  parseWatchlistFile,
+  WATCHLIST_COLUMNS,
+  WATCHLIST_TABS,
+  watchlistCsv,
+  watchlistTxt,
+} from './watchlistExport.ts';
+export type {
+  WatchlistColumn,
+  WatchlistColumnKey,
+  WatchlistTab,
+} from './watchlistExport.ts';
 
 export {
   extractUnderlyingSymbol,

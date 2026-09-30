@@ -60,6 +60,20 @@ export interface BacktestSetupTerms {
    * FNO and older cards, where Sentinel compiles its own instead.
    */
   fsm?: unknown;
+  /**
+   * A composed strategy, on "script_preview" cards: the script and its
+   * identity, shown in the card's receipt.
+   */
+  script?: string;
+  script_hash?: string;
+  thresholds?: Record<string, number>;
+  catalogue?: string;
+  /**
+   * False on a composed script the engine cannot run yet. Its card says so
+   * itself; a create sent for it is a create with no FSM, refused as a 400 in
+   * place of the card's own explanation.
+   */
+  runnable?: boolean;
 }
 
 export interface BacktestSetup {
@@ -101,8 +115,11 @@ export interface StrategySetup {
    * until then - and it is the only durable "this turn already made a
    * strategy" mark, which /chart's auto-create reads so a reload does not make
    * a second one.
+   *
+   * "script_preview": composed and proved on the server; the card is the
+   * usual one, with the script's receipt under it.
    */
-  stage?: 'params' | 'confirm' | 'confirmed' | 'run';
+  stage?: 'params' | 'confirm' | 'confirmed' | 'run' | 'script_preview';
   rows: BacktestSetupRow[];
   /**
    * Machine-shaped rows, when the card sends both. Only consulted where `terms` is absent, since

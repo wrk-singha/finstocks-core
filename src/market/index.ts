@@ -32,6 +32,8 @@ export type {
 export {
   alertFiredOn,
   alertMarksFor,
+  alertPatternHits,
+  alertPatternWatches,
   alertsOnUnderlying,
   CHART_SERIES,
   liveMarksFor,
@@ -41,6 +43,7 @@ export type {
   AlertMarks,
   AlertMarksOptions,
   AlertPatternHit,
+  AlertPatternWatch,
   AlertWatch,
   LiveMarks,
   SignalRule,

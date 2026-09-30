@@ -5,14 +5,13 @@ import type {AlertMatch, SavedAlert} from '../../types/savedAlert.ts';
 import {
   alertFiredOn,
   alertMarksFor,
+  alertPatternHits,
+  alertPatternWatches,
   alertsOnUnderlying,
   CHART_SERIES,
   liveMarksFor,
   NO_ALERT_MARKS,
 } from '../alertMarks.ts';
-
-const PATTERNS = new Set(['hammer', 'bullish_engulfing', 'double_bottom']);
-const isPattern = (id: string) => PATTERNS.has(id);
 
 const alert = (patch: Partial<SavedAlert> & {id: string}): SavedAlert => ({
   prompt: patch.id,
@@ -122,50 +121,42 @@ test('a column named after an object property is not a series', () => {
 });
 
 test('patterns are found by the scan: one, or any of several', () => {
-  assert.deepEqual(liveMarksFor({var: 'hammer', op: '==', val: 1}, isPattern), {
+  // Which fields are patterns is the alert form's own field list.
+  assert.deepEqual(liveMarksFor({var: 'hammer', op: '==', val: 1}), {
     patterns: ['hammer'],
   });
   assert.deepEqual(
-    liveMarksFor(
-      {
-        logic: 'OR',
-        conditions: [
-          {var: 'hammer', op: '==', val: 1},
-          {var: 'double_bottom', op: '==', val: 1},
-        ],
-      },
-      isPattern,
-    ),
+    liveMarksFor({
+      logic: 'OR',
+      conditions: [
+        {var: 'hammer', op: '==', val: 1},
+        {var: 'double_bottom', op: '==', val: 1},
+      ],
+    }),
     {patterns: ['hammer', 'double_bottom']},
   );
   // Several on one candle, or a pattern beside a rule, is not something the scan answers.
   assert.equal(
-    liveMarksFor(
-      {
-        conditions: [
-          {var: 'hammer', op: '==', val: 1},
-          {var: 'bullish_engulfing', op: '==', val: 1},
-        ],
-      },
-      isPattern,
-    ),
+    liveMarksFor({
+      conditions: [
+        {var: 'hammer', op: '==', val: 1},
+        {var: 'bullish_engulfing', op: '==', val: 1},
+      ],
+    }),
     null,
   );
   assert.equal(
-    liveMarksFor(
-      {
-        logic: 'OR',
-        conditions: [
-          {var: 'hammer', op: '==', val: 1},
-          {var: 'rsi14', op: '<', val: 30},
-        ],
-      },
-      isPattern,
-    ),
+    liveMarksFor({
+      logic: 'OR',
+      conditions: [
+        {var: 'hammer', op: '==', val: 1},
+        {var: 'rsi14', op: '<', val: 30},
+      ],
+    }),
     null,
   );
-  // With no field list to say which ids are patterns, a pattern keeps only its flag.
-  assert.equal(liveMarksFor({var: 'hammer', op: '==', val: 1}), null);
+  // An id the list does not offer is no pattern, and nothing the chart computes either.
+  assert.equal(liveMarksFor({var: 'flying_pig', op: '==', val: 1}), null);
 });
 
 test('an alert is on an underlying through its own symbol or a match, contracts included', () => {
@@ -300,11 +291,89 @@ test('a fired pattern alert is marked where the scan finds its pattern from then
     {pattern: 'hammer', to_epoch: FIRED_S + 86_400},
     {pattern: 'doji', to_epoch: FIRED_S + 86_400},
   ];
-  const marks = alertMarksFor(alerts, 'RELIANCE', {isPattern, patternHits});
+  const marks = alertMarksFor(alerts, 'RELIANCE', {patternHits});
   assert.deepEqual(marks.fires, [FIRED_S]);
   assert.deepEqual(marks.hits, [FIRED_S + 86_400]);
   assert.deepEqual(marks.watches, []);
 
-  // Without the field list the same alert is a flag and nothing more.
-  assert.deepEqual(alertMarksFor(alerts, 'RELIANCE', {patternHits}).hits, []);
+  // Switched off, it asks the scan for nothing and is marked nowhere.
+  const hidden = alertMarksFor(alerts, 'RELIANCE', {
+    patternHits,
+    isPlotted: () => false,
+  });
+  assert.deepEqual(hidden, NO_ALERT_MARKS);
+});
+
+test('the patterns the chart must scan for: each plotted pattern alert that fired here', () => {
+  const alerts = [
+    alert({
+      id: 'hammer',
+      symbol: 'RELIANCE',
+      last_triggered_at: FIRED,
+      condition: {var: 'hammer', op: '==', val: 1},
+    }),
+    alert({
+      id: 'either',
+      matches: [{symbol: 'RELIANCE', triggered_at: '2026-09-15T05:00:00Z'}],
+      condition: {
+        logic: 'OR',
+        conditions: [
+          {var: 'doji', op: '==', val: 1},
+          {var: 'double_bottom', op: '==', val: 1},
+        ],
+      },
+    }),
+    alert({
+      id: 'waiting',
+      symbol: 'RELIANCE',
+      condition: {var: 'morning_star', op: '==', val: 1},
+    }),
+    alert({
+      id: 'rule',
+      symbol: 'RELIANCE',
+      last_triggered_at: FIRED,
+      condition: {var: 'rsi14', op: '<', val: 30},
+    }),
+    alert({
+      id: 'elsewhere',
+      symbol: 'TCS',
+      last_triggered_at: FIRED,
+      condition: {var: 'hammer', op: '==', val: 1},
+    }),
+  ];
+  const later = Date.parse('2026-09-15T05:00:00Z') / 1000;
+  assert.deepEqual(alertPatternWatches(alerts, 'RELIANCE'), [
+    {pattern: 'hammer', from: FIRED_S},
+    {pattern: 'doji', from: later},
+    {pattern: 'double_bottom', from: later},
+  ]);
+  assert.deepEqual(
+    alertPatternWatches(alerts, 'RELIANCE', {isPlotted: id => id !== 'hammer'}),
+    [
+      {pattern: 'doji', from: later},
+      {pattern: 'double_bottom', from: later},
+    ],
+  );
+  assert.deepEqual(alertPatternWatches(alerts, 'INFY'), []);
+});
+
+test('a scan hit counts for a watched pattern at or after its alert fired', () => {
+  const watches = [
+    {pattern: 'hammer', from: FIRED_S},
+    {pattern: 'doji', from: FIRED_S + 3_600},
+  ];
+  assert.deepEqual(
+    alertPatternHits(watches, [
+      {pattern: 'hammer', to_epoch: FIRED_S - 60},
+      {pattern: 'hammer', to_epoch: FIRED_S},
+      {pattern: 'doji', to_epoch: FIRED_S + 60},
+      {pattern: 'doji', to_epoch: FIRED_S + 7_200},
+      {pattern: 'marubozu_bullish', to_epoch: FIRED_S + 7_200},
+    ]),
+    [FIRED_S, FIRED_S + 7_200],
+  );
+  assert.deepEqual(
+    alertPatternHits([], [{pattern: 'hammer', to_epoch: 1}]),
+    [],
+  );
 });

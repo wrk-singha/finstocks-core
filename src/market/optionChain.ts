@@ -135,6 +135,58 @@ export const formatIv = (iv: number | null): string =>
 export const formatPremium = (ltp: number | null): string =>
   ltp != null && ltp > 0 ? formatCurrency(ltp, 2) : '—';
 
+export interface OiTotals {
+  callOi: number;
+  putOi: number;
+  /** Σ pe oi / Σ ce oi; null when there is no call OI to divide by. */
+  pcr: number | null;
+}
+
+// Call and put OI summed over `rows`, and the put-call ratio between them. The
+// OI panel sums its window of strikes around the ATM, so the chart's assistant
+// reads the same PCR the panel prints by calling this on the same window.
+export function oiTotals(rows: readonly OptionChainRow[]): OiTotals {
+  let callOi = 0;
+  let putOi = 0;
+  for (const r of rows) {
+    callOi += r.ceOi ?? 0;
+    putOi += r.peOi ?? 0;
+  }
+  return {callOi, putOi, pcr: callOi > 0 ? putOi / callOi : null};
+}
+
+// The row the ATM panel reads: the stream's own ATM flag, else the row at
+// `atmStrike`.
+export function atmRowOf(
+  rows: readonly OptionChainRow[],
+  atmStrike?: number | null,
+): OptionChainRow | null {
+  return (
+    rows.find(r => r.isAtm) ??
+    (atmStrike != null ? rows.find(r => r.strike === atmStrike) : undefined) ??
+    null
+  );
+}
+
+// Call plus put premium at a strike, or null unless both sides are quoting.
+export function straddlePremium(row: OptionChainRow | null): number | null {
+  if (!row) return null;
+  const {ceLtp: ce, peLtp: pe} = row;
+  if (ce == null || pe == null || ce <= 0 || pe <= 0) return null;
+  return ce + pe;
+}
+
+// The ATM IV convention, at any strike: the mean of the call and put implied
+// vol, falling back to whichever single side is quoting. A fraction (0.12);
+// null when neither side is.
+export function strikeIv(row: OptionChainRow | null): number | null {
+  if (!row) return null;
+  const ivs: number[] = [];
+  if (row.ceIv != null && row.ceIv > 0) ivs.push(row.ceIv);
+  if (row.peIv != null && row.peIv > 0) ivs.push(row.peIv);
+  return ivs.length ? ivs.reduce((a, b) => a + b, 0) / ivs.length : null;
+}
+
 export interface ChainSentiment {
   /** Put/Call OI ratio over the whole chain (Σ pe oi / Σ ce oi). Null when call
    *  OI is empty (no fabrication). */
@@ -164,35 +216,16 @@ export function computeChainSentiment(
   if (rows.length === 0)
     return {pcr: null, expectedMove: null, atmIv: null, callOi: 0, putOi: 0};
 
-  let callOi = 0;
-  let putOi = 0;
-  for (const r of rows) {
-    callOi += r.ceOi ?? 0;
-    putOi += r.peOi ?? 0;
-  }
+  const {callOi, putOi, pcr} = oiTotals(rows);
 
   // drift resolved 2026-09-13: the web only honoured `isAtm`; the mobile's
   // `atmStrike` fallback wins because the REST fallback chain flags no row.
-  const atm =
-    rows.find(r => r.isAtm) ??
-    (atmStrike != null ? rows.find(r => r.strike === atmStrike) : undefined) ??
-    null;
-  const expectedMove =
-    atm?.ceLtp != null && atm.peLtp != null && atm.ceLtp > 0 && atm.peLtp > 0
-      ? atm.ceLtp + atm.peLtp
-      : null;
-
-  const ivs: number[] = [];
-  if (atm) {
-    if (atm.ceIv != null && atm.ceIv > 0) ivs.push(atm.ceIv);
-    if (atm.peIv != null && atm.peIv > 0) ivs.push(atm.peIv);
-  }
-  const atmIv = ivs.length ? ivs.reduce((a, b) => a + b, 0) / ivs.length : null;
+  const atm = atmRowOf(rows, atmStrike);
 
   return {
-    pcr: callOi > 0 ? putOi / callOi : null,
-    expectedMove,
-    atmIv,
+    pcr,
+    expectedMove: straddlePremium(atm),
+    atmIv: strikeIv(atm),
     callOi,
     putOi,
   };

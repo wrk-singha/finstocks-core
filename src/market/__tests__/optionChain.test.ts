@@ -5,6 +5,7 @@ import {test} from 'node:test';
 import {formatCompactQuantity} from '../../format/number.ts';
 import type {OptionChainRow} from '../../types/fno.ts';
 import {
+  atmRowOf,
   buildOiLadder,
   buildOptionContractSymbol,
   byExpiryDate,
@@ -18,6 +19,7 @@ import {
   formatStrike,
   ivContext,
   nearestExpiry,
+  oiTotals,
   optionContractLabel,
   payoffGap,
   pcrDelta,
@@ -26,6 +28,8 @@ import {
   positioningReadout,
   positioningVerdict,
   selectAtmWindow,
+  straddlePremium,
+  strikeIv,
   tradableChainRows,
 } from '../optionChain.ts';
 
@@ -197,6 +201,52 @@ test('chain sentiment falls back to the atm strike when no row is flagged', () =
     putOi: 0,
   });
   assert.equal(computeChainSentiment(chain).expectedMove, null);
+});
+
+test('oi totals sum both sides and read the pcr, null without call oi', () => {
+  assert.deepEqual(oiTotals(chain), {callOi: 700, putOi: 700, pcr: 1});
+  assert.deepEqual(oiTotals(chain.slice(0, 1)), {
+    callOi: 100,
+    putOi: 400,
+    pcr: 4,
+  });
+  // A side the chain has not reported counts as none, not as a gap.
+  assert.deepEqual(oiTotals([row(1, {peOi: 50}), row(2, {ceOi: 25})]), {
+    callOi: 25,
+    putOi: 50,
+    pcr: 2,
+  });
+  assert.deepEqual(oiTotals([row(1, {peOi: 50})]), {
+    callOi: 0,
+    putOi: 50,
+    pcr: null,
+  });
+  assert.deepEqual(oiTotals([]), {callOi: 0, putOi: 0, pcr: null});
+});
+
+test('the atm row is the flagged one, else the one at the atm strike', () => {
+  const flagged = [row(24000), row(24100, {isAtm: true}), row(24200)];
+  assert.equal(atmRowOf(flagged, 24200)?.strike, 24100);
+  assert.equal(atmRowOf(chain, 24200)?.strike, 24200);
+  assert.equal(atmRowOf(chain, 25000), null);
+  assert.equal(atmRowOf(chain), null);
+  assert.equal(atmRowOf(chain, null), null);
+  assert.equal(atmRowOf([], 24100), null);
+});
+
+test('the straddle needs both sides quoting', () => {
+  assert.equal(straddlePremium(row(1, {ceLtp: 120, peLtp: 80})), 200);
+  assert.equal(straddlePremium(row(1, {ceLtp: 120, peLtp: 0})), null);
+  assert.equal(straddlePremium(row(1, {ceLtp: null, peLtp: 80})), null);
+  assert.equal(straddlePremium(null), null);
+});
+
+test('a strike iv is the mean of both sides, or the one side quoting', () => {
+  assert.equal(strikeIv(row(1, {ceIv: 0.12, peIv: 0.14})), 0.13);
+  assert.equal(strikeIv(row(1, {ceIv: 0, peIv: 0.14})), 0.14);
+  assert.equal(strikeIv(row(1, {ceIv: 0.12})), 0.12);
+  assert.equal(strikeIv(row(1)), null);
+  assert.equal(strikeIv(null), null);
 });
 
 test('max pain is the strike with the least writer intrinsic value', () => {

@@ -217,6 +217,7 @@ export {
 export type {FuturesTitleParts, ParsedFuturesSymbol} from './futuresSymbol.ts';
 
 export {
+  atmRowOf,
   buildOiLadder,
   buildOptionContractSymbol,
   byExpiryDate,
@@ -230,6 +231,7 @@ export {
   formatStrike,
   ivContext,
   nearestExpiry,
+  oiTotals,
   optionContractLabel,
   payoffGap,
   pcrDelta,
@@ -238,6 +240,8 @@ export {
   positioningReadout,
   positioningVerdict,
   selectAtmWindow,
+  straddlePremium,
+  strikeIv,
   tradableChainRows,
 } from './optionChain.ts';
 export type {
@@ -245,6 +249,7 @@ export type {
   ExpiryPickerOption,
   IvContext,
   OiLadderBar,
+  OiTotals,
   PositioningFact,
   PositioningInput,
   PositioningLadder,

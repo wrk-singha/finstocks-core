@@ -63,6 +63,17 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.5.1** — web parity phase 3, third layer; additive only. The plan terms carry a composed
+  script, its hash, thresholds, catalogue and `runnable`, and a strategy setup may be at stage
+  `script_preview` (web df887153, 36719121, 7100bf8f). Watchlist flags (`FLAG_COLORS`, `withFlag`,
+  `flagsBySymbol`, `flaggedSymbols`, `flagCounts`), section edits (`withSymbolMoved`,
+  `withSectionRenamed`, `withoutSection`, `hasSection`, `clearedItems`), `sharedWatchlistPath`
+  and TXT/CSV export and import (`watchlistTxt`, `parseWatchlistFile`, `watchlistCsv`; web
+  0c327488, 950917a3, 0bb7636d). Strategies matched to a charted symbol
+  (`strategiesMatchingSymbols`, `underlyingsOf`), `isConsoleActive` and `runStateOf`, with a null
+  `is_mock` read as the live book (web 730f1727, c67ac033). An alert seed may carry a trendline
+  (web 77f23ebf, e90ea7ce). The chart ack a client sends once a plan has run, over the chat socket
+  (web 564af137, c17294ea).
 - **v0.5.0** — web parity phase 3, second layer: what 19 more mobile features read. A minor
   because one change breaks callers:
   - **Chart plans lose their compute ops** (web f2229fc8): the planner no longer emits

@@ -21,7 +21,7 @@ const result = (
   ...fields,
 });
 
-test('a plan that applied as written acks ok, with no detail, under its undo group', () => {
+test('a plan that applied as written acks ok under its undo group, with what each step did', () => {
   const frame = chartAckMessage(
     'chat-1',
     plan('draw.horizontal_line', 'panel.open'),
@@ -32,15 +32,35 @@ test('a plan that applied as written acks ok, with no detail, under its undo gro
   );
   assert.deepEqual(frame, {
     type: 'chart_ack',
-    data: {chat_id: 'chat-1', plan_id: 'ug-1', ok: true},
+    data: {
+      chat_id: 'chat-1',
+      plan_id: 'ug-1',
+      ok: true,
+      detail: 'Drew a line at 1,300; Opened Positions',
+    },
   });
-  assert.equal('detail' in frame.data, false);
   // It is one of the frames the socket takes.
   const sent: ChatWsClientMessage = frame;
-  assert.equal(JSON.stringify(sent).includes('detail'), false);
+  assert.equal(sent.type, 'chart_ack');
 });
 
-test('failed steps fail the ack and are told, the first two only', () => {
+test('a step that applied without a receipt is named by its op', () => {
+  const frame = chartAckMessage(
+    'chat-1',
+    plan('chart.set_symbol', 'study.clear'),
+    result([
+      {op: 'chart.set_symbol', ok: true},
+      {op: 'study.clear', ok: true, did: 'Cleared 3 indicators'},
+    ]),
+  );
+  assert.equal(frame.data.ok, true);
+  assert.equal(
+    frame.data.detail,
+    'Done: chart.set_symbol; Cleared 3 indicators',
+  );
+});
+
+test('failed steps fail the ack and every one is told, before the steps that were done', () => {
   const frame = chartAckMessage(
     'chat-1',
     plan('a', 'b', 'c', 'd'),
@@ -54,7 +74,7 @@ test('failed steps fail the ack and are told, the first two only', () => {
   assert.equal(frame.data.ok, false);
   assert.equal(
     frame.data.detail,
-    'Not done: there is no alert a1 on TCS; Not done: the page could not do this step',
+    'Not done: there is no alert a1 on TCS; Not done: the page could not do this step; Not done: never told; Added RSI',
   );
 });
 
@@ -84,7 +104,7 @@ test('a step done only in part fails the ack and says what it could not carry', 
   assert.equal(frame.data.ok, false);
   assert.equal(
     frame.data.detail,
-    "Opened the buy ticket, without the target and stop - this order type can't carry them",
+    "Opened the buy ticket, without the target and stop - this order type can't carry them; Opened Positions",
   );
 });
 
@@ -103,7 +123,7 @@ test('failures come before partial steps, and a partial step without words is Do
   assert.equal(frame.data.ok, false);
   assert.equal(
     frame.data.detail,
-    'Not done: one; Not done: two; Done, without the stop; Filled in the order pad, without the exits',
+    'Not done: one; Not done: two; Not done: three; Done, without the stop; Filled in the order pad, without the exits',
   );
 });
 
@@ -113,7 +133,12 @@ test('an empty partial is a step done in full', () => {
     plan('a'),
     result([{op: 'a', ok: true, did: 'Opened Alerts', partial: ''}]),
   );
-  assert.deepEqual(frame.data, {chat_id: 'chat-1', plan_id: 'ug-1', ok: true});
+  assert.deepEqual(frame.data, {
+    chat_id: 'chat-1',
+    plan_id: 'ug-1',
+    ok: true,
+    detail: 'Opened Alerts',
+  });
 });
 
 test('a words-only answer plan acks ok though it changed nothing', () => {

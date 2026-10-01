@@ -50,8 +50,6 @@ export type {
   SignalSide,
 } from './alertMarks.ts';
 
-export {readingFsm, readingLeaf} from './alertReading.ts';
-
 export {
   appliesToEveryStock,
   buildAlert,
@@ -63,6 +61,7 @@ export {
   DEFAULT_CONTRACT,
   describeClause,
   formatAlertValue,
+  isFnoAlert,
   LEVEL_CHIPS,
   levelAtPct,
   levelDirection,

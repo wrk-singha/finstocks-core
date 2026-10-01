@@ -51,7 +51,7 @@ const setupRow = (rows: SetupRows, ...keys: string[]): string => {
   return '';
 };
 
-/** The card's Condition row as the assistant wrote it — what `readingFsm` compiles. */
+/** The card's Condition row as the assistant wrote it — the words for it, not what the engine runs. */
 export const alertCondition = (rows: SetupRows): string =>
   setupRow(rows, 'condition', 'entry_condition', 'entry');
 

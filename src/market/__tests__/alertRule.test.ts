@@ -13,9 +13,11 @@ import {
   DEFAULT_CONTRACT,
   describeClause,
   formatAlertValue,
+  isFnoAlert,
   levelAtPct,
   levelDirection,
   lineAt,
+  monitorFsm,
   opsFor,
   opVerb,
   parseAlertValue,
@@ -467,6 +469,76 @@ test('a contract symbol is an F&O alert even on its own price', () => {
     val: 80,
   });
   assert.equal(entry(alert)?.actions[0]?.payload.target, undefined);
+});
+
+test('the machine is the monitor shape the engine reads as matched once', () => {
+  const condition = {var: 'adx_14', op: '>', val: 25};
+  assert.deepEqual(monitorFsm(condition), {
+    initial_state: 'IDLE',
+    intent: 'monitor',
+    variables: ['$entry_price'],
+    nlp_triggers: [],
+    states: {
+      IDLE: {
+        on_entry: [],
+        on_exit: [],
+        on_tick: [],
+        transitions: [
+          {
+            comment: 'Entry',
+            condition,
+            next_state: 'BOUGHT',
+            actions: [
+              {type: 'ORDER', payload: {side: 'BUY'}},
+              {
+                type: 'UPDATE_CONTEXT',
+                payload: {key: '$entry_price', value: 'close_price'},
+              },
+            ],
+          },
+        ],
+      },
+      // No way out, so an alert fires once.
+      BOUGHT: {on_entry: [], on_exit: [], on_tick: [], transitions: []},
+    },
+  });
+  // An F&O alert names the contract it reads on the order.
+  assert.equal(
+    monitorFsm({var: 'iv', op: '>', val: 20}, 'ATM_CE_CURRENT').states.IDLE
+      .transitions[0]?.actions[0]?.payload.target,
+    'ATM_CE_CURRENT',
+  );
+});
+
+test('a compiled condition is an F&O read by its symbol or by any field it names', () => {
+  // A cash symbol on a cash field is looked for among cash symbols.
+  assert.equal(isFnoAlert('RELIANCE', {var: 'rsi14', op: '<', val: 30}), false);
+  assert.equal(
+    isFnoAlert('NIFTY26SEP24500CE', {var: 'rsi14', op: '<', val: 30}),
+    true,
+  );
+  // An F&O field counts wherever it sits, under either logic.
+  assert.equal(
+    isFnoAlert('NIFTY', {
+      logic: 'OR',
+      conditions: [
+        {var: 'rsi14', op: '<', val: 30},
+        {
+          logic: 'AND',
+          conditions: [
+            {var: 'close_price', op: 'crosses_above', val: 'ema50'},
+            {var: 'iv', op: '>', val: 20},
+          ],
+        },
+      ],
+    }),
+    true,
+  );
+  // The F&O dialect's bare candle names are still the candle, not an F&O field.
+  assert.equal(isFnoAlert('NIFTY', {var: 'high', op: '>', val: 24_600}), false);
+  // A card without a condition has nothing to read.
+  assert.equal(isFnoAlert('RELIANCE', undefined), false);
+  assert.equal(isFnoAlert('RELIANCE', null), false);
 });
 
 test('daily-only clauses and what a list of stocks can share', () => {

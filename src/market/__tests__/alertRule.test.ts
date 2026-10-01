@@ -12,6 +12,7 @@ import {
   dailyOnly,
   DEFAULT_CONTRACT,
   describeClause,
+  fitOp,
   formatAlertValue,
   isFnoAlert,
   levelAtPct,
@@ -23,6 +24,7 @@ import {
   parseAlertValue,
   priceWarning,
   savedAlertFrom,
+  timeframeChoice,
   timeframeForCandle,
   type TrendLine,
   usesContract,
@@ -123,6 +125,46 @@ test('a seed can name a trendline, which the price crosses with no level of its 
   );
   // Without one, a seed is as it was.
   assert.equal(clauseFromSeed({field: 'close_price'}).line, undefined);
+});
+
+test('a seeded operator is fitted to what its field offers', () => {
+  // A day's move only has levels: a crossing asked of it is the level on the same side.
+  const up = clauseFromSeed({field: '__day_move', op: 'rises_above', value: 5});
+  assert.equal(up.op, 'is_above');
+  assert.equal(opVerb(up), 'is_up_by');
+  assert.equal(
+    clauseFromSeed({field: '__day_move', op: 'falls_below'}).op,
+    'is_below',
+  );
+  // A pattern only appears.
+  assert.equal(
+    clauseFromSeed({field: 'bullish_engulfing', op: 'is_above'}).op,
+    'appears',
+  );
+  // With no side to keep, the first operator offered.
+  assert.equal(
+    fitOp(clause('__day_move', 'is_above', 3), 'appears'),
+    'is_above',
+  );
+  // An operator the field offers is kept.
+  for (const op of [
+    'rises_above',
+    'falls_below',
+    'is_above',
+    'is_below',
+  ] as const) {
+    assert.equal(
+      clauseFromSeed({field: 'close_price', op, value: 2500}).op,
+      op,
+    );
+  }
+  // Fitted to the clause as seeded: against a line, a crossing stays a crossing.
+  assert.equal(
+    opVerb(
+      clauseFromSeed({field: 'close_price', op: 'falls_below', line: LINE}),
+    ),
+    'crosses_below',
+  );
 });
 
 test('operators read as the field’s sentence', () => {
@@ -308,6 +350,15 @@ test('the coarsest timeframe that still looks once per chart candle', () => {
   assert.equal(timeframeForCandle(60), '15m');
   assert.equal(timeframeForCandle(1440), '1d');
   assert.equal(timeframeForCandle(0.5), '1m');
+});
+
+test('a timeframe is one of the choices whatever its case, else the first', () => {
+  assert.equal(timeframeChoice('1D'), '1d');
+  assert.equal(timeframeChoice('15M'), '15m');
+  assert.equal(timeframeChoice('5m'), '5m');
+  assert.equal(timeframeChoice(undefined), '1m');
+  assert.equal(timeframeChoice(), '1m');
+  assert.equal(timeframeChoice('1h'), '1m');
 });
 
 test('a trendline extends past both anchors', () => {

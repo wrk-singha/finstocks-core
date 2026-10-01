@@ -56,6 +56,7 @@ export {
   clauseComplete,
   clauseFor,
   clauseFromSeed,
+  clausesFromCondition,
   clauseParts,
   dailyOnly,
   DEFAULT_CONTRACT,

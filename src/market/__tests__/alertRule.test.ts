@@ -8,6 +8,7 @@ import {
   clauseComplete,
   clauseFor,
   clauseFromSeed,
+  clausesFromCondition,
   clauseParts,
   dailyOnly,
   DEFAULT_CONTRACT,
@@ -626,4 +627,137 @@ test('a created alert is saved live, following its own symbol', () => {
       original_query: 'TCS: price falls below ₹3,200.00',
     },
   );
+});
+
+test('a saved condition reads back as the form rows that wrote it', () => {
+  // What the form compiles, read back and compiled again, is the same condition.
+  const roundTrip = (
+    seeds: Parameters<typeof clauseFromSeed>[0][],
+    logic: 'AND' | 'OR' = 'AND',
+  ) => {
+    const built = entry(
+      buildAlert(
+        'RELIANCE',
+        seeds.map(clauseFromSeed),
+        logic,
+        '5m',
+        DEFAULT_CONTRACT,
+      ),
+    )?.condition;
+    const read = clausesFromCondition(built);
+    assert.notEqual(read, null);
+    assert.equal(read?.logic, logic);
+    assert.deepEqual(
+      entry(
+        buildAlert(
+          'RELIANCE',
+          (read?.clauses ?? []).map(clauseFromSeed),
+          logic,
+          '5m',
+          DEFAULT_CONTRACT,
+        ),
+      )?.condition,
+      built,
+    );
+    return read?.clauses;
+  };
+
+  assert.deepEqual(
+    roundTrip([{field: 'close_price', op: 'rises_above', value: 2500}]),
+    [{field: 'close_price', op: 'rises_above', value: 2500}],
+  );
+  // A line crossed is the thing the price is measured against.
+  assert.deepEqual(roundTrip([{field: 'close_price', target: 'ema50'}]), [
+    {field: 'close_price', op: 'rises_above', target: 'ema50'},
+  ]);
+  // The day's move is written as a factor on yesterday's close, in either direction.
+  assert.deepEqual(
+    roundTrip([{field: '__day_move', op: 'is_below', value: 3}]),
+    [{field: '__day_move', op: 'is_below', value: 3}],
+  );
+  assert.deepEqual(
+    roundTrip([{field: '__day_move', op: 'is_above', value: 1.5}]),
+    [{field: '__day_move', op: 'is_above', value: 1.5}],
+  );
+  assert.deepEqual(roundTrip([{field: 'bullish_engulfing'}]), [
+    {field: 'bullish_engulfing', op: 'appears'},
+  ]);
+  // Several rows keep their order and how they combine.
+  assert.equal(
+    roundTrip(
+      [
+        {field: 'rsi14', op: 'is_below', value: 30},
+        {field: 'close_price', op: 'falls_below', value: 1200},
+      ],
+      'OR',
+    )?.length,
+    2,
+  );
+});
+
+test('a condition the form could not have written is not half-read', () => {
+  // The F&O dialect's column names read back as the picker's ids.
+  assert.deepEqual(
+    clausesFromCondition({var: 'open', op: '>', val: 100})?.clauses,
+    [{field: 'open_price', op: 'is_above', value: 100}],
+  );
+  // A trendline's expression is not a field the picker lists.
+  assert.equal(
+    clausesFromCondition({
+      var: 'close_price',
+      op: 'crosses_below',
+      val: '1200 + 0.000694444444 * (time_now - 1758000000)',
+    }),
+    null,
+  );
+  // A rule nested a level deeper than the form writes.
+  assert.equal(
+    clausesFromCondition({
+      logic: 'AND',
+      conditions: [
+        {var: 'rsi14', op: '<', val: 30},
+        {
+          logic: 'OR',
+          conditions: [
+            {var: 'close_price', op: '>', val: 100},
+            {var: 'close_price', op: '<', val: 50},
+          ],
+        },
+      ],
+    }),
+    null,
+  );
+  assert.equal(
+    clausesFromCondition({var: 'not_a_field', op: '>', val: 1}),
+    null,
+  );
+  assert.equal(
+    clausesFromCondition({var: 'rsi14', op: 'between', val: 1}),
+    null,
+  );
+  // `==` is a pattern's leaf only: on a level it is not "rises above".
+  assert.equal(clausesFromCondition({var: 'rsi14', op: '==', val: 30}), null);
+  // Only the price is measured against a line, so these would open as "price crosses EMA 200" and
+  // "price is above EMA 50".
+  assert.equal(
+    clausesFromCondition({var: 'ema50', op: 'crosses_above', val: 'ema200'}),
+    null,
+  );
+  assert.equal(
+    clausesFromCondition({var: 'rsi14', op: '>', val: 'ema50'}),
+    null,
+  );
+  // A field that is not a line is not something the price is measured against either.
+  assert.equal(
+    clausesFromCondition({var: 'close_price', op: '>', val: 'rsi14'}),
+    null,
+  );
+  for (const none of [
+    undefined,
+    null,
+    'rsi14 < 30',
+    {logic: 'AND', conditions: []},
+  ]) {
+    assert.equal(clausesFromCondition(none), null);
+  }
 });

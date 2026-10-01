@@ -735,6 +735,23 @@ test('a condition the form could not have written is not half-read', () => {
     clausesFromCondition({var: 'rsi14', op: 'between', val: 1}),
     null,
   );
+  // `==` is a pattern's leaf only: on a level it is not "rises above".
+  assert.equal(clausesFromCondition({var: 'rsi14', op: '==', val: 30}), null);
+  // Only the price is measured against a line, so these would open as "price crosses EMA 200" and
+  // "price is above EMA 50".
+  assert.equal(
+    clausesFromCondition({var: 'ema50', op: 'crosses_above', val: 'ema200'}),
+    null,
+  );
+  assert.equal(
+    clausesFromCondition({var: 'rsi14', op: '>', val: 'ema50'}),
+    null,
+  );
+  // A field that is not a line is not something the price is measured against either.
+  assert.equal(
+    clausesFromCondition({var: 'close_price', op: '>', val: 'rsi14'}),
+    null,
+  );
   for (const none of [
     undefined,
     null,

@@ -581,8 +581,12 @@ const COLUMN_BACK: Record<string, string> = Object.fromEntries(
   Object.entries(FNO_COLUMNS).map(([id, col]) => [col, id]),
 );
 
+// Without "appears": its code, `==`, is how a pattern leaf is written and nothing else the form
+// writes, so `rsi14 == 30` is not read back as a level.
 const OP_BACK: Record<string, AlertOp> = Object.fromEntries(
-  Object.entries(OP_CODE).map(([form, code]) => [code, form as AlertOp]),
+  Object.entries(OP_CODE)
+    .filter(([form]) => form !== 'appears')
+    .map(([form, code]) => [code, form as AlertOp]),
 );
 const DAY_MOVE = /^prev_close_price \* ([\d.]+)$/;
 
@@ -634,9 +638,13 @@ export function clausesFromCondition(
       clauses.push({field, op, value: leaf.val});
       continue;
     }
+    // The form measures only the price against a line. Any other pair, an RSI above an EMA or one
+    // average crossing another, would open as the price against that line.
     const named = String(leaf.val);
     const target = COLUMN_BACK[named] ?? named;
-    if (findAlertField(target) === undefined) return null;
+    if (field !== 'close_price' || findAlertField(target)?.kind !== 'line') {
+      return null;
+    }
     clauses.push({field, op, target});
   }
   return clauses.length > 0

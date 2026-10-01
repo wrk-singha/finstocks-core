@@ -203,9 +203,6 @@ export interface ChartAckResult {
   readonly reply: string;
 }
 
-/** Only the first few failures are told: the planner needs to know what failed, not every line. */
-const MAX_FAILURES_TOLD = 2;
-
 const isSaid = (text: string | undefined): text is string =>
   text !== undefined && text !== '';
 
@@ -217,6 +214,11 @@ const isSaid = (text: string | undefined): text is string =>
  * A plan that asked for nothing, an answer in words, succeeded by changing nothing; only a plan
  * with steps can fail to apply them. A step done only in part is not done as written, so it fails
  * the ack as a failed step does.
+ *
+ * The detail carries every step's receipt: what was not done, what was done in part, and what was
+ * done, so the next turn is told what "the alert" and "that ticket" were by name. A step that
+ * applied without a receipt of its own is named by its op: one missing from the report read as not
+ * done, and "clear all indicators" was reported as having left them there.
  */
 export const chartAckMessage = (
   chatId: string,
@@ -232,20 +234,24 @@ export const chartAckMessage = (
     result.outcomes.length > 0
       ? failed.length === 0 && partial.length === 0
       : result.mutated || askedNothing;
+  const done = result.outcomes
+    .filter(outcome => outcome.ok && !isSaid(outcome.partial))
+    .map(outcome => outcome.did ?? `Done: ${outcome.op}`);
+  const told = [
+    ...failed.map(
+      outcome =>
+        `Not done: ${isSaid(outcome.error) ? outcome.error : 'the page could not do this step'}`,
+    ),
+    ...partial.map(
+      outcome => `${outcome.did ?? 'Done'}, without ${outcome.partial ?? ''}`,
+    ),
+    ...done,
+  ].join('; ');
   const detail =
-    failed.length > 0 || partial.length > 0
-      ? [
-          ...failed
-            .slice(0, MAX_FAILURES_TOLD)
-            .map(
-              outcome =>
-                `Not done: ${isSaid(outcome.error) ? outcome.error : 'the page could not do this step'}`,
-            ),
-          ...partial.map(
-            outcome =>
-              `${outcome.did ?? 'Done'}, without ${outcome.partial ?? ''}`,
-          ),
-        ].join('; ')
+    result.outcomes.length > 0
+      ? told === ''
+        ? undefined
+        : told
       : ok
         ? undefined
         : result.reply;

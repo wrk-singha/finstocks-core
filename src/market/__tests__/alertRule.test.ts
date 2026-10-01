@@ -17,6 +17,7 @@ import {
   levelAtPct,
   levelDirection,
   lineAt,
+  monitorFsm,
   opsFor,
   opVerb,
   parseAlertValue,
@@ -468,6 +469,45 @@ test('a contract symbol is an F&O alert even on its own price', () => {
     val: 80,
   });
   assert.equal(entry(alert)?.actions[0]?.payload.target, undefined);
+});
+
+test('the machine is the monitor shape the engine reads as matched once', () => {
+  const condition = {var: 'adx_14', op: '>', val: 25};
+  assert.deepEqual(monitorFsm(condition), {
+    initial_state: 'IDLE',
+    intent: 'monitor',
+    variables: ['$entry_price'],
+    nlp_triggers: [],
+    states: {
+      IDLE: {
+        on_entry: [],
+        on_exit: [],
+        on_tick: [],
+        transitions: [
+          {
+            comment: 'Entry',
+            condition,
+            next_state: 'BOUGHT',
+            actions: [
+              {type: 'ORDER', payload: {side: 'BUY'}},
+              {
+                type: 'UPDATE_CONTEXT',
+                payload: {key: '$entry_price', value: 'close_price'},
+              },
+            ],
+          },
+        ],
+      },
+      // No way out, so an alert fires once.
+      BOUGHT: {on_entry: [], on_exit: [], on_tick: [], transitions: []},
+    },
+  });
+  // An F&O alert names the contract it reads on the order.
+  assert.equal(
+    monitorFsm({var: 'iv', op: '>', val: 20}, 'ATM_CE_CURRENT').states.IDLE
+      .transitions[0]?.actions[0]?.payload.target,
+    'ATM_CE_CURRENT',
+  );
 });
 
 test('a compiled condition is an F&O read by its symbol or by any field it names', () => {

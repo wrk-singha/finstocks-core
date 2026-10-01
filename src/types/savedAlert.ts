@@ -65,8 +65,8 @@ export interface SavedAlertsResponse {
  * same reading keyed the way the strategy engine names things. The card reads
  * `rows` — it is what the person is being shown and asked to confirm.
  * `condition` is the engine's own condition for it, checked against the fields
- * the engine can read before the card was sent — so setting the alert compiles
- * that, never the sentence.
+ * the engine can read before the card was sent — so setting the alert wraps
+ * that in the monitor machine, never the sentence.
  */
 export interface AlertSetup {
   stage?: 'confirm' | 'confirmed';

@@ -3,6 +3,7 @@ import {
   type AlertField,
   alertField,
   EXPIRY_CHOICES,
+  findAlertField,
 } from '../data/alertFields.ts';
 import {formatCurrency} from '../format/number.ts';
 import type {SavedAlert} from '../types/savedAlert.ts';
@@ -55,7 +56,7 @@ export type MonitorFsm = {
  * own spelling (`_compile_target` in fno_compiler.py). No way out of BOUGHT,
  * so an alert fires once — the default every broker uses.
  *
- * Shared between the New alert form and the chat card's reading, so an alert
+ * Shared between the New alert form and the chat card's condition, so an alert
  * made either way runs the same shape.
  */
 export const monitorFsm = (
@@ -545,6 +546,27 @@ const compileFsm = (
       ? undefined
       : `${contract.moneyness}_${contract.type}_${contract.expiry.toUpperCase()}`,
   );
+};
+
+// A condition written in the F&O dialect, read back as the picker's field ids.
+const COLUMN_BACK: Record<string, string> = Object.fromEntries(
+  Object.entries(FNO_COLUMNS).map(([id, col]) => [col, id]),
+);
+
+/**
+ * Whether an alert on `symbol` with this condition is an F&O read — a
+ * contract, or a field such as premium, OI or IV — so the engine looks among
+ * contracts, not cash symbols.
+ */
+export const isFnoAlert = (symbol: string, condition: unknown): boolean => {
+  const readsFno = (node: unknown): boolean => {
+    if (!node || typeof node !== 'object') return false;
+    const n = node as {conditions?: unknown; var?: unknown};
+    if (Array.isArray(n.conditions)) return n.conditions.some(readsFno);
+    const column = String(n.var);
+    return findAlertField(COLUMN_BACK[column] ?? column)?.tab === 'fno';
+  };
+  return isExchangeSymbol(symbol) || readsFno(condition);
 };
 
 export type BuiltAlert = {

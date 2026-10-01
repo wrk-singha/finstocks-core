@@ -1,3 +1,5 @@
+import type {AlertCondition} from '../market/alertRule.ts';
+
 /** One instrument a watch resolved to, or one that matched it. */
 export interface AlertMatch {
   symbol: string;
@@ -45,8 +47,8 @@ export interface SavedAlert {
   symbol?: string;
   timeframe?: string;
   original_query?: string;
-  /** The Condition row compiled for the engine (`readingFsm`), carried to
-   *  create-backtest unchanged: it refuses an alert without one. */
+  /** The engine's machine around the alert's condition (`monitorFsm`), carried
+   *  to create-backtest unchanged: it refuses an alert without one. */
   fsm?: unknown;
 }
 
@@ -62,11 +64,15 @@ export interface SavedAlertsResponse {
  * card renders (Stock / Alert / Condition / Timeframe), and `backend_rows` is the
  * same reading keyed the way the strategy engine names things. The card reads
  * `rows` — it is what the person is being shown and asked to confirm.
+ * `condition` is the engine's own condition for it, checked against the fields
+ * the engine can read before the card was sent — so setting the alert compiles
+ * that, never the sentence.
  */
 export interface AlertSetup {
   stage?: 'confirm' | 'confirmed';
   title?: string;
   rows: {k: string; v?: string}[];
   backend_rows?: {k: string; v?: string}[];
+  condition?: AlertCondition;
   ask?: string;
 }

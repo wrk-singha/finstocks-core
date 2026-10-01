@@ -13,6 +13,7 @@ import {
   DEFAULT_CONTRACT,
   describeClause,
   formatAlertValue,
+  isFnoAlert,
   levelAtPct,
   levelDirection,
   lineAt,
@@ -467,6 +468,37 @@ test('a contract symbol is an F&O alert even on its own price', () => {
     val: 80,
   });
   assert.equal(entry(alert)?.actions[0]?.payload.target, undefined);
+});
+
+test('a compiled condition is an F&O read by its symbol or by any field it names', () => {
+  // A cash symbol on a cash field is looked for among cash symbols.
+  assert.equal(isFnoAlert('RELIANCE', {var: 'rsi14', op: '<', val: 30}), false);
+  assert.equal(
+    isFnoAlert('NIFTY26SEP24500CE', {var: 'rsi14', op: '<', val: 30}),
+    true,
+  );
+  // An F&O field counts wherever it sits, under either logic.
+  assert.equal(
+    isFnoAlert('NIFTY', {
+      logic: 'OR',
+      conditions: [
+        {var: 'rsi14', op: '<', val: 30},
+        {
+          logic: 'AND',
+          conditions: [
+            {var: 'close_price', op: 'crosses_above', val: 'ema50'},
+            {var: 'iv', op: '>', val: 20},
+          ],
+        },
+      ],
+    }),
+    true,
+  );
+  // The F&O dialect's bare candle names are still the candle, not an F&O field.
+  assert.equal(isFnoAlert('NIFTY', {var: 'high', op: '>', val: 24_600}), false);
+  // A card without a condition has nothing to read.
+  assert.equal(isFnoAlert('RELIANCE', undefined), false);
+  assert.equal(isFnoAlert('RELIANCE', null), false);
 });
 
 test('daily-only clauses and what a list of stocks can share', () => {

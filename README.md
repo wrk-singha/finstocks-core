@@ -63,6 +63,10 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.7.1** — the New alert form's seeds; additive only. `fitOp(clause, op)` fits a seeded operator
+  to what its field offers, and `clauseFromSeed` applies it, so a day's move asked to "rise above"
+  opens on "is up by"; `timeframeChoice` reads a timeframe in any case, "1D" as Daily, and falls back
+  to `'1m'` (web 7da99f7e).
 - **v0.7.0** — web's commits after the 27 Sep re-audit, first batch. A minor because one change
   breaks callers:
   - **The alert-reading parser is gone** (web 7da99f7e): `readingFsm`, `readingLeaf` and

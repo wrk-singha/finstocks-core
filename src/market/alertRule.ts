@@ -581,6 +581,69 @@ const COLUMN_BACK: Record<string, string> = Object.fromEntries(
   Object.entries(FNO_COLUMNS).map(([id, col]) => [col, id]),
 );
 
+const OP_BACK: Record<string, AlertOp> = Object.fromEntries(
+  Object.entries(OP_CODE).map(([form, code]) => [code, form as AlertOp]),
+);
+const DAY_MOVE = /^prev_close_price \* ([\d.]+)$/;
+
+/**
+ * A saved alert's condition as the form's own rows, so editing one opens the
+ * form it was made with. The inverse of leafOf for what the form writes —
+ * levels, lines crossed, the day's move, patterns. Null for anything else (a
+ * trendline, a nested rule the assistant wrote): the form cannot show it, and
+ * opening it half-read would save a different alert under the same name.
+ */
+export function clausesFromCondition(
+  condition: unknown,
+): {clauses: AlertClauseSeed[]; logic: AlertLogic} | null {
+  if (!condition || typeof condition !== 'object') return null;
+  const node = condition as {logic?: unknown; conditions?: unknown};
+  const leaves: unknown[] = Array.isArray(node.conditions)
+    ? node.conditions
+    : [condition];
+  const clauses: AlertClauseSeed[] = [];
+  for (const entry of leaves) {
+    if (!entry || typeof entry !== 'object' || 'conditions' in entry) {
+      return null;
+    }
+    const leaf = entry as {var?: unknown; op?: unknown; val?: unknown};
+    const column = String(leaf.var);
+    const field = COLUMN_BACK[column] ?? column;
+    const found = findAlertField(field);
+    if (found?.kind === 'pattern') {
+      clauses.push({field, op: 'appears'});
+      continue;
+    }
+    const move = typeof leaf.val === 'string' ? DAY_MOVE.exec(leaf.val) : null;
+    if (
+      field === 'close_price' &&
+      move !== null &&
+      (leaf.op === '>=' || leaf.op === '<=')
+    ) {
+      const factor = Number(move[1]);
+      clauses.push({
+        field: '__day_move',
+        op: leaf.op === '<=' ? 'is_below' : 'is_above',
+        value: Number((Math.abs(factor - 1) * 100).toFixed(4)),
+      });
+      continue;
+    }
+    const op = OP_BACK[String(leaf.op)];
+    if (found === undefined || op === undefined) return null;
+    if (typeof leaf.val === 'number') {
+      clauses.push({field, op, value: leaf.val});
+      continue;
+    }
+    const named = String(leaf.val);
+    const target = COLUMN_BACK[named] ?? named;
+    if (findAlertField(target) === undefined) return null;
+    clauses.push({field, op, target});
+  }
+  return clauses.length > 0
+    ? {clauses, logic: node.logic === 'OR' ? 'OR' : 'AND'}
+    : null;
+}
+
 /**
  * Whether an alert on `symbol` with this condition is an F&O read — a
  * contract, or a field such as premium, OI or IV — so the engine looks among

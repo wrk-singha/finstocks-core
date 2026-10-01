@@ -190,6 +190,15 @@ export const TIMEFRAME_CHOICES: readonly TimeframeChoice[] = [
   },
 ];
 
+/**
+ * A timeframe as one of the choices, whatever its case: alerts are stored as
+ * "1D", which a create that takes "1d" only refuses. Anything else is the
+ * first choice.
+ */
+export const timeframeChoice = (timeframe?: string): AlertTimeframe =>
+  TIMEFRAME_CHOICES.find(tf => tf.value === timeframe?.toLowerCase())?.value ??
+  '1m';
+
 /** The coarsest alert timeframe that still looks at least once per chart candle. */
 export const timeframeForCandle = (minutes: number): AlertTimeframe =>
   [...TIMEFRAME_CHOICES].reverse().find(tf => tf.minutes <= minutes)?.value ??
@@ -252,9 +261,10 @@ export const clauseFromSeed = (seed: AlertClauseSeed): AlertClause => {
   // A line is the thing crossed: clauseFor builds "Price crosses above EMA 50"
   // from the line's own id.
   const clause = clauseFor(seed.target ?? seed.field);
-  if (seed.op !== undefined) clause.op = seed.op;
   if (seed.value !== undefined) clause.value = seed.value;
   if (seed.line !== undefined) clause.line = seed.line;
+  // Last, so the operator is fitted to the clause as it will stand.
+  if (seed.op !== undefined) clause.op = fitOp(clause, seed.op);
   return clause;
 };
 
@@ -311,6 +321,24 @@ export const opsFor = (clause: AlertClause): AlertOpOption[] => {
     opOption('is_above', 'is_above'),
     opOption('is_below', 'is_below'),
   ];
+};
+
+/**
+ * `op` as this clause offers it: a crossing asked of a field that only has
+ * levels (a day's move) is the level in the same direction, and anything else
+ * the field does not offer is its first operator.
+ */
+export const fitOp = (clause: AlertClause, op: AlertOp): AlertOp => {
+  const offered = opsFor(clause).map(o => o.value);
+  if (offered.includes(op)) return op;
+  const side = op.endsWith('above')
+    ? 'above'
+    : op.endsWith('below')
+      ? 'below'
+      : null;
+  return (
+    offered.find(o => side !== null && o.endsWith(side)) ?? offered[0] ?? op
+  );
 };
 
 /** The verb the clause reads with; an operator its field does not offer reads as itself. */

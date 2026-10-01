@@ -63,6 +63,16 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.7.0** — web's commits after the 27 Sep re-audit, first batch. A minor because one change
+  breaks callers:
+  - **The alert-reading parser is gone** (web 7da99f7e): `readingFsm`, `readingLeaf` and
+    `ALERT_READING_FIELDS` are removed. The chat alert card no longer re-parses its own sentence; it
+    wraps the server's compiled condition, the new `AlertSetup.condition`, in `monitorFsm`.
+
+  Added: `isFnoAlert(symbol, condition)`, true for an exchange F&O ticker or a condition naming an
+  F&O field (web 7da99f7e). Changed: `chartAckMessage`'s detail lists every step, each failure,
+  each step done in part and each step done, by its receipt or "Done: {op}", so an ack that applied
+  now carries a detail too (web 1188297c, 7fda685a, 86967b2d).
 - **v0.6.0** — web parity phase 3, fourth layer. A minor because one change breaks callers:
   - **Pattern alerts read the field list** (web 564af137): `liveMarksFor(condition)` finds a
     pattern field through `findAlertField`'s `kind: 'pattern'`, so its `isPattern` parameter and

@@ -63,6 +63,12 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.7.2** — editing an alert; additive only. `clausesFromCondition(condition)` reads a saved
+  alert's condition back as the New alert form's rows (levels, a line the price crosses, the day's
+  move, patterns, with the F&O dialect's columns read back as the picker's ids), and returns null
+  for anything the form could not have written, a trendline, a nested rule, `==` on a level, or a
+  line measured against anything but the price, so an edit never opens half-read (web 1188297c;
+  the last two cases are stricter than web).
 - **v0.7.1** — the New alert form's seeds; additive only. `fitOp(clause, op)` fits a seeded operator
   to what its field offers, and `clauseFromSeed` applies it, so a day's move asked to "rise above"
   opens on "is up by"; `timeframeChoice` reads a timeframe in any case, "1D" as Daily, and falls back

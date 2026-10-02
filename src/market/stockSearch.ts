@@ -36,19 +36,11 @@ const fuzzyContains = (
   return best <= maxErrors ? 1 : 0;
 };
 
-// Above a symbol prefix (13), the best any partial match can score.
-const EXACT_SYMBOL_SCORE = 14;
-
 export const stockSearchScore = (stock: Stock, query: string): number => {
   const q = normalizeForSearch(query);
   if (!q) return 1;
-  const symbol = normalizeForSearch(stock.symbol);
-  // The symbol typed out in full is the instrument asked for, ahead of every
-  // symbol that merely starts with it: "bse" is BSE Ltd before BSE100, and
-  // without this the tie fell to list order, which puts the indices first.
-  if (symbol === q) return EXACT_SYMBOL_SCORE;
   const maxTypos = q.length <= 3 ? 0 : q.length <= 5 ? 1 : 2;
-  const symScore = fuzzyContains(symbol, q, maxTypos);
+  const symScore = fuzzyContains(normalizeForSearch(stock.symbol), q, maxTypos);
   const nameScore = fuzzyContains(normalizeForSearch(stock.name), q, maxTypos);
   if (symScore >= 2) return 10 + symScore;
   if (nameScore >= 2) return 5 + nameScore;

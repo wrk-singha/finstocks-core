@@ -63,6 +63,12 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.7.3** — the BSE indices; additive, one ranking change. `BSE_INDICES` (the 78 indices the
+  backend's BSE scraper writes), `BSE_HEADLINE` (SENSEX, BANKEX, SNSX50, SNXN30, BSE100, FOCIT,
+  FOCMID), `INDIAN_INDICES` (NSE then BSE) and `exchangeOf(symbol)` ('MCX', 'BSE' or 'NSE');
+  `isIndexSymbol` and `displayName` cover both exchanges (web 38cb35c9). `stockSearchScore` ranks
+  a symbol typed in full above the symbols that start with it, so "bse" leads with the listed
+  company rather than 24 BSE indices (web keeps the old tie).
 - **v0.7.2** — editing an alert; additive only. `clausesFromCondition(condition)` reads a saved
   alert's condition back as the New alert form's rows (levels, a line the price crosses, the day's
   move, patterns, with the F&O dialect's columns read back as the picker's ids), and returns null

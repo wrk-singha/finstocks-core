@@ -1,4 +1,4 @@
-import {COMMODITIES} from './commodities.ts';
+import {COMMODITIES, isCommoditySymbol} from './commodities.ts';
 
 export interface Stock {
   symbol: string;
@@ -2651,6 +2651,105 @@ export const NSE_INDICES: Stock[] = [
   {symbol: 'INDIAVIX', name: 'INDIA VIX'},
 ];
 
+// Every BSE index the backend's BSE scraper writes, under the symbols it writes
+// them as. They are end-of-day series: the scraper lands a session's bar after
+// the close, so a BSE level can be a session behind the NSE tape beside it.
+export const BSE_INDICES: Stock[] = [
+  {symbol: 'SENSEX', name: 'BSE SENSEX'},
+  {symbol: 'FOCMID', name: 'BSE FOCUSED MIDCAP'},
+  {symbol: 'SNSX50', name: 'BSE SENSEX 50'},
+  {symbol: 'SNXT50', name: 'BSE SENSEX NEXT 50'},
+  {symbol: 'BSE100', name: 'BSE 100'},
+  {symbol: 'SNSX60', name: 'BSE SENSEX SIXTY'},
+  {symbol: 'BHRT22', name: 'BSE BHARAT 22 INDEX'},
+  {symbol: 'BSE200', name: 'BSE 200'},
+  {symbol: 'BSEMID150', name: 'BSE 150 MIDCAP INDEX'},
+  {symbol: 'SML250', name: 'BSE 250 SMALLCAP INDEX'},
+  {symbol: 'LMI250', name: 'BSE 250 LARGEMIDCAP INDEX'},
+  {symbol: 'MSL400', name: 'BSE 400 MIDSMALLCAP INDEX'},
+  {symbol: 'BSE500', name: 'BSE 500'},
+  {symbol: 'SMLSEL', name: 'BSE SMALLCAP SELECT INDEX'},
+  {symbol: 'MIDSEL', name: 'BSE MIDCAP SELECT INDEX'},
+  {symbol: 'LCTMCI', name: 'BSE 100 LARGECAP TMC INDEX'},
+  {symbol: 'SNXN30', name: 'BSE SENSEX NEXT 30'},
+  {symbol: 'BS1000', name: 'BSE 1000'},
+  {symbol: 'IND150', name: 'BSE INDIA 150'},
+  {symbol: 'COMDTY', name: 'BSE COMMODITIES'},
+  {symbol: 'CONDIS', name: 'BSE CONSUMER DISCRETIONARY'},
+  {symbol: 'BSEENERGY', name: 'BSE ENERGY'},
+  {symbol: 'BSEFMCG', name: 'BSE FAST MOVING CONSUMER GOODS'},
+  {symbol: 'FINSER', name: 'BSE FINANCIAL SERVICES'},
+  {symbol: 'BSEHC', name: 'BSE HEALTHCARE'},
+  {symbol: 'INDSTR', name: 'BSE INDUSTRIALS'},
+  {symbol: 'BSEPBI', name: 'BSE PRIVATE BANKS INDEX'},
+  {symbol: 'BSEIT', name: 'BSE INFORMATION TECHNOLOGY'},
+  {symbol: 'BSETELECOM', name: 'BSE TELECOMMUNICATION'},
+  {symbol: 'UTILS', name: 'BSE UTILITIES'},
+  {symbol: 'AUTO', name: 'BSE AUTO'},
+  {symbol: 'BANKEX', name: 'BSE BANKEX'},
+  {symbol: 'BSECG', name: 'BSE CAPITAL GOODS'},
+  {symbol: 'PSUBNK', name: 'BSE PSU BANK'},
+  {symbol: 'INSURE', name: 'BSE INSURANCE'},
+  {symbol: 'BSHOSP', name: 'BSE HOSPITALS'},
+  {symbol: 'BSECD', name: 'BSE CONSUMER DURABLES'},
+  {symbol: 'BSEMETAL', name: 'BSE METAL'},
+  {symbol: 'OILGAS', name: 'BSE OIL & GAS'},
+  {symbol: 'T10BNK', name: 'BSE TOP 10 BANKS'},
+  {symbol: 'BSEPOWER', name: 'BSE POWER'},
+  {symbol: 'REALTY', name: 'BSE REALTY'},
+  {symbol: 'BSESER', name: 'BSE SERVICES'},
+  {symbol: 'FOCIT', name: 'BSE FOCUSED IT'},
+  {symbol: 'BSMSPB', name: 'BSE MIDSMALL PRIVATE BANKS QUALITY TILT'},
+  {symbol: 'BSHFIN', name: 'BSE HOUSING FINANCE'},
+  {symbol: 'BSEMSP', name: 'BSE MIDSMALL PRIVATE BANKS'},
+  {symbol: 'INSLDR', name: 'BSE INDIA SECTOR LEADERS'},
+  {symbol: 'BBGEFS', name: 'BSE SELECT BUSINESS GROUPS'},
+  {symbol: 'POWENE', name: 'BSE POWER & ENERGY'},
+  {symbol: 'BSEINFRA', name: 'BSE INDIA INFRASTRUCTURE INDEX'},
+  {symbol: 'MFG', name: 'BSE INDIA MANUFACTURING INDEX'},
+  {symbol: 'CPSE', name: 'BSE CPSE'},
+  {symbol: 'BSEPSU', name: 'BSE PSU'},
+  {symbol: 'CAPINS', name: 'BSE CAPITAL MARKETS & INSURANCE'},
+  {symbol: 'INTECO', name: 'BSE INTERNET ECONOMY'},
+  {symbol: 'PRECON', name: 'BSE PREMIUM CONSUMPTION'},
+  {symbol: 'INDDEF', name: 'BSE INDIA DEFENCE'},
+  {symbol: 'TECK', name: 'BSE TECK'},
+  {symbol: 'BRACRE', name: 'BSE REITS AND COMMERCIAL REAL ESTATE'},
+  {symbol: 'BSEMOI', name: 'BSE MOMENTUM INDEX'},
+  {symbol: 'DFRGRI', name: 'BSE DIVERSIFIED FINANCIALS REVENUE GROWTH INDEX'},
+  {symbol: 'BSELVI', name: 'BSE LOW VOLATILITY INDEX'},
+  {symbol: 'BSEQUI', name: 'BSE QUALITY INDEX'},
+  {symbol: 'BSEEVI', name: 'BSE ENHANCED VALUE INDEX'},
+  {symbol: 'SS6535', name: 'BSE SENSEX SIXTY 65:35'},
+  {symbol: 'BSEDSI', name: 'BSE DIVIDEND STABILITY INDEX'},
+  {symbol: 'BSEIPO', name: 'BSE IPO'},
+  {symbol: 'SMEIPO', name: 'BSE SME IPO'},
+  {symbol: '200EQW', name: 'BSE 200 EQUAL WEIGHT INDEX'},
+  {symbol: 'SENEQW', name: 'BSE SENSEX EQUAL WEIGHT'},
+  {symbol: 'SELIPO', name: 'BSE SELECT IPO'},
+  {symbol: 'DIVY50', name: 'BSE 500 DIVIDEND LEADERS 50'},
+  {symbol: 'QUAL50', name: 'BSE 500 QUALITY 50'},
+  {symbol: 'MOME50', name: 'BSE 500 MOMENTUM 50'},
+  {symbol: 'MMOM30', name: 'BSE MIDCAP 150 MOMENTUM 30'},
+  {symbol: 'BLMD50', name: 'BSE LARGEMID (60:40) STABLE DIVIDEND 50'},
+  {symbol: 'ESG100', name: 'BSE 100 ESG INDEX'},
+];
+
+// The BSE indices a header strip has room for beside the NSE tape: the
+// benchmarks people quote, not the whole family.
+export const BSE_HEADLINE: ReadonlySet<string> = new Set([
+  'SENSEX',
+  'BANKEX',
+  'SNSX50',
+  'SNXN30',
+  'BSE100',
+  'FOCIT',
+  'FOCMID',
+]);
+
+/** Every Indian index, NSE first: what a search, a picker and the chart draw from. */
+export const INDIAN_INDICES: Stock[] = [...NSE_INDICES, ...BSE_INDICES];
+
 // Which symbols INDEX_CONSTITUENTS has a constituent list for. Keep in step
 // with INDEX_CONSTITUENTS below.
 export const INDEX_CONSTITUENT_KEYS: ReadonlySet<string> = new Set([
@@ -2662,7 +2761,18 @@ export const INDEX_CONSTITUENTS: Readonly<Record<string, Stock[]>> = {
   NIFTY100: nifty100Stocks,
 };
 
-const INDEX_SYMBOL_SET = new Set(NSE_INDICES.map(i => i.symbol));
+const INDEX_SYMBOL_SET = new Set(INDIAN_INDICES.map(i => i.symbol));
+const BSE_SYMBOL_SET = new Set(BSE_INDICES.map(i => i.symbol));
+
+/**
+ * The exchange a symbol is quoted on, for the label beside it: MCX for a
+ * commodity contract, BSE for a BSE index, NSE for everything else the app
+ * lists.
+ */
+export const exchangeOf = (symbol: string): 'MCX' | 'BSE' | 'NSE' => {
+  if (isCommoditySymbol(symbol)) return 'MCX';
+  return BSE_SYMBOL_SET.has(symbol.toUpperCase()) ? 'BSE' : 'NSE';
+};
 
 // A symbol counts as an index (not a real equity) if it is a listed index, an
 // F&O underlying, a NIFTY-prefixed benchmark, India VIX, or the screener's
@@ -2688,7 +2798,7 @@ export const isIndexSymbol = (symbol: string): boolean => {
 // drift resolved 2026-09-13: the mobile map had no commodity names; the web's
 // does, and the MCX contracts render through the same displayName.
 const NAME_BY_SYMBOL: Readonly<Record<string, string>> = {
-  ...Object.fromEntries(NSE_INDICES.map(s => [s.symbol, s.name])),
+  ...Object.fromEntries(INDIAN_INDICES.map(s => [s.symbol, s.name])),
   ...NIFTY100_NAME_OVERRIDES,
   ...Object.fromEntries(COMMODITIES.map(c => [c.symbol, c.name])),
 };

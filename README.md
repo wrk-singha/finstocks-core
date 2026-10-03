@@ -63,6 +63,13 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.7.5** — the market profile; additive only. `marketApi.getMarketProfile(instrument, session?)`
+  (`GET /market/profile`, by symbol or by underlying and month), `queryKeys.market.profile`, the
+  `MarketProfile` types, and web's `profileView` helpers (`profileInstrumentKey`, `groupScreens`,
+  `latestReading`, the value-position copy) ported as they are (web dev 2226a1e1).
+  `formatSessionDay` and `formatCompactCount`. The types are the newer backend's: production
+  does not yet send `thresholds`, `trading.ibComplete` or a screen's `title`, `summary` and
+  `reasonText`, so a caller reads the answer before trusting them.
 - **v0.7.4** — search order back to the web's. `stockSearchScore` scores an exact symbol match as
   a prefix match again (the v0.7.3 bonus is reverted), so "bse" lists the BSE indices before the
   listed company, as the web does.
@@ -91,6 +98,7 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   F&O field (web 7da99f7e). Changed: `chartAckMessage`'s detail lists every step, each failure,
   each step done in part and each step done, by its receipt or "Done: {op}", so an ack that applied
   now carries a detail too (web 1188297c, 7fda685a, 86967b2d).
+
 - **v0.6.0** — web parity phase 3, fourth layer. A minor because one change breaks callers:
   - **Pattern alerts read the field list** (web 564af137): `liveMarksFor(condition)` finds a
     pattern field through `findAlertField`'s `kind: 'pattern'`, so its `isPattern` parameter and
@@ -100,6 +108,7 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   the view scan on for and the hits marked on its candles (web 564af137); the OI and ATM panels'
   chain figures, `oiTotals`, `atmRowOf`, `straddlePremium` and `strikeIv`, which
   `computeChainSentiment` now reads through (web c55b19da, 5e4fdac7).
+
 - **v0.5.1** — web parity phase 3, third layer; additive only. The plan terms carry a composed
   script, its hash, thresholds, catalogue and `runnable`, and a strategy setup may be at stage
   `script_preview` (web df887153, 36719121, 7100bf8f). Watchlist flags (`FLAG_COLORS`, `withFlag`,
@@ -133,6 +142,7 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   Back to web's reading: a line two schemas name is listed under each again, and ownership's
   Government bucket reads `INcgovt` and `INDcgovt`, so a government promoter counts in both
   Promoters and Government, as on web (reverts 5380474 and 9e70544).
+
 - **v0.4.0** — web parity phase 3, first layer: what 25 mobile features read. A minor because
   one change breaks callers:
   - **Chart intervals are open** (web de4023e9): `ChartInterval` is any count and unit the
@@ -165,6 +175,7 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   it did categories; `readOptionContract` reads a repeated link field's first value instead of
   throwing; `formatExpiryLabel` prints an ISO expiry as its own day west of UTC; an alert match
   without a symbol names no stock instead of throwing.
+
 - **v0.3.0** — web parity phase 2, the foundations the phase-3 features stand on. A minor
   because two changes break callers:
   - **Saved alerts renamed** (web 21aeeca2): the `/watchlists` records are `SavedAlert`,
@@ -193,6 +204,7 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   Interest (and a bank's quarterly Depreciation) prints once instead of as two rows (5380474);
   the ownership split's Government is `INcgovt` only, because `INDcgovt` is the promoter
   government already inside Promoters, which web counts twice (a PSU read 140%) (9e70544).
+
 - **v0.2.16** — web parity phase 1, five shared changes mirrored from web. `RecommendationReport`
   takes the web shape (`expectancy`, `avg_win_pct`, `avg_loss_pct`, `drawdown_recovery_trades`,
   `monthly_returns`, `equity_curve[].p`; `closed_count`/`win_count` dropped) with `monthlyGrid` and
@@ -219,6 +231,7 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   unverifiable source diverging from web". That reading came from a local `frontend` checkout on a
   side branch **59 commits behind `origin/main`** — web had already made the change six days
   earlier. Read web through `git show origin/main:<path>`, never the working tree.
+
 - **v0.2.14** — documentation only, no behaviour change: `lotSizes` named the wrong producer. The
   source of truth is `backend-go/handlers/trading/fnolots.go`, which carries all 216 listed
   underlyings, and the mirror is `sentinel/core/constants.py` — not the `market/fno.go` and

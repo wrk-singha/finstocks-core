@@ -12,6 +12,7 @@ export {
   formatOrderDayHeading,
   formatOrderTime,
   formatRelativeFromNow,
+  formatSessionDay,
   formatShortDate,
   formatShortDateIST,
   formatShortDateTime,

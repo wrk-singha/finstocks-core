@@ -7,3 +7,8 @@ test('the chart manifest has one key, versioned like the file it caches', () => 
   assert.deepEqual(queryKeys.chartManifest(), ['chart-manifest', 1]);
   assert.deepEqual(queryKeys.chartManifest(), queryKeys.chartManifest());
 });
+
+test('the FinStocks Score is keyed as web keys it, one entry a symbol', () => {
+  assert.deepEqual(queryKeys.esfScore('TCS'), ['esf-score', 'TCS']);
+  assert.deepEqual(queryKeys.esfScore(null), ['esf-score', null]);
+});

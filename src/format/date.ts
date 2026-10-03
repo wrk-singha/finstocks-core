@@ -172,6 +172,15 @@ const eventDayHeadingFormatter = new Intl.DateTimeFormat('en-US', {
   timeZone: 'UTC',
 });
 
+// en-US and read by parts, as the events heading is: en-IN, the locale web formats this with,
+// abbreviates September as "Sept" on current ICU.
+const sessionDayFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+  timeZone: IST,
+});
+
 const notificationTime = cachedBy(
   (sameYear: boolean) =>
     new Intl.DateTimeFormat('en-IN', {
@@ -461,6 +470,14 @@ export const formatNetWorthChartDate = (isoDate: string): string =>
 export const formatEventDayHeading = (isoDate: string): string => {
   const get = partsOf(eventDayHeadingFormatter, dayKeyToUtc(isoDate));
   return `${get('day')} ${get('month')}, ${get('weekday')}`;
+};
+
+/** The day of a trading session, weekday first: "Fri, 2 Oct". A value that is no date reads as itself. */
+export const formatSessionDay = (session: string): string => {
+  const d = parseTimestamp(session);
+  if (!d) return session;
+  const get = partsOf(sessionDayFormatter, d);
+  return `${get('weekday')}, ${get('day')} ${get('month')}`;
 };
 
 /** Orders-screen fill time, 12-hour IST clock: "9:05 AM". */

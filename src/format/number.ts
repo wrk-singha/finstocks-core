@@ -100,6 +100,24 @@ export const formatCompactQuantity = (
 };
 
 /**
+ * Magnitude of a plain count — no currency, no Indian lakh/crore scale:
+ * `formatCompactCount(1_250_000)` → `1.3M`, `formatCompactCount(-8_400)` → `-8.4k`.
+ *
+ * `formatCompactInr` is the money version and stamps a ₹; `formatCompactQuantity` is the Indian
+ * L/Cr one. This is the one for "9.7B stored values", where the reader is judging scale and the
+ * unit is "things".
+ */
+export const formatCompactCount = (value: number): string => {
+  const abs = Math.abs(value);
+  const trim = (v: number): string =>
+    Number.isInteger(v) ? String(v) : v.toFixed(1);
+  if (abs >= 1e9) return `${trim(value / 1e9)}B`;
+  if (abs >= 1e6) return `${trim(value / 1e6)}M`;
+  if (abs >= 1e3) return `${trim(value / 1e3)}k`;
+  return String(Math.round(value));
+};
+
+/**
  * Crore-denominated figures, read the way an Indian investor says them out loud: a mega-cap is
  * "₹11.50L Cr", not "1,150,000.00 Cr". Distinct from `formatCompactInr`, which takes rupees —
  * these values arrive already in crore, so dividing again would be wrong by a factor of 1e7.

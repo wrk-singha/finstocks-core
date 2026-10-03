@@ -404,9 +404,6 @@ export const queryKeys = {
     indexUnderlyings: () => ['fno-index-underlyings'],
   },
 
-  /** ["stockScore", symbol] — one stock's FinStocks score and pillars */
-  stockScore: (symbol: string | null) => ['stockScore', symbol],
-
   /** ["esf-score", symbol] — one stock's FinStocks Score (ESF), as web keys it */
   esfScore: (symbol: string | null) => ['esf-score', symbol],
 

@@ -70,7 +70,6 @@ import type {
   RelatedPartyRow,
   RelatedPartyTxnRow,
 } from '../types/relatedParty.ts';
-import type {StockScoreResponse} from '../types/scores.ts';
 import type {
   ScreenCatalog,
   ScreenRequest,
@@ -638,9 +637,6 @@ export const marketApi = (http: HttpClient) => ({
 
   getMarketDepth: (symbol: string) =>
     http.request<MarketDepth>(`/market/depth${query({symbol})}`),
-
-  getScore: (symbol: string) =>
-    http.request<StockScoreResponse | null>(`/market/score${query({symbol})}`),
 
   getScreenerStocks: (filters?: ScreenerStocksQuery) =>
     http.request<ScreenerStocksResponse>(

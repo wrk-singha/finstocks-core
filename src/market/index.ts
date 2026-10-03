@@ -338,8 +338,6 @@ export type {AlertDraftConfig} from './savedAlerts.ts';
 export {mapSector, SECTOR_CHIPS} from './sectors.ts';
 export type {CoarseSector} from './sectors.ts';
 
-export {mapStockScore} from './stockScore.ts';
-
 export {
   matchesStockQuery,
   rankStocksByQuery,

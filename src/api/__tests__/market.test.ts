@@ -12,7 +12,6 @@ test('market reads build their query strings', async () => {
   await api.getRecommendations();
   await api.getRecommendations({horizon: 'swing', status: 'open'});
   await api.getMarketDepth('TCS');
-  await api.getScore('TCS');
   await api.getScreenerStocks();
   await api.getScreenerStocks({
     rsi_min: '40',
@@ -33,7 +32,6 @@ test('market reads build their query strings', async () => {
       '/market/recommendations',
       '/market/recommendations?horizon=swing&status=open',
       '/market/depth?symbol=TCS',
-      '/market/score?symbol=TCS',
       '/market/screener',
       '/market/screener?rsi_min=40&interval=1d&price_min=100&ind=ema20%3A1%3A2',
       '/market/screener/indicators?interval=5m',

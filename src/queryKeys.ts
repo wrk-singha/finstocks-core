@@ -345,6 +345,13 @@ export const queryKeys = {
     ],
     /** ["market-depth", symbol] */
     depth: (symbol: string | null) => ['market-depth', symbol],
+    /** ["market-profile", instrument, session] — one instrument's profile for one session, as
+     *  web keys it: the instrument by `profileInstrumentKey`, and a null session for the newest. */
+    profile: (instrument: string | null, session: string | null) => [
+      'market-profile',
+      instrument,
+      session,
+    ],
     /** ["ipo-list", status] — one IPO board ("open", "closed", "upcoming"). */
     ipoList: (status: string) => ['ipo-list', status],
     /** ["ipo-detail", ipocode] — one issue, by the vendor's `ipocode`. */

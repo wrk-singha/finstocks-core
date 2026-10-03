@@ -54,6 +54,7 @@ import type {
   MonthlyPnl,
   RecommendationReport,
 } from '../types/market.ts';
+import type {MarketProfile, ProfileInstrument} from '../types/marketProfile.ts';
 import type {AccordNewsResponse, GetAccordNewsParams} from '../types/news.ts';
 import type {GetOwnershipResponse} from '../types/ownership.ts';
 import type {
@@ -635,6 +636,18 @@ export const marketApi = (http: HttpClient) => ({
   getMarketNews: () => http.request<MarketNewsResponse>('/market/news'),
 
   getMarketEvents: () => http.request<MarketEventsResponse>('/market/events'),
+
+  /**
+   * One session's market profile: the price ladder, its key levels, the setups read off it and
+   * the order flow estimated beside it. A stock or index is asked for by `symbol`, a future by its
+   * `underlying` and expiry `month` (YYYY-MM). Without a `session` (YYYY-MM-DD) the newest session
+   * with bars answers, and lists the sessions that can be asked for. An instrument with no bars is
+   * the endpoint's 404, and a future the exchange does not list that month its 400.
+   */
+  getMarketProfile: (instrument: ProfileInstrument, session?: string) =>
+    http.request<MarketProfile>(
+      `/market/profile${query({...instrument, session})}`,
+    ),
 
   getMarketDepth: (symbol: string) =>
     http.request<MarketDepth>(`/market/depth${query({symbol})}`),

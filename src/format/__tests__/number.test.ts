@@ -4,6 +4,7 @@ import {test} from 'node:test';
 import {
   clamp,
   formatAllocation,
+  formatCompactCount,
   formatCompactINR,
   formatCompactInr,
   formatCompactQuantity,
@@ -99,6 +100,18 @@ test('formatCompactQuantity takes its decimals on lakh and crore, one on thousan
 test('formatCompactQuantity reads an absent count as zero', () => {
   assert.equal(formatCompactQuantity(null), '0');
   assert.equal(formatCompactQuantity(undefined), '0');
+});
+
+test('formatCompactCount reads a plain count on the k/M/B scale, keeping its sign', () => {
+  assert.equal(formatCompactCount(9_700_000_000), '9.7B');
+  assert.equal(formatCompactCount(2_000_000), '2M');
+  assert.equal(formatCompactCount(1_240_000), '1.2M');
+  assert.equal(formatCompactCount(1_000), '1k');
+  assert.equal(formatCompactCount(-8_400), '-8.4k');
+  assert.equal(formatCompactCount(-3_500_000), '-3.5M');
+  assert.equal(formatCompactCount(999), '999');
+  assert.equal(formatCompactCount(412.6), '413');
+  assert.equal(formatCompactCount(0), '0');
 });
 
 test('withSign only adds a plus', () => {

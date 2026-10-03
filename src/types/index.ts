@@ -22,6 +22,7 @@ export type * from './indicators.ts';
 export type * from './industries.ts';
 export type * from './learn.ts';
 export type * from './market.ts';
+export type * from './marketProfile.ts';
 export type * from './memory.ts';
 export type * from './news.ts';
 export type * from './notificationPreferences.ts';

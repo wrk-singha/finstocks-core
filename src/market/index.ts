@@ -317,6 +317,27 @@ export {
 export type {PeerCompareBar, PeerCompareSectionId} from './peerTable.ts';
 
 export {
+  cvdPath,
+  groupScreens,
+  ladderMarkers,
+  ladderRows,
+  latestReading,
+  nearestLevels,
+  profileInstrumentKey,
+  rowContains,
+  rowInValue,
+  spreadLabels,
+  VALUE_POSITION_COPY,
+  valuePosition,
+} from './profileView.ts';
+export type {
+  LadderMarker,
+  LadderRow,
+  LadderTag,
+  ValuePosition,
+} from './profileView.ts';
+
+export {
   alertCondition,
   alertReading,
   deriveAlertName,

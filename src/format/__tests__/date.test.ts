@@ -14,6 +14,7 @@ import {
   formatOrderDayHeading,
   formatOrderTime,
   formatRelativeFromNow,
+  formatSessionDay,
   formatShortDate,
   formatShortDateIST,
   formatShortDateTime,
@@ -236,6 +237,15 @@ test('the events heading reads day, short month, then weekday', () => {
   assert.equal(formatEventDayHeading('2026-09-21'), '21 Sep, Mon');
   assert.equal(formatEventDayHeading('2026-10-04'), '4 Oct, Sun');
   assert.equal(formatEventDayHeading('2027-01-01'), '1 Jan, Fri');
+});
+
+test('a session reads weekday first, on its IST day, and September is "Sep"', () => {
+  assert.equal(formatSessionDay('2026-10-02'), 'Fri, 2 Oct');
+  assert.equal(formatSessionDay('2026-09-11'), 'Fri, 11 Sep');
+  // 01:30 on the 2nd in Kolkata.
+  assert.equal(formatSessionDay('2026-10-01T20:00:00Z'), 'Fri, 2 Oct');
+  assert.equal(formatSessionDay('soon'), 'soon');
+  assert.equal(formatSessionDay(''), '');
 });
 
 test('formatOrderTime and formatNotificationTime print the IST clock in uppercase', () => {

@@ -36,6 +36,15 @@ test('the very best stock never reads as the top 0.0%', () => {
   assert.equal(formatTopPct(0), 'Top 0.1%');
 });
 
+// As web prints it today: just under 10% the one decimal rounds up to "10.0", and 10 itself drops
+// it. Held so that changing either is a decision, not a side effect.
+test('a rank a hair under 10% reads "Top 10.0%", and 10% itself "Top 10%"', () => {
+  assert.equal(formatTopPct(9.95), 'Top 9.9%');
+  assert.equal(formatTopPct(9.96), 'Top 10.0%');
+  assert.equal(formatTopPct(9.99), 'Top 10.0%');
+  assert.equal(formatTopPct(10), 'Top 10%');
+});
+
 test('every stage code has its cycle, its name and its label', () => {
   for (const [stage, cycle, name] of STAGES) {
     assert.equal(stageCycle(stage), cycle);
@@ -58,6 +67,15 @@ test('a stage code this build does not know keeps its code and its cycle', () =>
   assert.equal(stageLabel('2D'), 'Stage 2D · Not staged');
   assert.equal(stageCycle('X'), null);
   assert.equal(stageCycle('0'), null);
+});
+
+// Codes are matched as served, capitals and all. Held as it is today, for the same reason.
+test('a stage code in lower case keeps its cycle and is not named', () => {
+  assert.equal(stageCycle('2a'), 2);
+  assert.equal(stageName('2a'), 'Not staged');
+  assert.equal(stageLabel('2a'), 'Stage 2a · Not staged');
+  assert.equal(stageCycle('1b'), 1);
+  assert.equal(stageName('1b'), 'Not staged');
 });
 
 test('the strip runs base, uptrend, topping, falling, and every stage lands on one step', () => {

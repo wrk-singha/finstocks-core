@@ -701,9 +701,46 @@ test('the limits of the dated spellings: a strike under three digits, and an und
   });
 });
 
-test("the three option patterns are the backend's own", () => {
-  // Read from backend-go main, internal/market/fnocontract/fnocontract.go, on 4 Oct 2026. A
-  // ticker read as a weekly on one side and a monthly on the other names two contracts.
+// A known defect of web's rule, pinned so it is seen here when web fixes it, not so it stays.
+// The weekday a moved monthly is counted on is read off the list, and a list of monthlies only,
+// two of them moved, has no weekday to read. Tuesday 24 Nov 2026 and Tuesday 26 Jan 2027 are
+// holidays, so those monthlies expire on Monday 23 Nov and Monday 25 Jan. Once October's has
+// expired a stock's list holds a Monday majority, a tie, or the one Monday, and the 23rd is
+// counted as the 23rd: seven days from the month's end, one too many.
+test('KNOWN DEFECT (web’s rule): a moved monthly on a monthlies-only list is read as no monthly', () => {
+  const reliance: OptionContract = {
+    underlying: 'RELIANCE',
+    expiry: '2026-11-23',
+    strike: 1400,
+    right: 'CE',
+  };
+  for (const listed of [
+    ['2026-11-23', '2026-12-29', '2027-01-25'],
+    ['2026-11-23', '2026-12-29'],
+    ['2026-11-23'],
+  ]) {
+    assert.equal(monthlyExpiries(listed).has('2026-11-23'), false);
+    assert.equal(expiryCycle('2026-11-23', listed), null);
+    // The exchange lists RELIANCE26NOV1400CE. Mobile corrects this in its own display layer.
+    assert.equal(exchangeSymbol(reliance, listed), 'RELIANCE26N231400CE');
+    assert.equal(optionContractOf('RELIANCE26NOV1400CE', listed), null);
+  }
+  // With October's Tuesday still listed and January's Monday not yet, Tuesday is the list's
+  // weekday and the rule holds. A fourth month ties the two weekdays and loses it again.
+  const withOctober = ['2026-10-27', '2026-11-23', '2026-12-29'];
+  assert.equal(catalogueWeekday(withOctober), 2);
+  assert.equal(exchangeSymbol(reliance, withOctober), 'RELIANCE26NOV1400CE');
+  const fourMonths = [...withOctober, '2027-01-25'];
+  assert.equal(catalogueWeekday(fourMonths), null);
+  assert.equal(exchangeSymbol(reliance, fourMonths), 'RELIANCE26N231400CE');
+});
+
+// This cannot see the backend drift. It compares the three patterns in this package with a COPY
+// of the backend's, pasted below from backend-go main (internal/market/fnocontract/
+// fnocontract.go, read 4 Oct 2026). It fails when core's patterns move away from that copy; a
+// change on the backend is seen only when someone pastes the new patterns here.
+test("the three option patterns match the copy of the backend's pasted here", () => {
+  // A ticker read as a weekly on one side and a monthly on the other names two contracts.
   const backend = {
     OPTION_MONTHLY_RE: String.raw`^([A-Z0-9&-]+?)(\d{2})([A-Z]{3})(\d+(?:\.\d+)?)(CE|PE)$`,
     OPTION_WEEKLY_RE: String.raw`^([A-Z0-9&-]+?)(\d{2})([1-9OND])(\d{2})(\d{3,6}(?:\.\d+)?)(CE|PE)$`,

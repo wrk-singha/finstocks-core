@@ -122,3 +122,24 @@ test("a picker's hint is the date's role in its list", () => {
   // A monthly-only list never calls a date a weekly.
   assert.equal(expiryRole('2026-10-20', MONTHLIES), null);
 });
+
+// The same known defect of web's rule as in the contract tests, as the chips show it: a stock's
+// moved November monthly, on a list with no weekday to read it against, is offered as a weekly.
+test('KNOWN DEFECT (web’s rule): a moved monthly on a monthlies-only list is offered as a weekly', () => {
+  const now = ist('2026-11-02');
+  assert.deepEqual(read(['2026-11-23', '2026-12-29', '2027-01-25'], now), [
+    ['2026-11-23', 'Weekly', 'weekly'],
+    ['2026-12-29', 'Monthly', 'monthly'],
+  ]);
+  assert.deepEqual(read(['2026-11-23', '2026-12-29'], now), [
+    ['2026-11-23', 'Weekly', 'weekly'],
+    ['2026-12-29', 'Monthly', 'monthly'],
+  ]);
+  assert.deepEqual(read(['2026-11-23'], now), [
+    ['2026-11-23', 'Weekly', 'weekly'],
+  ]);
+  assert.equal(
+    expiryRole('2026-11-23', ['2026-11-23', '2026-12-29']),
+    'Weekly',
+  );
+});

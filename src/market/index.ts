@@ -283,6 +283,15 @@ export type {
 } from './optionContract.ts';
 
 export {
+  expiryChips,
+  expiryInstant,
+  expiryRole,
+  hasWeeklies,
+  liveExpiries,
+} from './expiryKit.ts';
+export type {ExpiryChip, ExpiryChipKind} from './expiryKit.ts';
+
+export {
   costDrag,
   daysToExpiry,
   describeStructure,

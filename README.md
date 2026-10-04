@@ -63,6 +63,12 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.7.6** — the order outcome rule; additive only. `outcomeOfError(error)` in
+  `@finstocks/core/trading` reads a failed buy or sell as the web does (web feat/chart-parity
+  31c3dabb): HTTP 400, 403, 404, 409, 422 and 429 are a refusal, and every other failure (any
+  other 4xx, any 5xx, no answer, an unreadable body) is unknown: the order may have gone
+  through. The status is read through `statusOf`, so both the web's and the app's error shapes
+  work. Types `OrderOutcome`, `OrderResult`.
 - **v0.7.5** — the market profile; additive only. `marketApi.getMarketProfile(instrument, session?)`
   (`GET /market/profile`, by symbol or by underlying and month), `queryKeys.market.profile`, the
   `MarketProfile` types, and web's `profileView` helpers (`profileInstrumentKey`, `groupScreens`,

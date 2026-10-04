@@ -40,6 +40,8 @@ export type {
   OrderChargesEstimate,
 } from './orderCharges.ts';
 export {lotSizeForSymbol, productFor} from './orderInstrument.ts';
+export {outcomeOfError} from './orderOutcome.ts';
+export type {OrderOutcome, OrderResult} from './orderOutcome.ts';
 export {
   DEFAULT_STOP_PCT,
   DEFAULT_TARGET_PCT,

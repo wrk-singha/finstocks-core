@@ -206,7 +206,8 @@ export function expiryCycle(
 const WEEKLY_MONTHS = '123456789OND';
 
 /**
- * The exchange ticker the feeds and orders key on:
+ * The exchange ticker the feeds key on, and on web the orders too. Mobile's orders
+ * do not use it: they still carry `buildOptionContractSymbol`.
  *   monthly  NIFTY26SEP23150CE   <U><YY><MON><strike><right>
  *   weekly   NIFTY26O0623150CE   <U><YY><M><DD><strike><right>
  * The month-named form names the monthly, so a weekly spelled that way is another

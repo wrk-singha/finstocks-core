@@ -272,4 +272,13 @@ test('stream paths are relative to the API root and encode their params', () => 
   assert.equal(ohlcvStreamPath([]), '/trading/ohlcv/stream?symbols=');
   assert.equal(premiumStreamPath('NIFTY'), '/fno/stream?underlying=NIFTY');
   assert.equal(premiumStreamPath('M&M'), '/fno/stream?underlying=M%26M');
+  // The picked expiry rides along; none leaves the server on its nearest.
+  assert.equal(
+    premiumStreamPath('NIFTY', '2026-10-13'),
+    '/fno/stream?underlying=NIFTY&expiry=2026-10-13',
+  );
+  assert.equal(
+    premiumStreamPath('NIFTY', undefined),
+    '/fno/stream?underlying=NIFTY',
+  );
 });

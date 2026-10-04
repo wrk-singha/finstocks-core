@@ -263,12 +263,33 @@ export type {
 } from './optionChain.ts';
 
 export {
+  catalogueWeekday,
+  dayMs,
   exchangeSymbol,
+  expiryCycle,
   isExchangeSymbol,
+  MAX_HOLIDAY_SHIFT_DAYS,
+  monthLastExpiries,
+  monthlyExpiries,
+  optionContractOf,
   optionPath,
+  parseOptionSymbol,
   readOptionContract,
 } from './optionContract.ts';
-export type {OptionContract, OptionContractParams} from './optionContract.ts';
+export type {
+  OptionContract,
+  OptionContractParams,
+  ParsedOptionSymbol,
+} from './optionContract.ts';
+
+export {
+  expiryChips,
+  expiryInstant,
+  expiryRole,
+  hasWeeklies,
+  liveExpiries,
+} from './expiryKit.ts';
+export type {ExpiryChip, ExpiryChipKind} from './expiryKit.ts';
 
 export {
   costDrag,

@@ -253,7 +253,12 @@ export interface ChainData {
  * on a weekend or holiday instead of an empty table.
  */
 export interface FnoChainFallbackLeg {
+  /** The chain's own join key, "23450_PE". No other endpoint accepts it. */
   symbol: string;
+  /** The exchange ticker, "NIFTY2692223450PE": what candle and depth requests
+   *  key on. Absent when the server built the ladder from stored bars, which
+   *  carry no ticker. */
+  exchange_symbol?: string;
   /** An untraded contract quotes 0, never null. Keep the two apart downstream. */
   ltp: number;
   volume: number;

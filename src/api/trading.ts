@@ -328,9 +328,16 @@ const logsQuery = (
 export const ohlcvStreamPath = (symbols: readonly string[]): string =>
   `/trading/ohlcv/stream${query({symbols: symbols.join(',')})}`;
 
-/** The underlying's option-chain socket; the JWT goes in-band as the first message. */
-export const premiumStreamPath = (underlying: string): string =>
-  `/fno/stream${query({underlying})}`;
+/**
+ * The underlying's option-chain socket; the JWT goes in-band as the first message.
+ * With `expiry` the server streams that expiry's ladder; without, its nearest. An
+ * expiry the underlying does not list answers with an empty ladder, so a caller
+ * passes one only after checking it against the underlying's expiry list.
+ */
+export const premiumStreamPath = (
+  underlying: string,
+  expiry?: string,
+): string => `/fno/stream${query({underlying, expiry})}`;
 
 export const tradingApi = (http: HttpClient) => ({
   // drift resolved 2026-09-13: the mobile normalised order_type and the web carried the dead

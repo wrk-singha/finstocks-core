@@ -63,6 +63,19 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.0** — the option contract grammar; one breaking change. `exchangeSymbol(contract,
+catalogue)` now takes the underlying's expiry list and spells a weekly by its date
+  (`NIFTY26O0623150CE`) and the monthly by its month (`NIFTY26OCT23150CE`); with no catalogue it
+  returns the dated form (**breaking**: it used to take no catalogue and always spell the month).
+  Added, as the web has them (web feat/chart-parity 31c3dabb): `monthLastExpiries`,
+  `monthlyExpiries`, `expiryCycle`, `catalogueWeekday`, `parseOptionSymbol` (ISO, weekly and
+  monthly spellings), `optionContractOf`; `market/expiryKit` (`expiryChips`, `liveExpiries`,
+  `hasWeeklies`, `expiryRole`, `expiryInstant`); `premiumStreamPath(underlying, expiry?)`;
+  `FnoChainFallbackLeg.exchange_symbol`. `buildOptionContractSymbol` is unchanged. Two limits are
+  pinned by tests, not fixed: the web's rule reads a holiday-moved monthly on a monthlies-only
+  list as a weekly (Mon 23 Nov 2026, Mon 25 Jan 2027), and a dated ticker with a strike under
+  100, a six-digit strike in a one-digit month, or an underlying ending in digits does not read
+  back.
 - **v0.7.6** — the order outcome rule; additive only. `outcomeOfError(error)` in
   `@finstocks/core/trading` reads a failed buy or sell as the web does (web feat/chart-parity
   31c3dabb): HTTP 400, 403, 404, 409, 422 and 429 are a refusal, and every other failure (any

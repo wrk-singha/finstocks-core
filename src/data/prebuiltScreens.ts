@@ -356,4 +356,31 @@ export const PREBUILT_SCREENS: PrebuiltScreen[] = [
     ],
     columns: ['from_low_52w', 'roe'],
   },
+  {
+    id: 'regime-leaning-up',
+    name: 'Options leaning up',
+    blurb: 'F&O names where the options market is tilting up.',
+    filters: [{field: 'regime_bullish', flag: true}],
+    columns: ['regime_z_bias', 'regime_straddle_chg_pct'],
+  },
+  {
+    id: 'regime-leaning-down',
+    name: 'Options leaning down',
+    blurb: 'F&O names where the options market is tilting down.',
+    filters: [{field: 'regime_bearish', flag: true}],
+    columns: ['regime_z_bias', 'regime_straddle_chg_pct'],
+  },
+  {
+    id: 'regime-rangebound-melting',
+    name: 'Rangebound, premium melting',
+    blurb:
+      'Options expect a range, the ATM straddle is down more than 15% from the open and implied volatility is lower than yesterday.',
+    filters: [
+      {field: 'regime_rangebound', flag: true},
+      {field: 'regime_straddle_chg_pct', max: -15},
+      // Bounds are inclusive; a hair under zero keeps "IV unchanged" out on either unit scale.
+      {field: 'regime_straddle_iv_chg', max: -0.0001},
+    ],
+    columns: ['regime_straddle_chg_pct', 'regime_straddle_iv_chg'],
+  },
 ];

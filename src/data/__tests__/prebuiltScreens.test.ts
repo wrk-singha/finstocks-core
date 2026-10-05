@@ -12,7 +12,7 @@ import {
 import {PREBUILT_SCREENS} from '../prebuiltScreens.ts';
 
 test('each prebuilt screen has its own id and name', () => {
-  assert.equal(PREBUILT_SCREENS.length, 30);
+  assert.equal(PREBUILT_SCREENS.length, 33);
   const ids = PREBUILT_SCREENS.map(s => s.id);
   assert.equal(new Set(ids).size, ids.length);
   assert.equal(new Set(PREBUILT_SCREENS.map(s => s.name)).size, ids.length);
@@ -96,4 +96,22 @@ test('a screen that carries a sort sorts by a column it shows', () => {
     };
     assert.ok(visibleColumns(state).includes(screen.sort.key), screen.id);
   }
+});
+
+test('the options-regime screens close the row: a tilt either way, and a range with the premium melting', () => {
+  const regime = PREBUILT_SCREENS.filter(s => s.id.startsWith('regime-'));
+  assert.deepEqual(
+    PREBUILT_SCREENS.slice(-3).map(s => s.id),
+    ['regime-leaning-up', 'regime-leaning-down', 'regime-rangebound-melting'],
+  );
+  assert.deepEqual(
+    regime.map(s => s.filters[0]?.field),
+    ['regime_bullish', 'regime_bearish', 'regime_rangebound'],
+  );
+  assert.deepEqual(regime[2]?.filters, [
+    {field: 'regime_rangebound', flag: true},
+    {field: 'regime_straddle_chg_pct', max: -15},
+    {field: 'regime_straddle_iv_chg', max: -0.0001},
+  ]);
+  for (const screen of regime) assert.equal(screen.sort, undefined, screen.id);
 });

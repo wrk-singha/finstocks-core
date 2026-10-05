@@ -73,7 +73,10 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 {filters, columns})` says whether a catalogue knows every field a screen filters on or shows;
   the `esf_*` fields exist only on the backend's `dev` catalogue, and a host that lists presets
   should hide the ones its loaded catalogue cannot answer (web does not yet; `pruneScreen` would
-  otherwise drop every filter and open the whole market as matches).
+  otherwise drop every filter and open the whole market as matches). The row closes with web
+  dev's three options-regime screens (`regime-leaning-up`, `regime-leaning-down`,
+  `regime-rangebound-melting`, RegimePulse 48a081d5) on the `regime_*` fields, which likewise exist
+  only on the backend's `dev` catalogue; they carry no sort.
 - **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena
   script ("C") strategies (backend feat/athena-integration), whose `budget_config` is the engine's
   `{val, type, allocate}` with no `mode`, and which carry no `fsm`; `deriveStrategyCards` threw on

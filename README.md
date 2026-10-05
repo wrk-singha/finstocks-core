@@ -71,11 +71,15 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `val?: number`, `type?` and `allocate?` - so a host that reads those fields directly gets type
   errors where it would have thrown. Read them through the new `budgetMode` (upper-cased, AMOUNT
   when absent or not a string), `budgetSizingMode`, `budgetVal`, `isScriptBudget` and
-  `budgetPositionSize`. A row with no mode
-  sizes by AMOUNT everywhere in core: its card's `allocated` and return basis are `val` (a script
-  strategy's total capital), and `calculateInvestedValue` counts it as invested. A script budget
-  states no position size: `buildStrategyRules` drops its "Position size" row rather than show the
-  total capital as one.
+  `strategyPositionSize`. A row with no mode sizes by AMOUNT on its card: `allocated` and the return
+  basis are `val` (a script strategy's total capital). `calculateInvestedValue` is unchanged, as
+  the web has it: only a budget that says `AMOUNT` counts as invested, so a script strategy's
+  capital does not. `isScriptStrategy` is the one test for a script strategy - by its budget's
+  shape (`type` without `mode`, or `allocate`), or by having no mode, FSM or rules - and such a
+  strategy states no position size: `buildStrategyRules` drops its "Position size" row rather than
+  show the total capital as one. is-alive drops empty and false fields from a row (`StrategyRow`),
+  so `tradingApi.isAlive` now hands back rows with them filled in (`normalizeStrategyRow`: "" and
+  false), and `resolveStrategyChartSymbol` no longer throws on a row with no symbol.
 - **v0.8.1** — the screener's corporate events; additive only. Bounds that are exactly one of the
   field's presets carry its label as an optional `preset` on their `between`, `above`, `below` or
   `any` part, under the web's rule (web main 1d56f0f7): both bounds equal, checked after a

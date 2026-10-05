@@ -11,6 +11,7 @@ import {
 import type {Strategy} from '../../types/trade.ts';
 import {
   athenaRow,
+  sparseRow,
   strategy,
   trade,
   UUID_A,
@@ -187,15 +188,24 @@ test('deriveStrategyCards: a budget with no mode sizes by AMOUNT; a missing or o
     assert.ok(card, JSON.stringify(budget));
     return card;
   };
-  for (const budget of [
-    undefined,
-    null,
-    {},
-    {mode: 7, val: 50000},
-    {mode: 'AMOUNT', val: '50000'},
-  ]) {
-    assert.equal(cardFor(budget).pnl, 50, JSON.stringify(budget));
+  for (const budget of [undefined, null, {}, {mode: 'AMOUNT', val: '50000'}]) {
+    const card = cardFor(budget);
+    const said = JSON.stringify(budget);
+    assert.equal(card.pnl, 50, said);
+    assert.equal(card.allocated, 0, said);
+    assert.equal(card.startCapital, DEFAULT_START_CAPITAL, said);
+    assert.equal(card.pnlPct, 0, said);
+    assert.equal(card.maxDrawdownPct, null, said);
+    assert.equal(card.equity.line, '', said);
+    assert.deepEqual(card.pnlSeries, [0, 100, 50], said);
+    assert.equal(card.statusLabel, 'Active', said);
+    assert.equal(card.openPositionsCount, 2, said);
   }
+  assert.equal(
+    cardFor({mode: 'AMOUNT', val: '50000'}).allocationMode,
+    'AMOUNT',
+  );
+  assert.equal(cardFor(null).allocationMode, undefined);
   const noVal = cardFor({mode: 'AMOUNT'});
   assert.equal(noVal.allocated, 0);
   assert.equal(noVal.startCapital, DEFAULT_START_CAPITAL);
@@ -236,6 +246,23 @@ test('deriveStrategyCards: an Athena script row reads its val as the total capit
     deriveStrategyCards([athenaRow({status: 'ERROR'})], [])[0]?.statusLabel,
     'Ended',
   );
+});
+
+test('a sparse row - no symbol, prompt, timeframe or budget - derives a card and charts nothing', () => {
+  const [card] = deriveStrategyCards([sparseRow()], []);
+  assert.ok(card);
+  assert.equal(card.name, 'Strategy');
+  assert.equal(card.category, 'Swing');
+  assert.equal(card.statusLabel, 'Active');
+  assert.equal(card.allocated, 0);
+  assert.equal(card.pnlPct, 0);
+  assert.equal(resolveStrategyChartSymbol(card), null);
+  const [symbolLess] = deriveStrategyCards(
+    [athenaRow({symbol: undefined})],
+    [],
+  );
+  assert.ok(symbolLess);
+  assert.equal(resolveStrategyChartSymbol(symbolLess), null);
 });
 
 test('cards come back newest-first, with an unparseable created_at last', () => {

@@ -16,6 +16,19 @@ export type OrderType = 'MARKET' | 'LIMIT';
 /** Broker product code. Settlement is the derived axis — see settlementForProduct(). */
 export type OrderProduct = 'CNC' | 'MIS' | 'NRML';
 
+/**
+ * A strategy as is-alive sends it. The backend's `IsAliveStrategySummary` drops nearly every field
+ * that is empty or false (`omitempty`), and an Athena script row has no symbol until it has
+ * symbols, so only the id, `is_mock`, `created_at` and `indicators` are sure to be there.
+ * `tradingApi.isAlive` fills the rest in (`normalizeStrategyRow`), which is what makes the
+ * required fields of `Strategy` true.
+ */
+export type StrategyRow = Pick<
+  Strategy,
+  'strategy_id' | 'is_mock' | 'created_at'
+> &
+  Partial<Strategy>;
+
 export interface useTradeStatusResponse {
   message: boolean;
   investment_amount?: number;
@@ -36,7 +49,8 @@ export interface useTradeStatusResponse {
  * `athenaSummary` in handlers/trading/athenarows.go). Their rules are code, so such a row has no
  * `fsm`, `rules`, `take_profit`, `stop_loss` or `is_parent`, `indicators` is `[]`, and its
  * `budget_config` is the engine's own shape (see BudgetConfig) - which is why `budget_config`
- * and `fsm` are optional here.
+ * and `fsm` are optional here. The fields required here are required of a row that has been
+ * through `normalizeStrategyRow`; off the wire it is a `StrategyRow`.
  */
 export interface Strategy {
   strategy_id: string;

@@ -328,7 +328,7 @@ export function resolveStrategyChartSymbol(
     (card.closedPositions[0]?.symbol ?? '');
   if (held) return held;
 
-  const declared = card.strategy.symbol.trim();
+  const declared = (card.strategy.symbol || '').trim();
   return declared && !declared.includes(',') ? declared : null;
 }
 

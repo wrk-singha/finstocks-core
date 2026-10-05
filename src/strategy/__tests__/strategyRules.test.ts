@@ -8,7 +8,7 @@ import {
   buildScreenerStrategySpec,
   buildStrategyRules,
 } from '../strategyRules.ts';
-import {athenaRow, strategy, UUID_A} from './fixtures.ts';
+import {athenaRow, sparseRow, strategy, UUID_A} from './fixtures.ts';
 
 const base = strategy({
   strategy_id: UUID_A,
@@ -236,4 +236,34 @@ test('a mode that is not a string reads as none, and a missing val falls back', 
     ),
     undefined,
   );
+});
+
+test('a script row that gained a mode still states no position size; a sparse row builds its rows', () => {
+  const withMode = athenaRow({
+    budget_config: {val: 200000, mode: 'AMOUNT', allocate: '25%'},
+  });
+  assert.equal(
+    buildStrategyRules(withMode, {mode: 'MOCK'}).find(
+      row => row.k === 'Position size',
+    ),
+    undefined,
+  );
+  // No mode, FSM or rules: a script by what it lacks.
+  assert.equal(
+    buildStrategyRules(
+      strategy({strategy_id: UUID_A, budget_config: {val: 50000}}),
+      {mode: 'MOCK'},
+    ).find(row => row.k === 'Position size'),
+    undefined,
+  );
+
+  const sparse = sparseRow();
+  assert.deepEqual(buildStrategyRules(sparse, {mode: 'MOCK'}), [
+    {k: 'Execution', v: 'Simulated — no broker'},
+  ]);
+  assert.deepEqual(buildConsoleRules(sparse, 0), {universe: '', fsm: null});
+  const draft = buildConsoleRulesDraft(sparse, 0, raw => raw ?? '');
+  assert.equal(draft.symbol, '');
+  assert.equal(draft.entryQuery, '');
+  assert.equal(draft.sizingMode, 'AMOUNT');
 });

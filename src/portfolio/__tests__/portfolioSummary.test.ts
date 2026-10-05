@@ -83,19 +83,20 @@ test('calculateInvestedValue: AMOUNT budgets of live, running, same-segment stra
   );
 });
 
-test("calculateInvestedValue: a budget naming no mode is AMOUNT, as a script strategy's total capital is", () => {
+test('calculateInvestedValue: only a budget that says AMOUNT counts; a missing, null or script one reads as nothing', () => {
   const strategies = [
     strategy({budget_config: {val: 200000, type: 'AMOUNT', allocate: '25%'}}),
     strategy({budget_config: {val: 400}}),
     strategy({budget_config: {mode: 'AMOUNT'}}),
     strategy({budget_config: null}),
-    strategy({budget_config: {val: '900', mode: 'AMOUNT'} as never}),
     strategy({budget_config: {val: 30, mode: 7} as never}),
+    strategy({budget_config: {val: 70, mode: 'amount'}}),
+    strategy(),
   ];
   assert.equal(
     calculateInvestedValue(strategies, undefined, false, 'equity')
       .strategyInvested,
-    200430,
+    1000,
   );
 });
 

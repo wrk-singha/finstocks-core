@@ -87,10 +87,13 @@ export type {
 } from './strategyRuleEdit.ts';
 export {
   budgetMode,
-  budgetPositionSize,
   budgetSizingMode,
   budgetVal,
   isScriptBudget,
+  isScriptStrategy,
+  normalizeStrategyRow,
+  normalizeTradeStatus,
+  strategyPositionSize,
 } from './strategyBudget.ts';
 export {
   buildConsoleRules,

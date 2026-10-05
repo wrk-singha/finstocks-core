@@ -282,3 +282,28 @@ test('stream paths are relative to the API root and encode their params', () => 
     '/fno/stream?underlying=NIFTY',
   );
 });
+
+test('isAlive hands back rows with the fields the backend dropped filled in', async () => {
+  const api = tradingApi({
+    request: <T>() =>
+      Promise.resolve({
+        message: false,
+        key: 'IN',
+        is_mock: true,
+        strategies: [
+          {
+            strategy_id: 's1',
+            is_mock: true,
+            created_at: '2026-07-07T12:00:00Z',
+            budget_config: null,
+            indicators: [],
+          },
+        ],
+      } as T),
+  });
+  const [row] = (await api.isAlive(true)).strategies;
+  assert.equal(row?.symbol, '');
+  assert.equal(row?.original_query, '');
+  assert.equal(row?.is_backtest, false);
+  assert.equal(row?.budget_config, null);
+});

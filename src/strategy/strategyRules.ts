@@ -16,9 +16,9 @@ import type {ScreenerStrategy} from '../types/screener.ts';
 import type {Strategy} from '../types/trade.ts';
 import {
   budgetMode,
-  budgetPositionSize,
   budgetSizingMode,
   budgetVal,
+  strategyPositionSize,
 } from './strategyBudget.ts';
 import {type QtyUnit, qtyUnit} from './strategyRuleEdit.ts';
 
@@ -84,9 +84,8 @@ export function buildStrategyRules(
   for (const t of strategy.rules?.nlp_triggers ?? []) exitParts.push(t.summary);
   if (exitParts.length) rows.push({k: 'Exit rule', v: exitParts.join(' · ')});
 
-  // A script budget's `val` is its total capital, so it states no position size of its own.
-  const capital =
-    opts.capitalOverride ?? budgetPositionSize(strategy.budget_config);
+  // A script strategy's `val` is its total capital, so it states no position size of its own.
+  const capital = opts.capitalOverride ?? strategyPositionSize(strategy);
   if (capital != null) {
     rows.push({
       k: 'Position size',
@@ -153,7 +152,7 @@ export function buildConsoleRules(
   strategy: Strategy,
   capital: number,
 ): ConsoleRules {
-  const rawUniverse = strategy.symbol || (strategy.stock_symbol ?? '');
+  const rawUniverse = (strategy.symbol || (strategy.stock_symbol ?? '')) ?? '';
   const universe =
     rawUniverse === 'CUSTOM_LIST'
       ? 'Custom list'

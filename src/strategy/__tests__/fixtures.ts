@@ -57,6 +57,23 @@ export const athenaRow = (o: Record<string, unknown> = {}): Strategy =>
     }),
   ) as Strategy;
 
+/**
+ * The least is-alive can send for a script row: the backend drops every empty or false field, and
+ * a script with no symbols yet has no `symbol`.
+ */
+export const sparseRow = (o: Record<string, unknown> = {}): Strategy =>
+  JSON.parse(
+    JSON.stringify({
+      strategy_id: UUID_E,
+      is_mock: true,
+      status: 'ACTIVE',
+      budget_config: null,
+      created_at: '2026-07-07T12:00:00Z',
+      indicators: [],
+      ...o,
+    }),
+  ) as Strategy;
+
 export const trade = (
   o: Partial<TradeData> & {id: string; stock_symbol: string},
 ): TradeData => ({

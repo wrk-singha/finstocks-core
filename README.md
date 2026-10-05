@@ -132,6 +132,11 @@ before, width?)` (the picked width, else the middle one; both curves area-normal
   — web's session tiles), `canChart(rows)` (two bars or more), `latestDecay(rows)` (the newest
   cycle, calls before puts, each by strike — web's decay-gap table) and web's chart-frame scale:
   `chartExtent(values, include?)`, `chartTicks(extent)` and `chartXTicks(n)`.
+  ATM lock's maths (web feat/chart-parity `src/utils/market/atmLock.ts`, 84649fe2); additive
+  only. `market/atmLock`: `atmLockTarget(spot, strikes, current, hysteresis = 0.1)` is the listed
+  strike nearest spot, moving off the current one only once spot is past the midpoint by a tenth
+  of the gap; a strike the list no longer carries snaps straight to the money. The list may come
+  in any order. `crossedMidpoint(from, to, strikes)` names the midpoint a move crossed.
 - **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a

@@ -63,6 +63,12 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.1** — the screener's corporate events. A filter whose bounds are exactly one of its
+  field's presets reads as that preset, "Dividend · Upcoming · Within a month" rather than
+  "< 30", checked after a comparison and before the bounds, as the web does (web main
+  1d56f0f7): `filterLabel` words it, and `filterParts` returns it as a new kind, `preset`,
+  carrying the preset's catalogue label, so a host that switches over `FilterParts` exhaustively
+  adds a case. A bound on a `days` figure names its unit ("< 1 day", "< 10 days").
 - **v0.8.0** — the option contract grammar; one breaking change. `exchangeSymbol(contract,
 catalogue)` now takes the underlying's expiry list and spells a weekly by its date
   (`NIFTY26O0623150CE`) and the monthly by its month (`NIFTY26OCT23150CE`); with no catalogue it

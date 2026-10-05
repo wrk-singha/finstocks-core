@@ -406,6 +406,81 @@ test('filter parts carry the facts, formatted, for a host that words them', () =
   );
 });
 
+test('a filter set from a preset reads as the preset, and days carry their unit', () => {
+  const events = buildCatalogIndex({
+    ...catalog,
+    categories: [
+      ...catalog.categories,
+      {id: 'events', label: 'Corporate events'},
+    ],
+    fields: [
+      ...catalog.fields,
+      field({
+        id: 'next_event.dividend',
+        label: 'Dividend',
+        header: 'Next Dividend',
+        unit: 'days',
+        category: 'events',
+        family: 'event.dividend',
+        family_label: 'Dividend',
+        period: 'Upcoming',
+        presets: [
+          {label: 'Today', max: 0},
+          {label: 'Within a week', max: 7},
+          {label: 'Within a month', max: 30},
+        ],
+      }),
+    ],
+  });
+  const read = (filter: ScreenFilter) => filterLabel(events, filter);
+  assert.equal(
+    read({field: 'next_event.dividend', max: 30}),
+    'Dividend · Upcoming · Within a month',
+  );
+  // Today is a bound of 0, which read bare as "< 0".
+  assert.equal(
+    read({field: 'next_event.dividend', max: 0}),
+    'Dividend · Upcoming · Today',
+  );
+  // A bound no preset holds keeps the bare figure, and a day count names its unit.
+  assert.equal(
+    read({field: 'next_event.dividend', max: 10}),
+    'Dividend · Upcoming < 10 days',
+  );
+  assert.equal(
+    read({field: 'next_event.dividend', max: 1}),
+    'Dividend · Upcoming < 1 day',
+  );
+  assert.equal(
+    read({field: 'next_event.dividend', min: 1, max: 30}),
+    'Dividend · Upcoming 1 day – 30 days',
+  );
+  assert.deepEqual(
+    filterParts(events, {field: 'next_event.dividend', max: 7}),
+    {
+      kind: 'preset',
+      name: {name: 'Dividend', period: 'Upcoming', timeframe: null},
+      label: 'Within a week',
+    },
+  );
+  // Both bounds have to match: a bound the preset leaves open is open on the filter too.
+  assert.equal(read({field: 'pe', max: 15}), 'Price to earnings · Under 15');
+  assert.equal(
+    read({field: 'pe', min: 15, max: 25}),
+    'Price to earnings · 15 to 25',
+  );
+  assert.equal(read({field: 'pe', min: 15}), 'Price to earnings > 15×');
+  assert.equal(
+    read({field: 'pe', min: 5, max: 15}),
+    'Price to earnings 5× – 15×',
+  );
+  // A new filter opens on the first preset, so its chip names it.
+  assert.equal(
+    read(defaultFilterFor(byId('pe'))),
+    'Price to earnings · Under 15',
+  );
+});
+
 test('a new filter starts from the field’s first preset, or on for flags and patterns', () => {
   assert.deepEqual(defaultFilterFor(byId('pe')), {
     field: 'pe',

@@ -8,6 +8,7 @@
  */
 import {indicatorSections} from '../data/indicatorsConfig.ts';
 import {formatNumber} from '../format/number.ts';
+import {pluralCount} from '../format/text.ts';
 import type {
   ScreenCatalog,
   ScreenField,
@@ -357,6 +358,8 @@ function amount(value: number, field: ScreenField): string {
       return `₹${formatNumber(value, 0)}`;
     case 'x':
       return `${formatNumber(value, Math.abs(value) % 1 === 0 ? 0 : 2)}×`;
+    case 'days':
+      return pluralCount(value, 'day');
     default:
       return formatNumber(value, Math.abs(value) % 1 === 0 ? 0 : 2);
   }
@@ -384,6 +387,8 @@ export type FilterParts =
       factor: string | null;
       ref: FieldLabelParts;
     }
+  /** Bounds that are exactly one of the field's presets, named by it: "Within a month". */
+  | {kind: 'preset'; name: FieldLabelParts; label: string}
   | {kind: 'between'; name: FieldLabelParts; min: string; max: string}
   | {kind: 'above'; name: FieldLabelParts; min: string}
   | {kind: 'below'; name: FieldLabelParts; max: string}
@@ -418,6 +423,12 @@ export function filterParts(
       ref: fieldLabelParts(index, filter.ref, true),
     };
   }
+  const preset = field.presets?.find(
+    p =>
+      (p.min ?? null) === (filter.min ?? null) &&
+      (p.max ?? null) === (filter.max ?? null),
+  );
+  if (preset) return {kind: 'preset', name, label: preset.label};
   if (filter.min != null && filter.max != null) {
     return {
       kind: 'between',
@@ -452,6 +463,8 @@ export function filterLabel(index: CatalogIndex, filter: ScreenFilter): string {
       const factor = parts.factor === null ? '' : `${parts.factor} × `;
       return `${name} ${parts.op === 'lt' ? '<' : '>'} ${factor}${joinLabel(parts.ref)}`;
     }
+    case 'preset':
+      return `${name} · ${parts.label}`;
     case 'between':
       return `${name} ${parts.min} – ${parts.max}`;
     case 'above':

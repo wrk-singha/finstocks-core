@@ -74,6 +74,7 @@ export {
   filterLabel,
   filterParts,
   formatFieldValue,
+  hasKnownFields,
   headerUnit,
   isActiveFilter,
   isEmptyScreen,

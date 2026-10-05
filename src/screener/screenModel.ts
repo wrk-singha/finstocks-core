@@ -793,3 +793,22 @@ export function pruneScreen(
   );
   return unchanged ? state : {...state, ...pruned};
 }
+
+/**
+ * Whether the catalogue knows every field a screen filters on or shows. A prebuilt screen on
+ * fields this server does not compute (the ESF and options-regime screens, until their backend
+ * ships) is not offered at all: `pruneScreen` would drop its every filter and open it on the whole
+ * market presented as matches.
+ */
+export function hasKnownFields(
+  index: CatalogIndex,
+  screen: {
+    filters: readonly ScreenFilter[];
+    columns?: readonly string[] | undefined;
+  },
+): boolean {
+  return (
+    screen.filters.every(filter => isKnownFilter(index, filter)) &&
+    (screen.columns ?? []).every(key => isKnownField(index, key))
+  );
+}

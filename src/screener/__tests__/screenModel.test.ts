@@ -21,6 +21,7 @@ import {
   filterLabel,
   filterParts,
   formatFieldValue,
+  hasKnownFields,
   headerUnit,
   isActiveFilter,
   isEmptyScreen,
@@ -735,6 +736,44 @@ test('pruning drops what the catalogue cannot answer', () => {
     {field: 'rsi14@5m', min: 70},
   ]);
   assert.deepEqual(pruned.columns, ['roe', 'rsi14@1w']);
+});
+
+test('a screen is known when the catalogue has every field it filters on or shows', () => {
+  assert.equal(
+    hasKnownFields(index, {
+      filters: [
+        {field: 'roe', min: 15},
+        {field: 'rsi14@15m', max: 30},
+      ],
+      columns: ['pe'],
+    }),
+    true,
+  );
+  assert.equal(
+    hasKnownFields(index, {filters: [{field: 'roe', min: 15}]}),
+    true,
+  );
+  assert.equal(
+    hasKnownFields(index, {filters: [{field: 'esf_rising', flag: true}]}),
+    false,
+  );
+  assert.equal(
+    hasKnownFields(index, {
+      filters: [{field: 'roe', min: 15}],
+      columns: ['esf_score'],
+    }),
+    false,
+  );
+  assert.equal(
+    hasKnownFields(index, {
+      filters: [{field: 'sma50@15m', ref: 'retired_field'}],
+    }),
+    false,
+  );
+  assert.equal(
+    hasKnownFields(buildCatalogIndex(undefined), {filters: []}),
+    true,
+  );
 });
 
 test('watchlists and industries are only pruned once they are known', () => {

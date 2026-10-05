@@ -18,9 +18,69 @@ export interface PrebuiltScreen {
   universes?: string[];
   filters: ScreenFilter[];
   columns?: string[];
+  /** The order the matches open in; a screen without one opens on the default sort. */
+  sort?: {key: string; dir: 'asc' | 'desc'};
 }
 
 export const PREBUILT_SCREENS: PrebuiltScreen[] = [
+  {
+    id: 'esf-leaders',
+    name: 'ESF leaders',
+    blurb: 'Stocks in a rising trend, ranked by the FinStocks Score.',
+    filters: [{field: 'esf_rising', flag: true}],
+    columns: ['esf_score', 'esf_top_pct', 'esf_checks'],
+    sort: {key: 'esf_score', dir: 'desc'},
+  },
+  {
+    id: 'esf-growth-leaders',
+    name: 'Growth leaders (CANSLIM)',
+    blurb: "Growth leaders that pass most of O'Neil's CANSLIM tests.",
+    filters: [{field: 'esf_canslim_leader', flag: true}],
+    columns: ['esf_canslim_letters', 'esf_score'],
+    sort: {key: 'esf_score', dir: 'desc'},
+  },
+  {
+    id: 'esf-big-money',
+    name: 'Big investors buying',
+    blurb: 'Trading volume shows big investors buying.',
+    filters: [{field: 'esf_accumulation', flag: true}],
+    columns: ['esf_volume_score', 'esf_score'],
+    sort: {key: 'esf_volume_score', dir: 'desc'},
+  },
+  {
+    id: 'esf-ready-to-rise',
+    name: 'Ready to rise (Stage 1B)',
+    blurb: 'Resting and about to rise — the stage before an uptrend.',
+    filters: [{field: 'esf_stage_1b', flag: true}],
+    columns: ['esf_score', 'esf_checks'],
+    sort: {key: 'esf_score', dir: 'desc'},
+  },
+  {
+    id: 'esf-fair-price',
+    name: 'Lynch fair price (PEG)',
+    blurb: "Priced fairly for its profit growth: Peter Lynch's PEG under 1.",
+    filters: [{field: 'esf_fair_price', flag: true}],
+    columns: ['esf_peg', 'esf_score'],
+    sort: {key: 'esf_peg', dir: 'asc'},
+  },
+  {
+    id: 'esf-graham',
+    name: 'Graham safe picks',
+    blurb:
+      "Large, steady companies at a modest price, passing most of Graham's defensive-investor tests.",
+    filters: [{field: 'esf_graham_value', flag: true}],
+    columns: ['esf_graham_criteria', 'esf_score'],
+    sort: {key: 'esf_score', dir: 'desc'},
+  },
+  {
+    id: 'esf-strong-health',
+    name: 'Strong company health',
+    blurb:
+      "Eight or nine of Piotroski's nine accounting checks. Lenders are not tested.",
+    filters: [{field: 'esf_strong_health', flag: true}],
+    columns: ['esf_fscore', 'esf_score'],
+    sort: {key: 'esf_score', dir: 'desc'},
+  },
   {
     id: 'quarterly-growers',
     name: 'Quarterly growers',

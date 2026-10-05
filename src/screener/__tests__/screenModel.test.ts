@@ -430,6 +430,17 @@ test('a filter set from a preset reads as the preset, and days carry their unit'
           {label: 'Within a month', max: 30},
         ],
       }),
+      field({
+        id: 'last_event.dividend',
+        label: 'Dividend',
+        header: 'Last Dividend',
+        unit: 'days',
+        category: 'events',
+        family: 'event.dividend',
+        family_label: 'Dividend',
+        period: 'Recent',
+        presets: [{label: 'Past month', max: 30}],
+      }),
     ],
   });
   const read = (filter: ScreenFilter) => filterLabel(events, filter);
@@ -455,14 +466,30 @@ test('a filter set from a preset reads as the preset, and days carry their unit'
     read({field: 'next_event.dividend', min: 1, max: 30}),
     'Dividend · Upcoming 1 day – 30 days',
   );
+  // The preset rides on the bound's own kind, so a host that does not know it reads the bound.
+  const upcoming = {name: 'Dividend', period: 'Upcoming', timeframe: null};
   assert.deepEqual(
     filterParts(events, {field: 'next_event.dividend', max: 7}),
     {
-      kind: 'preset',
-      name: {name: 'Dividend', period: 'Upcoming', timeframe: null},
-      label: 'Within a week',
+      kind: 'below',
+      name: upcoming,
+      max: '7 days',
+      preset: 'Within a week',
     },
   );
+  assert.deepEqual(
+    filterParts(events, {field: 'next_event.dividend', max: 10}),
+    {kind: 'below', name: upcoming, max: '10 days'},
+  );
+  // A comparison is checked first: bounds left on it that equal a preset do not make it one.
+  const compared: ScreenFilter = {
+    field: 'next_event.dividend',
+    op: 'lt',
+    ref: 'last_event.dividend',
+    max: 30,
+  };
+  assert.equal(read(compared), 'Dividend · Upcoming < Dividend · Recent');
+  assert.equal(filterParts(events, compared).kind, 'compare');
   // Both bounds have to match: a bound the preset leaves open is open on the filter too.
   assert.equal(read({field: 'pe', max: 15}), 'Price to earnings · Under 15');
   assert.equal(

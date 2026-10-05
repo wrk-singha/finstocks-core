@@ -367,7 +367,11 @@ function amount(value: number, field: ScreenField): string {
 
 /**
  * A filter in parts, for a host that words it itself. Bounds and the multiplier come formatted
- * ("25%", "₹300 Cr", "1.50"); names are the catalogue's, with the timeframe left as an id.
+ * ("25%", "₹300 Cr", "1.50"), and a day count comes with its unit ("1 day", "10 days"), so a host
+ * adds none of its own; names are the catalogue's, with the timeframe left as an id.
+ *
+ * Bounds that are exactly one of the field's presets also carry its label as `preset` ("Within a
+ * month"), and read as it: a host that does not know the field still has the bare bounds.
  */
 export type FilterParts =
   | {kind: 'unknown'; name: FieldLabelParts}
@@ -387,12 +391,16 @@ export type FilterParts =
       factor: string | null;
       ref: FieldLabelParts;
     }
-  /** Bounds that are exactly one of the field's presets, named by it: "Within a month". */
-  | {kind: 'preset'; name: FieldLabelParts; label: string}
-  | {kind: 'between'; name: FieldLabelParts; min: string; max: string}
-  | {kind: 'above'; name: FieldLabelParts; min: string}
-  | {kind: 'below'; name: FieldLabelParts; max: string}
-  | {kind: 'any'; name: FieldLabelParts};
+  | {
+      kind: 'between';
+      name: FieldLabelParts;
+      min: string;
+      max: string;
+      preset?: string;
+    }
+  | {kind: 'above'; name: FieldLabelParts; min: string; preset?: string}
+  | {kind: 'below'; name: FieldLabelParts; max: string; preset?: string}
+  | {kind: 'any'; name: FieldLabelParts; preset?: string};
 
 export function filterParts(
   index: CatalogIndex,
@@ -423,25 +431,27 @@ export function filterParts(
       ref: fieldLabelParts(index, filter.ref, true),
     };
   }
+  // Checked after a comparison, whose bounds are not what it asks, as the web checks it.
   const preset = field.presets?.find(
     p =>
       (p.min ?? null) === (filter.min ?? null) &&
       (p.max ?? null) === (filter.max ?? null),
   );
-  if (preset) return {kind: 'preset', name, label: preset.label};
+  const named = preset ? {preset: preset.label} : {};
   if (filter.min != null && filter.max != null) {
     return {
       kind: 'between',
       name,
       min: amount(filter.min, field),
       max: amount(filter.max, field),
+      ...named,
     };
   }
   if (filter.min != null)
-    return {kind: 'above', name, min: amount(filter.min, field)};
+    return {kind: 'above', name, min: amount(filter.min, field), ...named};
   if (filter.max != null)
-    return {kind: 'below', name, max: amount(filter.max, field)};
-  return {kind: 'any', name};
+    return {kind: 'below', name, max: amount(filter.max, field), ...named};
+  return {kind: 'any', name, ...named};
 }
 
 /** What a filter says, in words: "Profit growth · 3Y CAGR > 25%".
@@ -449,6 +459,8 @@ export function filterParts(
 export function filterLabel(index: CatalogIndex, filter: ScreenFilter): string {
   const parts = filterParts(index, filter);
   const name = joinLabel(parts.name);
+  if ('preset' in parts && parts.preset !== undefined)
+    return `${name} · ${parts.preset}`;
   switch (parts.kind) {
     case 'unknown':
       return name;
@@ -463,8 +475,6 @@ export function filterLabel(index: CatalogIndex, filter: ScreenFilter): string {
       const factor = parts.factor === null ? '' : `${parts.factor} × `;
       return `${name} ${parts.op === 'lt' ? '<' : '>'} ${factor}${joinLabel(parts.ref)}`;
     }
-    case 'preset':
-      return `${name} · ${parts.label}`;
     case 'between':
       return `${name} ${parts.min} – ${parts.max}`;
     case 'above':

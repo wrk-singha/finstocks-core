@@ -24,6 +24,7 @@ import {
   calculateBacktestSummary,
   type EquityPath,
 } from './backtestStats.ts';
+import {budgetMode, budgetVal} from './strategyBudget.ts';
 import {isAwaitingStart, isInProgress, isPaused} from './strategyStatus.ts';
 
 export interface StrategyPosition {
@@ -54,7 +55,11 @@ export interface StrategyCardData {
   statusLabel: StrategyStatusLabel;
   paused: boolean;
   allocated: number;
-  /** budget_config.mode: "AMOUNT" (₹) | "QTY" (shares) | "PERCENT" | "RISK_PERCENT" */
+  /**
+   * budget_config.mode: "AMOUNT" (₹) | "QTY" (shares) | "PERCENT" | "RISK_PERCENT", as the row
+   * wrote it. Undefined on a row with none, which sizes by AMOUNT - a script strategy's, whose
+   * `allocated` is then its total capital.
+   */
   allocationMode?: string;
   /** allocated, or DEFAULT_START_CAPITAL - the baseline the KPIs used */
   startCapital: number;
@@ -363,11 +368,12 @@ export function deriveStrategyCards(
     const sid = s.strategy_id;
     const group = tradesByStrategy.get(sid) ?? [];
 
-    const allocated = s.budget_config.val;
     // QTY (and PERCENT/RISK_PERCENT) budgets are share counts or ratios, not rupees - only
-    // AMOUNT (or unset, which defaults to AMOUNT) is real capital.
-    const mode = s.budget_config.mode.toUpperCase();
-    const hasRealCapital = (mode === 'AMOUNT' || mode == null) && allocated > 0;
+    // AMOUNT (or unset, which defaults to AMOUNT) is real capital. A script budget is unset, and
+    // its `val` is the strategy's total capital: the base its return is a percentage of.
+    const allocated = budgetVal(s.budget_config) ?? 0;
+    const hasRealCapital =
+      budgetMode(s.budget_config) === 'AMOUNT' && allocated > 0;
     const startCapital = hasRealCapital ? allocated : DEFAULT_START_CAPITAL;
     const {
       summary,
@@ -383,6 +389,7 @@ export function deriveStrategyCards(
     const pnl = summary.totalPnL;
     const pnlPct = hasRealCapital ? (pnl / allocated) * 100 : 0;
 
+    const writtenMode = s.budget_config?.mode;
     const paused = isPaused(s);
     const category = s.is_intraday
       ? 'Intraday'
@@ -409,7 +416,7 @@ export function deriveStrategyCards(
       statusLabel,
       paused,
       allocated,
-      allocationMode: s.budget_config.mode,
+      ...(typeof writtenMode === 'string' ? {allocationMode: writtenMode} : {}),
       startCapital,
       pnl,
       pnlPct,

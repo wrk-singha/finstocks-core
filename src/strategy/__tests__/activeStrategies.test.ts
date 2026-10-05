@@ -3,11 +3,22 @@ import {test} from 'node:test';
 
 import {
   buildPnlSeries,
+  DEFAULT_START_CAPITAL,
   deriveAutopilotCard,
   deriveStrategyCards,
   resolveStrategyChartSymbol,
 } from '../activeStrategies.ts';
-import {strategy, trade, UUID_A, UUID_B, UUID_C, UUID_D} from './fixtures.ts';
+import type {Strategy} from '../../types/trade.ts';
+import {
+  athenaRow,
+  strategy,
+  trade,
+  UUID_A,
+  UUID_B,
+  UUID_C,
+  UUID_D,
+  UUID_E,
+} from './fixtures.ts';
 
 const forA = `STRAT${UUID_A}`;
 const trades = [
@@ -152,6 +163,79 @@ test('deriveStrategyCards: share-count budgets and exit-less strategies show pla
   assert.equal(cards.find(c => c.id === UUID_C)?.startedLabel, '—');
   assert.equal(cards.find(c => c.id === UUID_D)?.statusLabel, 'Pending');
   assert.equal(cards.find(c => c.id === UUID_D)?.category, 'F&O');
+});
+
+test('deriveStrategyCards: a budget with no mode sizes by AMOUNT; a missing or odd one never throws', () => {
+  const [unset] = deriveStrategyCards(
+    [strategy({strategy_id: UUID_A, budget_config: {val: 50000}})],
+    trades,
+  );
+  assert.ok(unset);
+  assert.equal(unset.allocated, 50000);
+  assert.equal(unset.allocationMode, undefined);
+  assert.equal(unset.startCapital, 50000);
+  assert.ok(Math.abs(unset.pnlPct - 0.1) < 1e-12);
+  assert.notEqual(unset.maxDrawdownPct, null);
+
+  // Off the wire, where the type promises nothing.
+  const cardFor = (budget: unknown) => {
+    const row = {
+      ...strategy({strategy_id: UUID_A}),
+      budget_config: budget,
+    } as Strategy;
+    const [card] = deriveStrategyCards([row], trades);
+    assert.ok(card, JSON.stringify(budget));
+    return card;
+  };
+  for (const budget of [
+    undefined,
+    null,
+    {},
+    {mode: 7, val: 50000},
+    {mode: 'AMOUNT', val: '50000'},
+  ]) {
+    assert.equal(cardFor(budget).pnl, 50, JSON.stringify(budget));
+  }
+  const noVal = cardFor({mode: 'AMOUNT'});
+  assert.equal(noVal.allocated, 0);
+  assert.equal(noVal.startCapital, DEFAULT_START_CAPITAL);
+  assert.equal(noVal.pnlPct, 0);
+  assert.equal(noVal.maxDrawdownPct, null);
+  const oddMode = cardFor({mode: 7, val: 50000});
+  assert.equal(oddMode.allocationMode, undefined);
+  assert.equal(oddMode.startCapital, 50000);
+});
+
+test('deriveStrategyCards: an Athena script row reads its val as the total capital its return is on', () => {
+  const scriptTrades = [
+    trade({
+      id: 's1',
+      stock_symbol: 'RELIANCE',
+      quantity: 10,
+      buy_price: 2500,
+      sell_price: 2600,
+      buy_time: '2026-07-08T04:00:00Z',
+      sell_time: '2026-07-09T04:00:00Z',
+      execution_strategy: `STRAT${UUID_E}`,
+    }),
+  ];
+  const [card] = deriveStrategyCards([athenaRow()], scriptTrades);
+  assert.ok(card);
+  assert.equal(card.id, UUID_E);
+  assert.equal(card.name, 'Breakout script');
+  assert.equal(card.statusLabel, 'Active');
+  assert.equal(card.category, 'Swing');
+  assert.equal(card.allocated, 200000);
+  assert.equal(card.allocationMode, undefined);
+  assert.equal(card.startCapital, 200000);
+  assert.equal(card.pnl, 1000);
+  assert.equal(card.pnlPct, 0.5);
+  assert.equal(card.maxDrawdownPct, 0);
+  assert.notEqual(card.equity.line, '');
+  assert.equal(
+    deriveStrategyCards([athenaRow({status: 'ERROR'})], [])[0]?.statusLabel,
+    'Ended',
+  );
 });
 
 test('cards come back newest-first, with an unparseable created_at last', () => {

@@ -86,6 +86,13 @@ export type {
   WordedTimeframe,
 } from './strategyRuleEdit.ts';
 export {
+  budgetMode,
+  budgetPositionSize,
+  budgetSizingMode,
+  budgetVal,
+  isScriptBudget,
+} from './strategyBudget.ts';
+export {
   buildConsoleRules,
   buildConsoleRulesDraft,
   buildScreenerStrategySpec,

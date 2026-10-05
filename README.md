@@ -63,6 +63,19 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena
+  script ("C") strategies (backend feat/athena-integration), whose `budget_config` is the engine's
+  `{val, type, allocate}` with no `mode`, and which carry no `fsm`; `deriveStrategyCards` threw on
+  one (`budget_config.mode.toUpperCase()`). The types now say what the wire sends:
+  `Strategy.budget_config` and `Strategy.fsm` are optional, and `BudgetConfig` has `mode?: string`,
+  `val?: number`, `type?` and `allocate?` - so a host that reads those fields directly gets type
+  errors where it would have thrown. Read them through the new `budgetMode` (upper-cased, AMOUNT
+  when absent or not a string), `budgetSizingMode`, `budgetVal`, `isScriptBudget` and
+  `budgetPositionSize`. A row with no mode
+  sizes by AMOUNT everywhere in core: its card's `allocated` and return basis are `val` (a script
+  strategy's total capital), and `calculateInvestedValue` counts it as invested. A script budget
+  states no position size: `buildStrategyRules` drops its "Position size" row rather than show the
+  total capital as one.
 - **v0.8.1** — the screener's corporate events; additive only. Bounds that are exactly one of the
   field's presets carry its label as an optional `preset` on their `between`, `above`, `below` or
   `any` part, under the web's rule (web main 1d56f0f7): both bounds equal, checked after a

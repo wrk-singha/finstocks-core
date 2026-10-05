@@ -248,45 +248,6 @@ export interface MarketDepth {
   bidAskImbalance?: number;
 }
 
-/** What we'd do about a stock, as one number. */
-export type ScoreAction = 'buy' | 'hold' | 'sell';
-
-/**
- * One component of the score. `tab` names where the evidence for it lives, so
- * the score doubles as the table of contents for the rest of the drawer — a
- * number you can't chase down to its reasoning is just an opinion with a
- * decimal point.
- */
-export interface StockScorePillar {
-  key: string;
-  label: string;
-  /** 0–100. */
-  score: number;
-  /** The single fact behind the number, in a person's words. Optional: the
-   *  scoring endpoint doesn't return per-pillar prose. */
-  note?: string;
-  /** Drawer tab that evidences this pillar. */
-  tab?: string;
-}
-
-/**
- * The mapped shape every score surface renders — built by `mapStockScore` from
- * the raw `StockScoreResponse` in `types/scores`.
- */
-export interface StockScore {
-  stock_symbol: string;
-  /** 0–100, the headline. */
-  score: number;
-  action: ScoreAction;
-  /** How much weight we put behind the action. Separate from the score: a
-   *  stock can score well on evidence we hold with little confidence. */
-  conviction_pct: number;
-  /** One line of why. */
-  summary: string;
-  pillars: StockScorePillar[];
-  updated_at?: string;
-}
-
 /** The list a stock was opened from — screen results, recommendations,
  *  movers — so the detail view can step between them without going back. */
 export interface SymbolGroup {

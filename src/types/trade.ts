@@ -16,6 +16,19 @@ export type OrderType = 'MARKET' | 'LIMIT';
 /** Broker product code. Settlement is the derived axis — see settlementForProduct(). */
 export type OrderProduct = 'CNC' | 'MIS' | 'NRML';
 
+/**
+ * A strategy as is-alive sends it. The backend's `IsAliveStrategySummary` drops nearly every field
+ * that is empty or false (`omitempty`), and an Athena script row has no symbol until it has
+ * symbols, so only the id, `is_mock`, `created_at` and `indicators` are sure to be there.
+ * `tradingApi.isAlive` fills the rest in (`normalizeStrategyRow`), which is what makes the
+ * required fields of `Strategy` true.
+ */
+export type StrategyRow = Pick<
+  Strategy,
+  'strategy_id' | 'is_mock' | 'created_at'
+> &
+  Partial<Strategy>;
+
 export interface useTradeStatusResponse {
   message: boolean;
   investment_amount?: number;
@@ -31,6 +44,13 @@ export interface useTradeStatusResponse {
  * schema and left them optional with `fsm` as an opaque record. Required-ness follows the
  * backend, so the mobile reading wins; the web-only optional fields (`take_profit` as a bare
  * number) widen to the mobile `number | null`, which is what the API returns for an unset leg.
+ *
+ * is-alive also lists Athena script ("C") strategies (backend feat/athena-integration,
+ * `athenaSummary` in handlers/trading/athenarows.go). Their rules are code, so such a row has no
+ * `fsm`, `rules`, `take_profit`, `stop_loss` or `is_parent`, `indicators` is `[]`, and its
+ * `budget_config` is the engine's own shape (see BudgetConfig) - which is why `budget_config`
+ * and `fsm` are optional here. The fields required here are required of a row that has been
+ * through `normalizeStrategyRow`; off the wire it is a `StrategyRow`.
  */
 export interface Strategy {
   strategy_id: string;
@@ -45,8 +65,8 @@ export interface Strategy {
   execution_mode: string;
   original_query: string;
   target_scope: string | null;
-  budget_config: BudgetConfig;
-  fsm: FSM;
+  budget_config?: BudgetConfig | null;
+  fsm?: FSM | null;
   nlp_triggers?: NLPTrigger[];
   is_parent: boolean;
   is_intraday: boolean;
@@ -118,16 +138,28 @@ export type FSMStrategyRules = StrategyRules;
 export interface BudgetConfig {
   /**
    * Polymorphic: `val` is ₹ in AMOUNT, a share count in QTY, a percent in PERCENT / RISK_PERCENT
-   * — always branch on `mode` before formatting. These strings are what the backend writes
-   * (buildBudgetConfig in handlers/trading/createbacktest.go); "PERCENTAGE" matches nothing.
+   * — always branch on the mode before formatting. On a script budget it is the strategy's TOTAL
+   * capital (see `isScriptBudget`), never a position size. Read it through `budgetVal`.
    */
-  val: number;
-  mode: 'AMOUNT' | 'QTY' | 'PERCENT' | 'RISK_PERCENT';
+  val?: number;
+  /**
+   * What the backend writes (buildBudgetConfig in handlers/trading/createbacktest.go): "AMOUNT",
+   * "QTY", "PERCENT" or "RISK_PERCENT"; "PERCENTAGE" matches nothing. Absent on a script budget,
+   * and AMOUNT when absent - read it through `budgetMode`, which also survives a non-string.
+   */
+  mode?: string;
   /**
    * Capital pool PERCENT/RISK_PERCENT size against (Go: BudgetConfig.Total). Only those modes
    * carry it; for AMOUNT the rupee figure is `val`.
    */
   total?: number;
+  /**
+   * Script budgets only: the Athena engine's sizing kind, "AMOUNT". Passed through verbatim from
+   * `backtesterBudget` (handlers/trading/strategyaction.go, feat/athena-integration).
+   */
+  type?: string;
+  /** Script budgets only: the share of `val` each position takes, e.g. "25%". */
+  allocate?: string;
 }
 
 /**

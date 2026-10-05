@@ -63,6 +63,23 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena
+  script ("C") strategies (backend feat/athena-integration), whose `budget_config` is the engine's
+  `{val, type, allocate}` with no `mode`, and which carry no `fsm`; `deriveStrategyCards` threw on
+  one (`budget_config.mode.toUpperCase()`). The types now say what the wire sends:
+  `Strategy.budget_config` and `Strategy.fsm` are optional, and `BudgetConfig` has `mode?: string`,
+  `val?: number`, `type?` and `allocate?` - so a host that reads those fields directly gets type
+  errors where it would have thrown. Read them through the new `budgetMode` (upper-cased, AMOUNT
+  when absent or not a string), `budgetSizingMode`, `budgetVal`, `isScriptBudget` and
+  `strategyPositionSize`. A row with no mode sizes by AMOUNT on its card: `allocated` and the return
+  basis are `val` (a script strategy's total capital). `calculateInvestedValue` is unchanged, as
+  the web has it: only a budget that says `AMOUNT` counts as invested, so a script strategy's
+  capital does not. `isScriptStrategy` is the one test for a script strategy - by its budget's
+  shape (`type` without `mode`, or `allocate`), or by having no mode, FSM or rules - and such a
+  strategy states no position size: `buildStrategyRules` drops its "Position size" row rather than
+  show the total capital as one. is-alive drops empty and false fields from a row (`StrategyRow`),
+  so `tradingApi.isAlive` now hands back rows with them filled in (`normalizeStrategyRow`: "" and
+  false), and `resolveStrategyChartSymbol` no longer throws on a row with no symbol.
 - **v0.8.1** — the screener's corporate events; additive only. Bounds that are exactly one of the
   field's presets carry its label as an optional `preset` on their `between`, `above`, `below` or
   `any` part, under the web's rule (web main 1d56f0f7): both bounds equal, checked after a

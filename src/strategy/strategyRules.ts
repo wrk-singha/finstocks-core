@@ -11,13 +11,15 @@
 import {formatAllocation, formatCurrency} from '../format/index.ts';
 import {extractUnderlyingSymbol} from '../market/symbols.ts';
 import {splitEntryExit} from '../screener/screenerUtils.ts';
-import type {
-  ConsoleRules,
-  ConsoleRulesDraft,
-  ConsoleSizingMode,
-} from '../types/console.ts';
+import type {ConsoleRules, ConsoleRulesDraft} from '../types/console.ts';
 import type {ScreenerStrategy} from '../types/screener.ts';
 import type {Strategy} from '../types/trade.ts';
+import {
+  budgetMode,
+  budgetSizingMode,
+  budgetVal,
+  strategyPositionSize,
+} from './strategyBudget.ts';
 import {type QtyUnit, qtyUnit} from './strategyRuleEdit.ts';
 
 // These rows are English throughout; the unit follows the instrument (see qtyUnit), so a lot is
@@ -82,13 +84,14 @@ export function buildStrategyRules(
   for (const t of strategy.rules?.nlp_triggers ?? []) exitParts.push(t.summary);
   if (exitParts.length) rows.push({k: 'Exit rule', v: exitParts.join(' · ')});
 
-  const capital = opts.capitalOverride ?? strategy.budget_config?.val;
+  // A script strategy's `val` is its total capital, so it states no position size of its own.
+  const capital = opts.capitalOverride ?? strategyPositionSize(strategy);
   if (capital != null) {
     rows.push({
       k: 'Position size',
       v: formatAllocation(
         capital,
-        strategy.budget_config?.mode,
+        budgetMode(strategy.budget_config),
         0,
         qtyUnitWord(strategy.is_fno, capital),
       ),
@@ -149,15 +152,16 @@ export function buildConsoleRules(
   strategy: Strategy,
   capital: number,
 ): ConsoleRules {
-  const rawUniverse = strategy.symbol || (strategy.stock_symbol ?? '');
+  const rawUniverse = (strategy.symbol || (strategy.stock_symbol ?? '')) ?? '';
   const universe =
     rawUniverse === 'CUSTOM_LIST'
       ? 'Custom list'
       : extractUnderlyingSymbol(rawUniverse) || rawUniverse;
-  const mode: string | undefined = strategy.budget_config?.mode;
+  const written = strategy.budget_config?.mode;
+  const mode = typeof written === 'string' ? written : undefined;
   const displayCapital =
     mode && mode.toUpperCase() !== 'AMOUNT'
-      ? (strategy.budget_config?.val ?? capital)
+      ? (budgetVal(strategy.budget_config) ?? capital)
       : capital;
   const sizingMethod = mode === 'AMOUNT' ? 'Fixed amount' : mode;
   return {
@@ -201,18 +205,10 @@ export function buildConsoleRulesDraft(
   // The mode is preserved, not narrowed to QTY/AMOUNT. Collapsing it meant opening the editor on
   // a RISK_PERCENT strategy and pressing redeploy silently converted it to AMOUNT - and
   // reinterpreted `val` (e.g. 1, meaning 1% risk) as ₹1. The editor already offers all four modes.
-  const mode = strategy.budget_config?.mode?.toUpperCase();
-  const sizingMode: ConsoleSizingMode =
-    mode === 'QTY' ||
-    mode === 'PERCENT' ||
-    mode === 'RISK_PERCENT' ||
-    mode === 'AMOUNT'
-      ? mode
-      : 'AMOUNT';
   const totalCapital = strategy.budget_config?.total;
   return {
-    capital: strategy.budget_config?.val ?? capital,
-    sizingMode,
+    capital: budgetVal(strategy.budget_config) ?? capital,
+    sizingMode: budgetSizingMode(strategy.budget_config),
     ...(totalCapital !== undefined ? {totalCapital} : {}),
     entryQuery: strategy.original_query ?? '',
     symbol: strategy.symbol ?? '',

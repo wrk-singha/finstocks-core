@@ -1,5 +1,6 @@
 import {istDayKey} from '../format/index.ts';
 import {isAwaitingStart, isInProgress} from '../strategy/strategyStatus.ts';
+import type {BudgetConfig} from '../types/trade.ts';
 import type {TradeData} from '../types/user.ts';
 import {
   calculatePNL,
@@ -32,7 +33,7 @@ export interface InvestableStrategy {
   is_backtest?: boolean;
   symbol?: string;
   stock_symbol?: string;
-  budget_config?: {val: number; mode: string} | null;
+  budget_config?: BudgetConfig | null;
 }
 
 // TODO(core-types): unify with types/trade (useTradeStatusResponse)
@@ -63,7 +64,9 @@ export interface InvestedValue {
 /**
  * Invested capital for one asset-class segment. Strategy budgets count only in
  * AMOUNT mode (QTY `val` is a share count, not rupees, and PERCENT/RISK_PERCENT
- * `val` is a ratio against `total`); autopilot funds equity only.
+ * `val` is a ratio against `total`), and only when the row says AMOUNT: a
+ * budget naming no mode - a script strategy's - does not count, as on the web;
+ * autopilot funds equity only.
  *
  * drift resolved 2026-09-13: web took `(strategies, tradeStatus: any, mode: 'mock' | 'live', …)`
  * and unwrapped a legacy `tradeStatus[0]` array shape; mobile took a typed status object and
@@ -90,7 +93,7 @@ export function calculateInvestedValue(
     .reduce(
       (sum, s) =>
         s.budget_config?.mode === 'AMOUNT'
-          ? sum + (s.budget_config.val || 0)
+          ? sum + (s.budget_config.val ?? 0)
           : sum,
       0,
     );

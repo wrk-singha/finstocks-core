@@ -1,4 +1,5 @@
 import type {PortfolioSegment} from '../portfolio/portfolio.ts';
+import {normalizeTradeStatus} from '../strategy/strategyBudget.ts';
 import type {BacktestAnalysisResponse} from '../types/backtestAnalysis.ts';
 import type {FnoChainFallback, FnoExpiries} from '../types/fno.ts';
 import type {TopTradedFutures} from '../types/futures.ts';
@@ -501,13 +502,16 @@ export const tradingApi = (http: HttpClient) => ({
   // drift resolved 2026-09-13: the web omitted `mock`, so its console silently showed whichever
   // book the backend defaulted to; the mobile copy won.
   isAlive: (isMock: boolean, withRules = false) =>
-    http.request<useTradeStatusResponse>(
-      `/trading/is-alive${query({
-        model: 2,
-        mock: isMock,
-        rules: withRules ? 1 : undefined,
-      })}`,
-    ),
+    http
+      .request<useTradeStatusResponse>(
+        `/trading/is-alive${query({
+          model: 2,
+          mock: isMock,
+          rules: withRules ? 1 : undefined,
+        })}`,
+      )
+      // The backend drops empty and false fields from a row; every consumer reads them filled in.
+      .then(normalizeTradeStatus),
 
   /**
    * Raw discriminated feed (log rows + fallback transaction rows). Never sends

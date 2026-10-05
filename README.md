@@ -63,6 +63,13 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.1** — the screener's corporate events; additive only. Bounds that are exactly one of the
+  field's presets carry its label as an optional `preset` on their `between`, `above`, `below` or
+  `any` part, under the web's rule (web main 1d56f0f7): both bounds equal, checked after a
+  comparison. A host that ignores the field compiles and reads the bare bound as before. Two
+  visible changes, both as the web has them: `filterLabel` words such a filter as the preset,
+  "Dividend · Upcoming · Within a month" rather than "< 30"; and a bound on a `days` figure comes
+  with its unit ("1 day", "10 days"), in `filterParts` too, so a host adds none of its own.
 - **v0.8.0** — the option contract grammar; one breaking change. `exchangeSymbol(contract,
 catalogue)` now takes the underlying's expiry list and spells a weekly by its date
   (`NIFTY26O0623150CE`) and the monthly by its month (`NIFTY26OCT23150CE`); with no catalogue it

@@ -67,6 +67,10 @@ const ROWS: readonly RegimeRow[] = [
 
 const symbols = (rows: readonly RegimeRow[]) => rows.map(r => r.underlying);
 
+// TCS ahead of FINNIFTY, which it ties on the bias and the regime: a stable sort alone would keep
+// TCS first, so only the symbol tie-break puts FINNIFTY there.
+const REVERSED: readonly RegimeRow[] = [...ROWS].reverse();
+
 test("the search matches web's: symbol, regime id, label or short label, case-blind and trimmed", () => {
   assert.deepEqual(symbols(filterRegimeRows(ROWS, '  nifty ', [])), [
     'NIFTY',
@@ -116,7 +120,7 @@ test('the table opens on the bias, high first; figures start descending, text as
   assert.equal(regimeSortStartsDescending('lastLog'), false);
   assert.equal(REGIME_SORT_KEYS.length, 11);
   // FINNIFTY and TCS tie on the bias; the symbol breaks the tie A–Z whichever way the sort runs.
-  assert.deepEqual(symbols(sortRegimeRows(ROWS, 'zBias', true)), [
+  assert.deepEqual(symbols(sortRegimeRows(REVERSED, 'zBias', true)), [
     'NIFTY',
     'BANKNIFTY',
     'FINNIFTY',
@@ -125,7 +129,7 @@ test('the table opens on the bias, high first; figures start descending, text as
     'MIDCPNIFTY',
     'RELIANCE',
   ]);
-  assert.deepEqual(symbols(sortRegimeRows(ROWS, 'zBias', false)), [
+  assert.deepEqual(symbols(sortRegimeRows(REVERSED, 'zBias', false)), [
     'RELIANCE',
     'MIDCPNIFTY',
     'HDFCBANK',
@@ -134,7 +138,7 @@ test('the table opens on the bias, high first; figures start descending, text as
     'BANKNIFTY',
     'NIFTY',
   ]);
-  assert.deepEqual(symbols(sortRegimeRows(ROWS, 'symbol', false)), [
+  assert.deepEqual(symbols(sortRegimeRows(REVERSED, 'symbol', false)), [
     'BANKNIFTY',
     'FINNIFTY',
     'HDFCBANK',
@@ -143,14 +147,14 @@ test('the table opens on the bias, high first; figures start descending, text as
     'RELIANCE',
     'TCS',
   ]);
-  assert.deepEqual(symbols(sortRegimeRows(ROWS, 'spot', true)).slice(0, 2), [
-    'BANKNIFTY',
-    'FINNIFTY',
-  ]);
+  assert.deepEqual(
+    symbols(sortRegimeRows(REVERSED, 'spot', true)).slice(0, 2),
+    ['BANKNIFTY', 'FINNIFTY'],
+  );
 });
 
 test('by regime, bullish first and warming up last, as having no rank', () => {
-  assert.deepEqual(symbols(sortRegimeRows(ROWS, 'regime', true)), [
+  assert.deepEqual(symbols(sortRegimeRows(REVERSED, 'regime', true)), [
     'NIFTY',
     'BANKNIFTY',
     'FINNIFTY',
@@ -160,7 +164,7 @@ test('by regime, bullish first and warming up last, as having no rank', () => {
     'HDFCBANK',
   ]);
   assert.equal(
-    sortRegimeRows(ROWS, 'regime', false)[0]?.underlying,
+    sortRegimeRows(REVERSED, 'regime', false)[0]?.underlying,
     'HDFCBANK',
   );
   // A new array; the snapshot's own rows keep their order.

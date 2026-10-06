@@ -252,7 +252,62 @@ export type {
   IPOStepState,
 } from './ipo.ts';
 
+export {depthBookStatus, depthRefusal, fairLimitPrice} from './depthReading.ts';
+export type {DepthBookStatus, DepthRefusal} from './depthReading.ts';
+
 export {livePriceFor, priceSymbolFor} from './livePrice.ts';
+
+export {
+  bareLabel,
+  capBandLabel,
+  citedFacts,
+  citesLine,
+  coverageGroups,
+  coveragePct,
+  factHistoryText,
+  factText,
+  factUnit,
+  factUnitWord,
+  figureRows,
+  fiscalYears,
+  gapStatusWord,
+  gateTally,
+  historyTable,
+  isQualityGood,
+  kpiGapLine,
+  kpiTrail,
+  kpiValueText,
+  monitorChips,
+  partTally,
+  partTitle,
+  qualityGoodCount,
+  REPORT_BAND_LABEL,
+  REPORT_GAP_STATUS_WORDS,
+  REPORT_MARK_GLYPH,
+  REPORT_MARK_WORD,
+  REPORT_STAGES,
+  REPORT_STOP_WORD,
+  REPORT_VIEW_LABEL,
+  reportBenchmark,
+  reportDay,
+  reportFactIndex,
+  reportKeyFigures,
+  reportNumber,
+  reportSector,
+  reportShortName,
+  riskChainSteps,
+  signedChangeText,
+  sparkPoints,
+  typographicMinus,
+} from './manualReport.ts';
+export type {
+  ReportCoverageGroup,
+  ReportCoverageRow,
+  ReportFigureRow,
+  ReportHistoryTable,
+  ReportKeyFigure,
+  ReportStageWords,
+} from './manualReport.ts';
 
 export {
   addMarketDays,
@@ -263,8 +318,10 @@ export {
   marketDateString,
   marketDaysUntil,
   marketMinutesNow,
+  marketSession,
   marketToday,
   nextTradingDay,
+  PRE_OPEN_START,
   SESSION_CLOSE,
   SESSION_OPEN,
 } from './marketHours.ts';

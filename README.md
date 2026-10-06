@@ -112,7 +112,7 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   and `WARMING_UP`), `RegimeRow` (one reading per underlying: spot, the bias figures, the ATM
   straddle and IVs with their changes, expiry, ATM strike, `regime_since`; the internal signal
   fields blank for everyone else), `RegimeSentimentRow`, `RegimeSnapshot`, `RegimeSentiment`,
-  `RegimeDetailMeta` and `RegimeDetail`. `marketApi.getRegimeSnapshot(date?)`,
+  `RegimeDetailMeta` (`lot_size` null when the table does not know the underlying) and `RegimeDetail`. `marketApi.getRegimeSnapshot(date?)`,
   `getRegimeSentiment(date?)`, `getRegimeDetail(symbol, date?)`, `getRegimeMe()` and
   `getRegimeSymbols()` are the `GET /market/regimepulse/*` reads web's `useRegimePulse` makes
   (routes per backend-go `main.go` on dev); `queryKeys.regimePulse` (`snapshot`, `sentiment`,
@@ -123,8 +123,8 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `zBiasRegime`, `clockOf`, `fractionPct` (web's `pctOf`; core's statement rows already export
   that name), `signed`, `signedFixed`, `ivPointsOf`, `breadthCounts`, `regimeDistribution`,
   `hasRegime`, `regimeMap` (rows keyed by underlying), `regimeKey`/`regimeRowFor` (web's
-  `regimeWatch`: a watchlist spelling to the engine's underlying; core's index lists carry no
-  aliases, so only names resolve), and the reading stamp web 993b2ca1 writes inline in its card:
+  `regimeWatch`: a watchlist spelling to the engine's underlying, with web's index aliases —
+  NIFTY50, NIFTYMIDSELECT, NIFTY MID SELECT, NIFTYFINANCE, NIFTY FIN SERVICE), and the reading stamp web 993b2ca1 writes inline in its card:
   `regimeStamp` (live on the row's own day in market hours, else at close) and
   `regimeChangedSince`. The alert, backtest, chain-overlay and replay routes stay for the units
   that draw them.

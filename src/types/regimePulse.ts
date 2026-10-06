@@ -94,7 +94,8 @@ export interface RegimeDetailMeta {
   expiry: string | null;
   atm: number | null;
   strikes: number[];
-  lot_size: number;
+  /** Null for an underlying the lot-size table does not know. */
+  lot_size: number | null;
   bars: number;
   method: RegimeMethod;
   from_cache?: boolean;

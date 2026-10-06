@@ -151,13 +151,23 @@ export const regimeMap = (
   Object.fromEntries((rows ?? []).map(r => [r.underlying, r]));
 
 // Watchlists carry broker spellings and index display names; the engine keys by F&O underlying.
-const INDEX_BY_NAME = new Map(
-  [...NSE_INDICES, ...BSE_INDICES].map(
+// Web's index listings carry these aliases (data/stocks/indices.ts); core's lists do not yet.
+const INDEX_ALIASES: readonly (readonly [alias: string, symbol: string])[] = [
+  ['NIFTY50', 'NIFTY'],
+  ['NIFTYMIDSELECT', 'MIDCPNIFTY'],
+  ['NIFTY MID SELECT', 'MIDCPNIFTY'],
+  ['NIFTYFINANCE', 'FINNIFTY'],
+  ['NIFTY FIN SERVICE', 'FINNIFTY'],
+];
+
+const INDEX_BY_NAME = new Map<string, string>([
+  ...[...NSE_INDICES, ...BSE_INDICES].map(
     index => [index.name.toUpperCase(), index.symbol] as const,
   ),
-);
+  ...INDEX_ALIASES,
+]);
 
-/** The engine's key for a watchlist symbol: "NSE:NIFTY 50" and "NIFTY BANK" → NIFTY / BANKNIFTY. */
+/** The engine's key for a watchlist symbol: "NSE:NIFTY 50", "NIFTY50" and "NIFTY BANK" → NIFTY / NIFTY / BANKNIFTY. */
 export const regimeKey = (symbol: string): string => {
   const bare = (symbol.split(':').pop() ?? '').trim().toUpperCase();
   return INDEX_BY_NAME.get(bare) ?? extractUnderlyingSymbol(bare);

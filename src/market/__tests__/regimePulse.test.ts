@@ -177,6 +177,11 @@ test('the snapshot keys by underlying; a watchlist spelling finds its row, warmi
   assert.deepEqual(Object.keys(map), ['NIFTY', 'BANKNIFTY', 'RELIANCE']);
   assert.equal(regimeKey('NSE:NIFTY 50'), 'NIFTY');
   assert.equal(regimeKey('NIFTY BANK'), 'BANKNIFTY');
+  assert.equal(regimeKey('NIFTY50'), 'NIFTY');
+  assert.equal(regimeKey('NSE:NIFTYMIDSELECT'), 'MIDCPNIFTY');
+  assert.equal(regimeKey('NIFTY MID SELECT'), 'MIDCPNIFTY');
+  assert.equal(regimeKey('NIFTYFINANCE'), 'FINNIFTY');
+  assert.equal(regimeKey('NIFTY FIN SERVICE'), 'FINNIFTY');
   assert.equal(regimeKey('RELIANCE-EQ'), 'RELIANCE');
   assert.equal(regimeKey('reliance'), 'RELIANCE');
   assert.equal(regimeRowFor(map, 'NIFTY 50')?.regime, 'BULLISH');

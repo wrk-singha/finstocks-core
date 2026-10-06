@@ -272,12 +272,19 @@ const compact = (value: number): string => {
   return formatNumber(value, 0);
 };
 
-function formatFigure(value: number, unit: ScreenUnit): string {
-  switch (unit) {
+// A move reads to two decimals, so +0.42% is not shown as 0.4%; any other percentage reads to one,
+// and a figure of 100 or more to none (web 6414e7a6).
+const pctDecimals = (value: number, field: ScreenField): number => {
+  if (Math.abs(value) >= 100) return 0;
+  return isSignedField(field) ? 2 : 1;
+};
+
+function formatFigure(value: number, field: ScreenField): string {
+  switch (field.unit) {
     case 'crore':
       return formatNumber(value, Math.abs(value) >= 1000 ? 0 : 2);
     case 'pct':
-      return `${formatNumber(value, Math.abs(value) >= 100 ? 0 : 1)}${UNIT_SUFFIX.pct}`;
+      return `${formatNumber(value, pctDecimals(value, field))}${UNIT_SUFFIX.pct}`;
     case 'rupees':
       return formatNumber(value, Math.abs(value) >= 1000 ? 0 : 2);
     case 'shares':
@@ -308,7 +315,7 @@ export function fieldValueParts(
   if (!field) return {kind: 'figure', text: formatNumber(value, 2)};
   if (field.kind === 'flag') return {kind: 'flag', value: value === 1};
   if (field.kind === 'pattern') return {kind: 'pattern', barsAgo: value};
-  return {kind: 'figure', text: formatFigure(value, field.unit)};
+  return {kind: 'figure', text: formatFigure(value, field)};
 }
 
 /** One cell. A figure the company has no value for reads as a dash, never 0.

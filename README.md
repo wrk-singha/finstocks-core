@@ -174,6 +174,9 @@ before, width?)` (the picked width, else the middle one; both curves area-normal
   `formatChartLongDate(ms, intraday)` ("12 Mar 2026, 10:15", IST). `GraphDataQuery` gains
   `page` (`GraphDataPage`: `to`, Unix seconds, and `count`), sent as `to`/`count` — minute paging
   backend-go serves on `feat/chart-parity`; a backend without it answers the plain period.
+  The screener's percentage cells follow web main 6414e7a6: a move (`isSignedField`: returns,
+  1D %, gap, distance from the 52-week high and low) reads to two decimals, any other percentage
+  to one, and a figure of 100 or more to none.
 - **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a

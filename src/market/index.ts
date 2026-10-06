@@ -150,7 +150,26 @@ export {
   upsertCustomIndicator,
 } from './customIndicators.ts';
 
-export {yearsBetween} from './basketBacktest.ts';
+export {
+  dailyReturns,
+  equityCurve,
+  monteCarlo,
+  monthlyReturns,
+  picksByReview,
+  summarize,
+  TRADING_DAYS_PER_YEAR,
+  yearlyReturns,
+  yearsBetween,
+} from './basketBacktest.ts';
+export type {
+  BacktestSummary,
+  CurvePoint,
+  MonteCarloBand,
+  MonthCell as BasketMonthCell,
+  PeriodReturn,
+} from './basketBacktest.ts';
+export {basketCharges} from './basketCharges.ts';
+export type {BasketCharges} from './basketCharges.ts';
 export {
   awaitingFirstOrders,
   basketHeadline,

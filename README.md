@@ -74,7 +74,15 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   else the primary backtest), `navSummary`, `trackingStart`, `planBasketBuy` and
   `subscriptionStatusLabel`. Web's `periodLabel` / `periodsLabel` are `reviewPeriodLabel` /
   `reviewPeriodsLabel` here, because fundamentals already exports a `periodLabel` for a filed
-  statement. `yearsBetween` opens `market/basketBacktest`.
+  statement. `market/basketBacktest` is web's `utils/market/basketBacktest.ts` as it is:
+  `equityCurve`, `dailyReturns`, `yearlyReturns`, `monthlyReturns`, `summarize` (final multiple,
+  annual return once a year is on record, worst trough and its day, Sharpe at a 0% risk-free
+  rate, win rate by review), `monteCarlo` (seeded, so the band holds still) and `picksByReview`;
+  `market/basketCharges` replays a backtest's trades at a capital on a broker's published rates
+  (`basketCharges`). To carry it, `trading/orderCharges` gains web's `ChargeTotals`, `NO_CHARGES`,
+  `addCharges`, `chargeGroups` and the `ChargesBreakdown` that `OrderChargesEstimate` now
+  extends; `estimateOrderCharges` is unchanged in what it returns. `format` gains
+  `signedFractionPct` (0.042 → "+4.2%") and `MONTH_SHORT_NAMES`.
 - **v0.8.3** — the screener's ESF prebuilt screens; additive only. `PrebuiltScreen` gains an
   optional `sort` (`{key, dir}`), and `PREBUILT_SCREENS` opens with web's seven FinStocks Score
   screens (`esf-leaders`, `esf-growth-leaders`, `esf-big-money`, `esf-ready-to-rise`,

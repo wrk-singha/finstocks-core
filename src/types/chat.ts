@@ -1,8 +1,8 @@
 import type {BacktestSetup} from './backtest.ts';
 import type {ChartPlan} from './chartPlan.ts';
 import type {ChatCard} from './chatCards.ts';
-import type {StrategyLog} from './strategyLogs.ts';
-import type {Strategy} from './trade.ts';
+import type {StrategyLog, StrategyLogRow} from './strategyLogs.ts';
+import type {Strategy, StrategyRow} from './trade.ts';
 
 /**
  * Union of the two apps' chat contracts (drift resolved 2026-09-13). The mobile copy is the
@@ -92,9 +92,22 @@ export interface getChatByIdRequest {
   id: string;
 }
 
+/**
+ * A chat as GET /chats/{id} serves it (backend-go handlers/chat/getbyid.go `chatWithSource`). A
+ * forked chat's copied messages still name the sharer's strategies, which stay with the sharer:
+ * the backtests among them come back here as a read-only snapshot, in is-alive's row shape, with
+ * every log row they have. Only another owner's rows count, and only those named by a message the
+ * owner shared that this chat holds verbatim. Both fields are left out when there are none, and by
+ * a backend that predates them.
+ */
+export interface ChatWithSource extends ChatWithMessages {
+  source_strategies?: StrategyRow[];
+  source_strategy_logs?: StrategyLogRow[];
+}
+
 // drift resolved 2026-09-13: web inlined a looser shape (`role: string`, no tool_calls);
 // mobile's `ChatWithMessages` is the same rows typed precisely, so it wins.
-export type getChatByIdResponse = ChatWithMessages;
+export type getChatByIdResponse = ChatWithSource;
 
 export interface deleteChatRequest {
   id: string;

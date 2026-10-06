@@ -89,7 +89,17 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `sortLibrary`, `nextLibrarySort`, `viewLibrary`, `presentValues`, `scopeLibrary`). Every sort
   keeps reference strategies after the deployable ones. `deriveChatTitle` now strips hidden
   `[<…>]` markers, as web's does, so a library chat's title never shows one; a no-op for every
-  message that carries none.
+  message that carries none. And the RS Sector Matrix (web dev
+  `src/components/pages/markets/rssectormatrix`, backend dev `GET /market/rs-sector-matrix` and
+  `/pair`): the `RsSectorMatrix` / `RsPair` types, `marketApi.getRsSectorMatrix(box?)` /
+  `getRsSectorPair(row, col, box?)`, `queryKeys.market.rsSectorMatrix` / `rsSectorPair`, and web's
+  reading of the answer in `@finstocks/core/market` — `indexName`, `resultsAt`, `splitResults`,
+  `lossesAt`, `beatingBenchmark`, `rsShortLabel`, `resolvePair` / `pickRow` (how a `?rs=&vs=` link
+  settles against the data), the P&F chart geometry in log boxes (`pfSpans`, `pfExtent`,
+  `pfLastColumnBoxes`, `pfRatioChange`), `RS_BOXES`, `RS_DEFAULT_BOX`, `RS_TOP_N`. Nothing here
+  computes P&F; the backend does. The link into the section is `sectorStrengthPath(pair?)` /
+  `parseSectorStrengthPath(path)` (`/market?rs=A&vs=B#sector-strength`), so a chat button and
+  both apps spell it once.
 - **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena
   script ("C") strategies (backend feat/athena-integration), whose `budget_config` is the engine's
   `{val, type, allocate}` with no `mode`, and which carry no `fsm`; `deriveStrategyCards` threw on

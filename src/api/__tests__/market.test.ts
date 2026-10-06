@@ -514,3 +514,21 @@ test('a vocabulary with null lists arrives with empty ones', async () => {
     patterns: [{...doji, aliases: []}],
   });
 });
+
+test('the RS sector matrix and one pair, the box only when given', async () => {
+  const {http, calls} = fakeHttp();
+  const api = marketApi(http);
+  await api.getRsSectorMatrix();
+  await api.getRsSectorMatrix(0.5);
+  await api.getRsSectorPair('NIFTYIT', 'NIFTY');
+  await api.getRsSectorPair('NIFTYIT', 'NIFTY', 1);
+  assert.deepEqual(
+    calls.map(c => c.path),
+    [
+      '/market/rs-sector-matrix',
+      '/market/rs-sector-matrix?box=0.5',
+      '/market/rs-sector-matrix/pair?row=NIFTYIT&col=NIFTY',
+      '/market/rs-sector-matrix/pair?box=1&row=NIFTYIT&col=NIFTY',
+    ],
+  );
+});

@@ -392,6 +392,16 @@ export const queryKeys = {
     /** ["pattern-vocab"] — every pattern the scanner answers: the registry compiled into the
      *  backend, the same for every symbol and day, so it is fetched once and kept. */
     patternVocab: () => ['pattern-vocab'],
+    /** ["rs-sector-matrix", box] — the sector ranking at one box size, as web keys it. */
+    rsSectorMatrix: (box: number) => ['rs-sector-matrix', box],
+    /** ["rs-sector-matrix", "pair", box, row, col] — one pair's P&F columns, as web keys it. */
+    rsSectorPair: (box: number, row: string, col: string) => [
+      'rs-sector-matrix',
+      'pair',
+      box,
+      row,
+      col,
+    ],
   },
 
   fno: {

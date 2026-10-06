@@ -71,6 +71,7 @@ import type {
   RelatedPartyRow,
   RelatedPartyTxnRow,
 } from '../types/relatedParty.ts';
+import type {RsPair, RsSectorMatrix} from '../types/rsSectorMatrix.ts';
 import type {
   ScreenCatalog,
   ScreenRequest,
@@ -650,6 +651,20 @@ export const marketApi = (http: HttpClient) => ({
 
   getMarketDepth: (symbol: string) =>
     http.request<MarketDepth>(`/market/depth${query({symbol})}`),
+
+  /**
+   * RS Sector Matrix (backend `dev`, handlers/rssectormatrix): every catalogue index ranked by how
+   * many others it is beating on a Point & Figure chart of their price ratio, at one box size
+   * (a percentage of the ratio, 0.05 to 10; the server's default is 0.25).
+   */
+  getRsSectorMatrix: (box?: number) =>
+    http.request<RsSectorMatrix>(`/market/rs-sector-matrix${query({box})}`),
+
+  /** One pair's P&F columns. 400 when row and col are the same, 404 when either has no current price. */
+  getRsSectorPair: (row: string, col: string, box?: number) =>
+    http.request<RsPair>(
+      `/market/rs-sector-matrix/pair${query({box, row, col})}`,
+    ),
 
   getScreenerStocks: (filters?: ScreenerStocksQuery) =>
     http.request<ScreenerStocksResponse>(

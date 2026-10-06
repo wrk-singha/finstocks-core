@@ -20,3 +20,17 @@ test('the library keys as web does', () => {
     'krishna',
   ]);
 });
+
+test('the sector matrix and its pair key as web does', () => {
+  assert.deepEqual(queryKeys.market.rsSectorMatrix(0.25), [
+    'rs-sector-matrix',
+    0.25,
+  ]);
+  assert.deepEqual(queryKeys.market.rsSectorPair(0.25, 'NIFTYIT', 'NIFTY'), [
+    'rs-sector-matrix',
+    'pair',
+    0.25,
+    'NIFTYIT',
+    'NIFTY',
+  ]);
+});

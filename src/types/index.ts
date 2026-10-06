@@ -34,6 +34,7 @@ export type * from './patternScan.ts';
 export type * from './portfolioAnalysis.ts';
 export type * from './portfolioSim.ts';
 export type * from './relatedParty.ts';
+export type * from './rsSectorMatrix.ts';
 export type * from './savedAlert.ts';
 export type * from './screen.ts';
 export type * from './screener.ts';

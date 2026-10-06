@@ -63,6 +63,48 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **Unreleased** — the C strategy cards' run (web `feat/athena-integration` 0bc7e131); additive
+  only. A chat plan card whose `terms.script_entry` is `"evaluate_v2"` with a `script` and
+  `script_hash` is a C strategy card: its rules are its code, and it runs only through the
+  backend's `POST /trading/strategy-action`, never create-backtest (which has no FSM to send for
+  it, or an FSM that is not its code). `BacktestSetupTerms` gains `script_entry`, `strategy_id`
+  and `backtest_id`; `strategy/strategySetupConfig` gains `SCRIPT_ENTRY_C`, `scriptRunOf(terms)`
+  (the card's `ScriptRun` — code, hash and the saved rows — or null) and `isScriptCard(setup)`.
+  `tradingApi.strategyAction(body, idempotencyKey)` sends `StrategyActionRequest`: the
+  `RunSettings` (create-backtest's fields less `is_backtest`, `is_mock`, `fsm`) plus `action`
+  (`StrategyAction`: `backtest`, `deploy`, `deploy_live`, `replace`), `script`, `script_hash`,
+  `strategy_id?`, `backtest_id?`, `expected_compile_hash?`; 200 is `StrategyActionResponse`
+  (create-backtest's). `deploy` and `deploy_live` activate the same row (only `is_mock` flips),
+  so a live deploy of a paper run turns it live keeping its history; `replace` swaps live code
+  from the next candle, keeping positions, and is sent only after the 409 that asked for it.
+  `strategy/strategyAction` holds `STRATEGY_ACTION_BY_KIND` and `scriptAction(kind, settings,
+script)` (a run option as its request, ids omitted when the card has none), `replaceAction(
+request, compileHash)` (the same request as a replace of the version named, the card's own
+  `script_hash` kept) and `strategyActionRefusal(error, fallback)`, which reads a failed call on
+  either host's error shape: `{kind: 'replace', message, compileHash, liveName?}` for the 409
+  with `needs: "replace"` (nothing changed; `message` is the backend's confirm), `{kind:
+'refused', message}` for a 400 (the settings; QTY and RISK_PERCENT sizing; PERCENT with no
+  capital), 403, 404, a 409 asking for no replace, 412, 422, any other 4xx, and the handler's own
+  503 ("Running C strategies is not enabled yet"), in the backend's words, `{kind: 'unavailable',
+message}` only for the handler's own 500 ("Could not verify your broker connection", answered
+  before anything is asked of Athena), and null for every other 5xx — the handler's 502 words any
+  Athena failure, a reply lost after the strategy was activated included — and for a timeout, the
+  network or anything without a status: the request may have been carried out, so a host re-reads
+  rather than resends. `strategyActionTouches()` lists what such a call changes:
+  the books (`status.all()`) and every strategy's logs (`['strategyLogs']`). A status below 400 (a
+  2xx whose body could not be read) is also null. `strategyActionSettleMs(action)` is how long
+  after the send the outcome is settled — every Athena call the backend makes for it answered or
+  timed out (`ATHENA_CALL_TIMEOUT_MS`, the backend's default `ATHENA_TIMEOUT_SECONDS` of 15, times
+  one call for a deploy or a replace and three for a backtest, plus 15 s): 30 s, or 60 s for a
+  backtest; a book read begun that long after the send that still lacks the row says the request
+  did not go through. `strategy/scriptDeployId` names the row a card's deploy goes to when the card names none:
+  `scriptDeployId({messageId, cardKey, kind})` is a UUID version 5 (`uuidV5`, a pure SHA-1, in
+  `SCRIPT_DEPLOY_NAMESPACE`) — the same for every attempt of that card and kind, on any device and
+  after a relaunch, so a resend can only activate that row again (the backend activates the id it
+  is sent, an upsert; sent none, it makes a new row every time). `cardKey` is the card's place among
+  the message's plan cards (backtest and strategies), which the backend's link never reorders. The
+  chat and the code are not part of it: the message id is a UUID, and a card whose code changes in
+  place deploys to its own row, where a different live version meets the replace prompt.
 - **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a

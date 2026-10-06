@@ -41,3 +41,28 @@ test('a manual page keys on its slug', () => {
     'banking-field-manual',
   ]);
 });
+
+test('the options regime keys as web does: no date is "latest"', () => {
+  assert.deepEqual(queryKeys.regimePulse.snapshot(), [
+    'regimepulse',
+    'snapshot',
+    'latest',
+  ]);
+  assert.deepEqual(queryKeys.regimePulse.snapshot('2026-10-06'), [
+    'regimepulse',
+    'snapshot',
+    '2026-10-06',
+  ]);
+  assert.deepEqual(queryKeys.regimePulse.detail('NIFTY'), [
+    'regimepulse',
+    'detail',
+    'NIFTY',
+    'latest',
+  ]);
+  assert.deepEqual(queryKeys.regimePulse.sentiment(), [
+    'regimepulse',
+    'sentiment',
+    'latest',
+  ]);
+  assert.deepEqual(queryKeys.regimePulse.me(), ['regimepulse', 'me']);
+});

@@ -630,6 +630,31 @@ export {
 export type {PfSpan, RsResult} from './rsSectorMatrix.ts';
 
 export {
+  breadthCounts,
+  clockOf,
+  hasRegime,
+  isBearish,
+  isBullish,
+  fractionPct,
+  ivPointsOf,
+  REGIME_LABEL,
+  REGIME_ORDER,
+  REGIME_READING,
+  REGIME_SHORT,
+  regimeChangedSince,
+  regimeDistribution,
+  regimeKey,
+  regimeMap,
+  regimeRowFor,
+  regimeStamp,
+  regimeTone,
+  signed,
+  signedFixed,
+  zBiasRegime,
+} from './regimePulse.ts';
+export type {RegimeLean, RegimeStamp, RegimeTone} from './regimePulse.ts';
+
+export {
   parseSectorStrengthPath,
   SECTOR_STRENGTH_ANCHOR,
   sectorStrengthPath,

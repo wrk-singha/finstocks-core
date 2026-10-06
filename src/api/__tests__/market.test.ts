@@ -532,3 +532,27 @@ test('the RS sector matrix and one pair, the box only when given', async () => {
     ],
   );
 });
+
+test('the options regime reads: a missing date asks for the newest day', async () => {
+  const {http, calls} = fakeHttp();
+  const api = marketApi(http);
+  await api.getRegimeSnapshot();
+  await api.getRegimeSnapshot('2026-10-06');
+  await api.getRegimeSentiment();
+  await api.getRegimeDetail('NIFTY');
+  await api.getRegimeDetail('M&M', '2026-10-06');
+  await api.getRegimeMe();
+  await api.getRegimeSymbols();
+  assert.deepEqual(
+    calls.map(c => c.path),
+    [
+      '/market/regimepulse/snapshot',
+      '/market/regimepulse/snapshot?date=2026-10-06',
+      '/market/regimepulse/sentiment',
+      '/market/regimepulse/detail?symbol=NIFTY',
+      '/market/regimepulse/detail?symbol=M%26M&date=2026-10-06',
+      '/market/regimepulse/me',
+      '/market/regimepulse/symbols',
+    ],
+  );
+});

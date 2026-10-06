@@ -71,6 +71,11 @@ import type {
   RelatedPartyRow,
   RelatedPartyTxnRow,
 } from '../types/relatedParty.ts';
+import type {
+  RegimeDetail,
+  RegimeSentiment,
+  RegimeSnapshot,
+} from '../types/regimePulse.ts';
 import type {RsPair, RsSectorMatrix} from '../types/rsSectorMatrix.ts';
 import type {
   ScreenCatalog,
@@ -665,6 +670,35 @@ export const marketApi = (http: HttpClient) => ({
     http.request<RsPair>(
       `/market/rs-sector-matrix/pair${query({box, row, col})}`,
     ),
+
+  /**
+   * The options regime (backend `dev`, handlers/regimepulse): the latest reading of every scored
+   * underlying, one request for a whole screen of chips. Without a `date` (YYYY-MM-DD) the newest
+   * stored trading day answers; before the engine has stored anything the rows are `[]`.
+   */
+  getRegimeSnapshot: (date?: string) =>
+    http.request<RegimeSnapshot>(
+      `/market/regimepulse/snapshot${query({date})}`,
+    ),
+
+  /** How many underlyings sit in each regime through the session. */
+  getRegimeSentiment: (date?: string) =>
+    http.request<RegimeSentiment>(
+      `/market/regimepulse/sentiment${query({date})}`,
+    ),
+
+  /** One underlying's readings through the session, oldest first, with its strikes and ATM. */
+  getRegimeDetail: (symbol: string, date?: string) =>
+    http.request<RegimeDetail>(
+      `/market/regimepulse/detail${query({symbol, date})}`,
+    ),
+
+  /** Whether the account sees the internal signals the snapshot otherwise blanks. */
+  getRegimeMe: () =>
+    http.request<{internal: boolean}>('/market/regimepulse/me'),
+
+  /** The underlyings the engine scores. */
+  getRegimeSymbols: () => http.request<string[]>('/market/regimepulse/symbols'),
 
   getScreenerStocks: (filters?: ScreenerStocksQuery) =>
     http.request<ScreenerStocksResponse>(

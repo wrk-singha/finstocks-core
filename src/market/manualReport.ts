@@ -80,6 +80,11 @@ export const REPORT_GAP_STATUS_WORDS: Readonly<
   F: 'Not disclosed; estimate',
 };
 
+/** The words for a gap's status; a status the table does not know reads as itself. */
+export const gapStatusWord = (status: string): string =>
+  (REPORT_GAP_STATUS_WORDS as Partial<Record<string, string>>)[status] ??
+  status;
+
 const REPORT_MONTHS = [
   'Jan',
   'Feb',

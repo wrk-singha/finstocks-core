@@ -90,7 +90,10 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   (`reportFactIndex`, `citedFacts`, `citesLine`, `kpiGapLine`, `kpiTrail`), the tables
   (`historyTable`, `coverageGroups`, `fiscalYears`, `figureRows`), the summary strip
   (`reportKeyFigures`), the gate tally (`gateTally`), `coveragePct`, `partTitle`, `partTally`,
-  `qualityGoodCount`, `monitorChips`, `riskChainSteps` and `sparkPoints`. Web's
+  `qualityGoodCount`, `monitorChips`, `riskChainSteps`, `sparkPoints` and `gapStatusWord` (a status
+  the table does not know reads as itself). A KPI's `value`, the stage's `ma200_slope_pct` and
+  `volume_ratio`, and the cap's `mcap_cr` are `number | null` and optional, as the wire can leave
+  them: a host reads null as absent. Web's
   `utils/market/manualReport.ts` (localStorage for the page's new tab) stays in web.
 - **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the

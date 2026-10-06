@@ -16,9 +16,11 @@ import {
   factUnitWord,
   figureRows,
   fiscalYears,
+  gapStatusWord,
   gateTally,
   historyTable,
   kpiGapLine,
+  kpiTrail,
   kpiValueText,
   monitorChips,
   partTally,
@@ -384,6 +386,24 @@ test('the gate tally, the parts and the note’s small lists read as the page st
   assert.deepEqual(
     riskChainSteps('Oil falls → Margins compress → Capex slows'),
     ['Oil falls', 'Margins compress', 'Capex slows'],
+  );
+});
+
+test('a gap status reads as its words, or as itself when unknown', () => {
+  assert.equal(gapStatusWord('B'), 'Exchange filings, not yet read');
+  assert.equal(gapStatusWord('Z'), 'Z');
+});
+
+test('a null key metric value is absent: not computed, not covered', () => {
+  const nulled = REPORT.scorecard.map(kpi => ({...kpi, value: null}));
+  assert.deepEqual(
+    nulled.map(kpi => kpiTrail(reportFactIndex(FACTS), kpi)),
+    [[], []],
+  );
+  const groups = coverageGroups({...REPORT, scorecard: nulled});
+  assert.deepEqual(
+    groups.flatMap(group => group.rows.map(row => row.have)),
+    ['', 'Served', '', ''],
   );
 });
 

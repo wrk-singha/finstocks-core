@@ -270,6 +270,7 @@ export {
   factUnitWord,
   figureRows,
   fiscalYears,
+  gapStatusWord,
   gateTally,
   historyTable,
   isQualityGood,

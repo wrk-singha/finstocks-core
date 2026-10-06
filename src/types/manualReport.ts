@@ -36,7 +36,8 @@ export interface ReportKpi extends ReportItem {
   good: string;
   warn: string;
   why: string;
-  value?: number;
+  /** Absent or null when our data cannot compute it; the gap says why. */
+  value?: number | null;
   unit?: string;
   period?: string;
   history?: ReportHistoryPoint[];
@@ -61,8 +62,8 @@ export interface StageResult {
   ma200: number;
   conditions: {name: string; met: boolean}[];
   name?: string;
-  ma200_slope_pct?: number;
-  volume_ratio?: number;
+  ma200_slope_pct?: number | null;
+  volume_ratio?: number | null;
   rs?: {change_pct: number; rising: boolean} | null;
 }
 
@@ -81,7 +82,8 @@ export interface ReportCap {
   band: ReportCapBand;
   rank: number | null;
   ranked_of: number | null;
-  mcap_cr: number | null;
+  /** Null, or left off, when the list does not carry the company. */
+  mcap_cr?: number | null;
   as_of: string;
   rule: string;
   overlay?: string;

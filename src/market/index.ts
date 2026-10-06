@@ -655,6 +655,16 @@ export {
 export type {RegimeLean, RegimeStamp, RegimeTone} from './regimePulse.ts';
 
 export {
+  filterRegimeRows,
+  REGIME_DEFAULT_SORT,
+  REGIME_SORT_KEYS,
+  regimeScannerStatus,
+  regimeSortStartsDescending,
+  sortRegimeRows,
+} from './regimeScanner.ts';
+export type {RegimeScannerStatus, RegimeSortKey} from './regimeScanner.ts';
+
+export {
   callWallSide,
   DIRECTION_LABEL,
   DIRECTION_ORDER,

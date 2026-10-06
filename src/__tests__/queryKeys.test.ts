@@ -65,6 +65,7 @@ test('the options regime keys as web does: no date is "latest"', () => {
     'latest',
   ]);
   assert.deepEqual(queryKeys.regimePulse.me(), ['regimepulse', 'me']);
+  assert.deepEqual(queryKeys.regimePulse.dates(), ['regimepulse', 'dates']);
 });
 
 test('the option levels key by expiry rank and screen request as web does', () => {

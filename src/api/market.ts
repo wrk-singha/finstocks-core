@@ -78,6 +78,7 @@ import type {
   FlyoneSnapshot,
 } from '../types/flyone.ts';
 import type {
+  RegimeDates,
   RegimeDetail,
   RegimeSentiment,
   RegimeSnapshot,
@@ -692,6 +693,9 @@ export const marketApi = (http: HttpClient) => ({
     http.request<RegimeSentiment>(
       `/market/regimepulse/sentiment${query({date})}`,
     ),
+
+  /** The trading days the engine has stored, newest first: the days a scanner can replay. */
+  getRegimeDates: () => http.request<RegimeDates>('/market/regimepulse/dates'),
 
   /** One underlying's readings through the session, oldest first, with its strikes and ATM. */
   getRegimeDetail: (symbol: string, date?: string) =>

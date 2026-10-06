@@ -104,6 +104,9 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `RsSectorMatrix` itself (carried, not fetched again, so card and answer agree in an old
   transcript too), `focus`, `highlight`, the `pair` asked about or null, `source`, and `method`
   (how the standings are worked out, in plain words; absent on older messages).
+  `{type: 'market_profile'; payload: MarketProfileCardPayload}` — the profiles as read, one per
+  instrument (`name`, web's `page` path, the `ProfileSnapshot` and its `source` line), and
+  `horizon` (`intraday` / `swing` / `both`), which setups the question was about.
 - **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
   backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,

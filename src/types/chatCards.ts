@@ -2,6 +2,7 @@ import type {BacktestSetup, BacktestSweep, StrategySetup} from './backtest.ts';
 import type {CustomIndicatorDraft} from './customIndicator.ts';
 import type {DataTablePayload} from './dataTable.ts';
 import type {ManualReportPayload} from './manualReport.ts';
+import type {ProfileSnapshot} from './marketProfile.ts';
 import type {
   DepthInterpretation,
   DepthLevel,
@@ -30,6 +31,21 @@ export interface SectorsCardPayload {
   source: string;
   /** How the standings are worked out, in plain words; web shows it on hover over `source`. Absent on older messages. */
   method?: string;
+}
+
+/**
+ * The market profiles a market-profile answer was written from (llm graph/nodes/market_profile/
+ * node.py `_card`): one per instrument, as read, with `source` the code-built line saying which
+ * session and when. `horizon` is which setups the question was about.
+ */
+export interface MarketProfileCardPayload {
+  horizon: 'intraday' | 'swing' | 'both';
+  profiles: {
+    name: string;
+    page: string;
+    profile: ProfileSnapshot;
+    source: string;
+  }[];
 }
 
 /**
@@ -140,6 +156,8 @@ export type ChatCard =
   | {type: 'depth'; payload: {books: DepthCardBook[]}}
   /** The sector reading a sectors answer is written from. */
   | {type: 'sectors'; payload: SectorsCardPayload}
+  /** The market profiles a market-profile answer is written from. */
+  | {type: 'market_profile'; payload: MarketProfileCardPayload}
   /**
    * An order the assistant read off the user's instruction. It does NOT place anything: the
    * ticket renders pre-filled and the user confirms it there, through the same path as every

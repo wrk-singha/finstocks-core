@@ -7,6 +7,7 @@ import {
   replaceAction,
   scriptAction,
   strategyActionRefusal,
+  strategyActionSettleMs,
 } from '../strategyAction.ts';
 
 const settings: RunSettings = {
@@ -171,6 +172,21 @@ test('any other 5xx is no answer: a 502 can be a reply lost after Athena activat
     null,
   );
   assert.equal(strategyActionRefusal(axiosError(500, null), 'x'), null);
+});
+
+test('a 2xx whose body could not be read is no answer: the action may well have run', () => {
+  assert.equal(
+    strategyActionRefusal(mobileError(200, null, 'malformed'), 'x'),
+    null,
+  );
+  assert.equal(strategyActionRefusal(axiosError(302, null), 'x'), null);
+});
+
+test('the settle window covers every Athena call an action makes, with slack', () => {
+  assert.equal(strategyActionSettleMs('deploy'), 30_000);
+  assert.equal(strategyActionSettleMs('deploy_live'), 30_000);
+  assert.equal(strategyActionSettleMs('replace'), 30_000);
+  assert.equal(strategyActionSettleMs('backtest'), 60_000);
 });
 
 test('a timeout, the network, a gateway or anything without a status is no answer at all', () => {

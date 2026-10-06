@@ -91,7 +91,17 @@ message}` only for the handler's own 500 ("Could not verify your broker connecti
   Athena failure, a reply lost after the strategy was activated included — and for a timeout, the
   network or anything without a status: the request may have been carried out, so a host re-reads
   rather than resends. `strategyActionTouches()` lists what such a call changes:
-  the books (`status.all()`) and every strategy's logs (`['strategyLogs']`).
+  the books (`status.all()`) and every strategy's logs (`['strategyLogs']`). A status below 400 (a
+  2xx whose body could not be read) is also null. `strategyActionSettleMs(action)` is how long
+  after the send the outcome is settled — every Athena call the backend makes for it answered or
+  timed out (`ATHENA_CALL_TIMEOUT_MS`, the backend's default `ATHENA_TIMEOUT_SECONDS` of 15, times
+  one call for a deploy or a replace and three for a backtest, plus 15 s): 30 s, or 60 s for a
+  backtest; a book read begun that long after the send that still lacks the row says the request
+  did not go through. `strategy/scriptDeployId` names the row a card's deploy goes to when the card
+  names none: `scriptDeployId({chatId, messageId, cardKey, kind, scriptHash})` is a UUID version 5
+  (`uuidV5`, a pure SHA-1, in `SCRIPT_DEPLOY_NAMESPACE`) — the same for every attempt of that card
+  and kind, on any device and after a relaunch, so a resend can only activate that row again (the
+  backend activates the id it is sent, an upsert; sent none, it makes a new row every time).
 - **v0.8.3** — an IST date-and-time stamp keeps its clock on iOS. Hermes on iOS formats a format
   that asks for both a date and a clock as "7 Oct at 11:05 AM" and types the hour, minute and AM/PM
   as plain literals, so `istDateTimeParts` (and with it `formatShortDateTime`,

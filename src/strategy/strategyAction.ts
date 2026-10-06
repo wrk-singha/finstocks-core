@@ -100,7 +100,8 @@ const failureOf = (error: unknown): Partial<StrategyActionFailure> => {
 
 /**
  * Reads a failed `tradingApi.strategyAction` call. Null is the answer that is no answer: a
- * timeout, the network, or anything thrown without a status. The request may then have been
+ * timeout, the network, anything thrown without a status or with one below 400 (a 2xx whose
+ * body could not be read). The request may then have been
  * carried out — a deploy activated, a backtest queued — so a host says so, re-reads the books,
  * and never sends it again by itself.
  */
@@ -109,7 +110,9 @@ export function strategyActionRefusal(
   fallback: string,
 ): StrategyActionRefusal | null {
   const status = statusOf(error);
-  if (status === undefined || status <= 0) return null;
+  // Below 400 is no refusal: a 2xx whose body could not be read, or a redirect, means the action
+  // may well have run.
+  if (status === undefined || status < 400) return null;
   const message = getApiErrorMessage(error, fallback);
   const failure = failureOf(error);
   if (status >= 500) {
@@ -134,3 +137,32 @@ export function strategyActionRefusal(
   }
   return {kind: 'refused', message};
 }
+
+/**
+ * The backend's own timeout on each call it makes to Athena: `ATHENA_TIMEOUT_SECONDS`, 15 by
+ * default (backend-go `internal/config`, `athena.New`). Configurable there, so this is its
+ * default, not a promise.
+ */
+export const ATHENA_CALL_TIMEOUT_MS = 15_000;
+
+// The most Athena calls one action makes in turn (`strategyaction.go`): a deploy or a replace
+// makes one (`Activate`, `Replace`); a backtest up to three (`Get`, then `Patch` and `Activate`,
+// or `Backtest` and an `Activate` of a row it could not queue).
+const ATHENA_CALLS: Readonly<Record<StrategyAction, number>> = {
+  backtest: 3,
+  deploy: 1,
+  deploy_live: 1,
+  replace: 1,
+};
+
+// For the request's way to the backend and the handler's own checks before its first Athena call.
+const SETTLE_SLACK_MS = 15_000;
+
+/**
+ * How long after a strategy-action was sent its outcome is settled one way or the other: by then
+ * every Athena call the backend made for it has answered or timed out. A request that got no
+ * answer and whose row a book read BEGUN this long after the send still does not show did not go
+ * through; one begun earlier proves nothing.
+ */
+export const strategyActionSettleMs = (action: StrategyAction): number =>
+  ATHENA_CALLS[action] * ATHENA_CALL_TIMEOUT_MS + SETTLE_SLACK_MS;

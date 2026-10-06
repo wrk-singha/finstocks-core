@@ -2,6 +2,10 @@ import type {
   ScreenerStrategiesResponse,
   ScreenerStrategyDetailResponse,
 } from '../types/screener.ts';
+import type {
+  StrategyLibraryDetailResponse,
+  StrategyLibraryResponse,
+} from '../types/strategyLibrary.ts';
 import type {HttpClient} from './http.ts';
 import {query} from './http.ts';
 
@@ -38,6 +42,16 @@ export const templatesApi = (http: HttpClient) => ({
   getScreenerStrategyDetail: (id: number, timeframe: string, year: number) =>
     http.request<ScreenerStrategyDetailResponse>(
       `/templates/screener-strategies/${id}${query({timeframe, year})}`,
+    ),
+
+  /** The black-box strategy library, whole, in one response (backend `dev`). */
+  getStrategyLibrary: () =>
+    http.request<StrategyLibraryResponse>('/templates/strategy-library'),
+
+  /** One library strategy; `backtest` is null until results exist. 404 for an unknown id. */
+  getStrategyLibraryDetail: (id: string) =>
+    http.request<StrategyLibraryDetailResponse>(
+      `/templates/strategy-library/${encodeURIComponent(id)}`,
     ),
 });
 

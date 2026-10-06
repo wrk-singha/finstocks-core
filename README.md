@@ -106,7 +106,37 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `regime-rangebound-melting`, RegimePulse 48a081d5) on the `regime_*` fields, which likewise exist
   only on the backend's `dev` catalogue; they carry no sort. `pruneScreen` now also checks the
   sort: a key the catalogue does not serve (other than `name`) falls back to `EMPTY_SCREEN.sort`,
-  so a link from a richer catalogue cannot leave a dead sort behind.
+  so a link from a richer catalogue cannot leave a dead sort behind. Also the black-box strategy
+  library (web dev `src/interfaces/strategyLibrary.ts`, backend dev `GET
+/templates/strategy-library` and `/{id}`): the `LibraryStrategy` types,
+  `templatesApi.getStrategyLibrary` / `getStrategyLibraryDetail`, `queryKeys.strategyLibrary` /
+  `strategyLibraryDetail`, and web's reading of it in `@finstocks/core/strategy` — the labels,
+  the six-step SEBI risk scale (`RISK_LEVELS`, `riskLabel`, `riskShort`, `riskTone`, `clampRisk`),
+  `riskDrivers`, `backtestPreview`, the chat hand-off (`libraryChatMessage`, `libraryChatContext`),
+  and the client-side filters and sorts (`LibraryFilterState`, `applyLibraryFilters`,
+  `sortLibrary`, `nextLibrarySort`, `viewLibrary`, `presentValues`, `scopeLibrary`). Every sort
+  keeps reference strategies after the deployable ones. `deriveChatTitle` now strips hidden
+  `[<…>]` markers, as web's does, so a library chat's title never shows one; a no-op for every
+  message that carries none. And the RS Sector Matrix (web dev
+  `src/components/pages/markets/rssectormatrix`, backend dev `GET /market/rs-sector-matrix` and
+  `/pair`): the `RsSectorMatrix` / `RsPair` types, `marketApi.getRsSectorMatrix(box?)` /
+  `getRsSectorPair(row, col, box?)`, `queryKeys.market.rsSectorMatrix` / `rsSectorPair`, and web's
+  reading of the answer in `@finstocks/core/market` — `indexName`, `resultsAt`, `splitResults`,
+  `lossesAt`, `beatingBenchmark`, `rsShortLabel`, `resolvePair` / `pickRow` (how a `?rs=&vs=` link
+  settles against the data), the P&F chart geometry in log boxes (`pfSpans`, `pfExtent`,
+  `pfLastColumnBoxes`, `pfRatioChange`), `RS_BOXES`, `RS_DEFAULT_BOX`, `RS_TOP_N`. Nothing here
+  computes P&F; the backend does. The link into the section is `sectorStrengthPath(pair?)` /
+  `parseSectorStrengthPath(path)` (`/market?rs=A&vs=B#sector-strength`), so a chat button and
+  both apps spell it once. A chat answer's next-step button can now open a page:
+  `FindingActionType` gains `open_page` and `FindingAction` an optional `path` (web dev 2ec8dd38);
+  a host that knows only the older kinds compiles and ignores it. Web dev also serves 142 field
+  manual pages as static documents under `/manuals/` (bd5a93ba), which such a button points at:
+  `isManualPagePath`, `manualPageSlug`, `manualPageUrl(frontendUrl, slug)` and `manualPageTitle`
+  in `@finstocks/core/market` tell one from a route and spell where it is served (a slug is
+  `[a-z0-9-]+`, so an encoded `..` or a nested path is no page), `manualPageSlugOfUrl(frontendUrl,
+url)` says which manual a tapped link stays on, if any; a host that gates
+  the button on the page answering keys the probe with `queryKeys.manualPage(slug)`, and
+  `HttpMethod` now admits `HEAD` for it.
 - **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena
   script ("C") strategies (backend feat/athena-integration), whose `budget_config` is the engine's
   `{val, type, allocate}` with no `mode`, and which carry no `fsm`; `deriveStrategyCards` threw on

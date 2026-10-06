@@ -543,3 +543,42 @@ export {
   REGION_ORDER,
 } from './worldIndices.ts';
 export type {Region, RegionGroup, WorldMarketRow} from './worldIndices.ts';
+
+export {
+  beatingBenchmark,
+  indexName,
+  lossesAt,
+  namesOf,
+  pfExtent,
+  pfLastColumnBoxes,
+  pfRatioChange,
+  pfSpans,
+  pickRow,
+  resolvePair,
+  resultsAt,
+  RS_BENCHMARK,
+  RS_BOXES,
+  RS_DEFAULT_BOX,
+  RS_PAIR_COLUMNS,
+  RS_TOP_N,
+  rsShortLabel,
+  splitResults,
+  staleDays,
+} from './rsSectorMatrix.ts';
+export type {PfSpan, RsResult} from './rsSectorMatrix.ts';
+
+export {
+  parseSectorStrengthPath,
+  SECTOR_STRENGTH_ANCHOR,
+  sectorStrengthPath,
+} from './sectorStrength.ts';
+export type {SectorStrengthLink} from './sectorStrength.ts';
+
+export {
+  isManualPagePath,
+  MANUAL_PAGE_PREFIX,
+  manualPageSlug,
+  manualPageSlugOfUrl,
+  manualPageTitle,
+  manualPageUrl,
+} from './manualPages.ts';

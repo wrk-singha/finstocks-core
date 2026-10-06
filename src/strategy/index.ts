@@ -153,3 +153,40 @@ export {
   STRATEGY_TIMEFRAMES,
 } from './strategyTimeframes.ts';
 export type {StrategyTimeframe} from './strategyTimeframes.ts';
+export {
+  applyLibraryFilters,
+  countActiveLibraryFilters,
+  DEFAULT_LIBRARY_FILTERS,
+  nextLibrarySort,
+  presentValues,
+  scopeLibrary,
+  sortLibrary,
+  viewLibrary,
+} from './libraryFilters.ts';
+export type {
+  LibraryFilterState,
+  LibraryHorizonFilter,
+  LibraryScope,
+  LibrarySort,
+} from './libraryFilters.ts';
+export {
+  backtestPreview,
+  clampRisk,
+  isReference,
+  LIBRARY_COMPLEXITIES,
+  LIBRARY_COMPLEXITY_LABEL,
+  LIBRARY_DIRECTION_LABEL,
+  LIBRARY_EXCHANGE_CATEGORY_LABEL,
+  LIBRARY_HORIZON_LABEL,
+  LIBRARY_HORIZONS,
+  LIBRARY_SEGMENT_LABEL,
+  LIBRARY_STYLE_LABEL,
+  libraryChatContext,
+  libraryChatMessage,
+  RISK_LEVELS,
+  riskDrivers,
+  riskLabel,
+  riskShort,
+  riskTone,
+} from './strategyLibrary.ts';
+export type {LibraryChatIntent} from './strategyLibrary.ts';

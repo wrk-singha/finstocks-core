@@ -32,6 +32,15 @@ test('deriveChatTitle collapses whitespace and slices without an ellipsis', () =
   assert.equal(deriveChatTitle('short'), 'short');
 });
 
+test('deriveChatTitle strips hidden [<…>] markers from the title', () => {
+  assert.equal(
+    deriveChatTitle(
+      'Tell me about the Expiry Iron Condor strategy. [<Library Strategy: ID: krishna, Name: Expiry Iron Condor>]',
+    ),
+    'Tell me about the Expiry Iron Condor strategy.',
+  );
+});
+
 test('getUserInitials takes first and last initials', () => {
   assert.equal(getUserInitials('rohit singha'), 'RS');
   assert.equal(getUserInitials('  ada   lovelace   byron '), 'AL');

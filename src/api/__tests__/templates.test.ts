@@ -28,3 +28,19 @@ test('screener strategy list and detail', async () => {
     ],
   );
 });
+
+test('the strategy library list and detail, the id escaped', async () => {
+  const {http, calls} = fakeHttp();
+  const api = templatesApi(http);
+  await api.getStrategyLibrary();
+  await api.getStrategyLibraryDetail('krishna');
+  await api.getStrategyLibraryDetail('a b');
+  assert.deepEqual(
+    calls.map(c => c.path),
+    [
+      '/templates/strategy-library',
+      '/templates/strategy-library/krishna',
+      '/templates/strategy-library/a%20b',
+    ],
+  );
+});

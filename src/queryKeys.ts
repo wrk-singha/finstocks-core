@@ -298,6 +298,10 @@ export const queryKeys = {
     timeframe: string,
     year: number,
   ) => ['screener-strategy-detail', strategyId, timeframe, year],
+  /** ["strategy-library"] — the black-box library, whole, as web keys it (STRATEGY_LIBRARY_KEY). */
+  strategyLibrary: () => ['strategy-library'],
+  /** ["strategy-library", id] — one library strategy's detail. */
+  strategyLibraryDetail: (id: string) => ['strategy-library', id],
 
   // Canonical /market/* keys (distinct from the legacy ["dividends"] key).
   market: {
@@ -388,6 +392,16 @@ export const queryKeys = {
     /** ["pattern-vocab"] — every pattern the scanner answers: the registry compiled into the
      *  backend, the same for every symbol and day, so it is fetched once and kept. */
     patternVocab: () => ['pattern-vocab'],
+    /** ["rs-sector-matrix", box] — the sector ranking at one box size, as web keys it. */
+    rsSectorMatrix: (box: number) => ['rs-sector-matrix', box],
+    /** ["rs-sector-matrix", "pair", box, row, col] — one pair's P&F columns, as web keys it. */
+    rsSectorPair: (box: number, row: string, col: string) => [
+      'rs-sector-matrix',
+      'pair',
+      box,
+      row,
+      col,
+    ],
   },
 
   fno: {
@@ -410,6 +424,9 @@ export const queryKeys = {
     /** ["fno-index-underlyings"] — the index underlyings with a listed option chain */
     indexUnderlyings: () => ['fno-index-underlyings'],
   },
+
+  /** ["manual-page", slug] — whether a field manual page answers where it is served. */
+  manualPage: (slug: string) => ['manual-page', slug],
 
   /** ["esf-score", symbol] — one stock's FinStocks Score (ESF), as web keys it */
   esfScore: (symbol: string | null) => ['esf-score', symbol],

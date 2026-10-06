@@ -439,6 +439,17 @@ export const queryKeys = {
       expiry,
       date ?? 'latest',
     ],
+    /**
+     * ["flyone", "detail", symbol, expiry, date] — one chain's full reading; the expiry as asked
+     * (`near`, `next` or a date), `near` when omitted, a missing date "latest"
+     */
+    detail: (symbol: string, expiry?: string, date?: string) => [
+      'flyone',
+      'detail',
+      symbol,
+      expiry ?? 'near',
+      date ?? 'latest',
+    ],
     /** ["flyone", "screen", params] — one screen's rows, by the whole request */
     screen: (params: FlyoneScreenParams) => ['flyone', 'screen', params],
     /** ["flyone", "dates"] — the stored trading days the direction scanner replays */

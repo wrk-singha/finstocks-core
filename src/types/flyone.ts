@@ -133,3 +133,93 @@ export interface FlyoneScreenCardPayload extends FlyoneScreenParams {
   /** How the assistant read the question, e.g. "GX positive read as net GEX above zero". */
   interpretation?: string;
 }
+
+/**
+ * One minute of a chain's session, as the detail read's `history` serves it (backend-go
+ * `internal/models/flyone.go`, dev): the score and the confirmed call, with where spot and the
+ * levels stood.
+ */
+export interface FlyoneHistoryPoint {
+  ts: string;
+  spot: number | null;
+  score: number;
+  direction: FlyoneDirection;
+  pattern: FlyonePattern;
+  fear: number | null;
+  gamma_flip: number | null;
+  call_wall: number | null;
+  put_wall: number | null;
+  ngex: number | null;
+}
+
+/** One wing width's reading at the latest minute: its vote, what it read, and why it may not count. */
+export interface FlyoneWidth {
+  width: number;
+  width_steps: number | null;
+  /** False when too few strikes traded at this width for it to vote. */
+  ok: boolean;
+  n_bodies: number;
+  /** The share of the price distribution this width captures, 0 to 1 (can run a hair over). */
+  coverage: number | null;
+  skew: number | null;
+  fear: number | null;
+  /** The change in fear (minus skew) over the lookback. */
+  fear_chg: number | null;
+  tail_ratio: number | null;
+  pattern: FlyonePattern;
+  score: number | null;
+}
+
+/**
+ * What the engine stored for the detail charts at one minute: the butterfly-implied density at each
+ * wing width (`density[i]` at strike `body[i]`) and the gamma exposure by strike. The engine writes
+ * a non-finite figure as null, so a density or gamma value can be null.
+ */
+export interface FlyoneCurvePayload {
+  spot: number | null;
+  forward: number | null;
+  step: number | null;
+  sigma_pts: number | null;
+  density: {width: number; body: number[]; density: (number | null)[]}[];
+  strikes: number[];
+  net_gex: (number | null)[];
+  call_gex: (number | null)[];
+  put_gex: (number | null)[];
+}
+
+export interface FlyoneCurve {
+  ts: string;
+  payload: FlyoneCurvePayload;
+}
+
+/** An expiry the engine reads for an underlying on the day. */
+export interface FlyoneDetailExpiry {
+  expiry: string;
+  expiry_rank: ExpiryRank;
+}
+
+/**
+ * `GET /market/flyone/detail` (backend-go `handlers/flyone/live.go`, dev): one chain's reading in
+ * full. `date` is the stored day that answered (the latest without one asked for). With no expiry
+ * that matches, or no rows for the name, `latest` is null and the arrays are empty; `expiries` still
+ * names what the engine reads for it. `curve_lookback` is the curve from the lookback minute, for
+ * the "before" line.
+ */
+export interface FlyoneDetail {
+  symbol: string;
+  date: string;
+  lot_size: number | null;
+  expiries: FlyoneDetailExpiry[];
+  latest: FlyoneRow | null;
+  history: FlyoneHistoryPoint[];
+  widths: FlyoneWidth[];
+  curve: FlyoneCurve | null;
+  curve_lookback: FlyoneCurve | null;
+}
+
+export interface FlyoneDetailParams {
+  /** `near`, `next` or an exact YYYY-MM-DD expiry (the option chain passes the one on screen); `near` when omitted. */
+  expiry?: string;
+  /** A stored trading day (YYYY-MM-DD); the latest stored day when omitted. */
+  date?: string;
+}

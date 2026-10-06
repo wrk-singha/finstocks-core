@@ -586,3 +586,19 @@ test('the option levels reads: the screen joins its symbols and drops an empty l
     ],
   );
 });
+
+test('the options direction detail asks for one symbol, with its expiry and day when given', async () => {
+  const {http, calls} = fakeHttp();
+  const api = marketApi(http);
+  await api.getFlyoneDetail('NIFTY');
+  await api.getFlyoneDetail('NIFTY', {expiry: 'next'});
+  await api.getFlyoneDetail('M&M', {expiry: '2026-10-28', date: '2026-10-06'});
+  assert.deepEqual(
+    calls.map(c => c.path),
+    [
+      '/market/flyone/detail?symbol=NIFTY',
+      '/market/flyone/detail?symbol=NIFTY&expiry=next',
+      '/market/flyone/detail?symbol=M%26M&expiry=2026-10-28&date=2026-10-06',
+    ],
+  );
+});

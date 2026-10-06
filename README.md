@@ -105,6 +105,23 @@ message}` only for the handler's own 500 ("Could not verify your broker connecti
   the message's plan cards (backtest and strategies), which the backend's link never reorders. The
   chat and the code are not part of it: the message id is a UUID, and a card whose code changes in
   place deploys to its own row, where a different live version meets the replace prompt.
+  The options direction detail (web dev 2226a1e1, d0cf6fe2: the option chain's "Options
+  direction" panel, `FlyoneDetailPanel` and its charts), read-only; additive only.
+  `marketApi.getFlyoneDetail(symbol, {expiry?, date?})` is `GET /market/flyone/detail` as backend-go
+  `handlers/flyone/live.go` on dev serves it (`expiry` a rank or an exact expiry, `near` when
+  omitted; the latest stored day without a `date`), with `FlyoneDetail` (`symbol`, `date`,
+  `lot_size`, `expiries` as `FlyoneDetailExpiry`, `latest` or null, `history` as
+  `FlyoneHistoryPoint`, `widths` as `FlyoneWidth`, `curve` and `curve_lookback` as `FlyoneCurve`
+  of `FlyoneCurvePayload`) and `FlyoneDetailParams`; a curve's density and gamma figures are
+  `number | null`, as the engine writes a non-finite one as null. `queryKeys.flyone.detail(symbol,
+expiry?, date?)` keys it as web does (`near` and `"latest"` when omitted). `market/flyoneDetail`
+  holds the maths web keeps inside its chart components, in chart units: `densityView(now,
+before, width?)` (the picked width, else the middle one; both curves area-normalised, over spot ±
+  3.5σ, the gridlines 1σ apart; null under three bodies), `nearestPointIndex` for a readout,
+  `gexBarsView(payload, row)` (`empty` with no open interest, `none` with no strike within 2.5σ of
+  spot, else the bars, their scale and the flip when in range), `gexTickEvery`, the timeline's
+  `timelineTicks`, `timelineIndexAt` and `timelineScoreY`, and `isShownExpiry`. The steps under
+  them (the normalising, the width pick, the σ reaches) stay inside the module.
 - **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a

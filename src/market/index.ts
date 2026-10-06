@@ -721,6 +721,18 @@ export {
 export type {GexTone, LevelsReadingParts, WallSide} from './flyone.ts';
 
 export {
+  densityView,
+  gexBarsView,
+  gexTickEvery,
+  isShownExpiry,
+  nearestPointIndex,
+  timelineIndexAt,
+  timelineScoreY,
+  timelineTicks,
+} from './flyoneDetail.ts';
+export type {DensityPoint, DensityView, GexBarsView} from './flyoneDetail.ts';
+
+export {
   parseSectorStrengthPath,
   SECTOR_STRENGTH_ANCHOR,
   sectorStrengthPath,

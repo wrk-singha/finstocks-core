@@ -59,6 +59,12 @@ test('the options regime keys as web does: no date is "latest"', () => {
     'NIFTY',
     'latest',
   ]);
+  assert.deepEqual(queryKeys.regimePulse.decay('NIFTY', '2026-10-06'), [
+    'regimepulse',
+    'decay',
+    'NIFTY',
+    '2026-10-06',
+  ]);
   assert.deepEqual(queryKeys.regimePulse.sentiment(), [
     'regimepulse',
     'sentiment',

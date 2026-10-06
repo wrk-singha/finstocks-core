@@ -5,6 +5,7 @@ import {BSE_INDICES, NSE_INDICES} from '../data/stocksData.ts';
 import {formatNumber} from '../format/number.ts';
 import type {
   Regime,
+  RegimeDecayRow,
   RegimeRow,
   RegimeSentimentRow,
 } from '../types/regimePulse.ts';
@@ -139,6 +140,116 @@ export function regimeDistribution(
     return {regime, count, pct: Math.round((count / total) * 100)};
   });
 }
+
+/** A figure at the bar it was set on, as the session tiles print it. */
+export type SessionMark = {readonly value: number; readonly at: string};
+
+/** The session's open, high, low and last spot with when each was set, and the net change. */
+export type SessionOverview = {
+  readonly open: SessionMark;
+  readonly high: SessionMark;
+  readonly low: SessionMark;
+  readonly close: SessionMark;
+  readonly change: number;
+  readonly changePct: number;
+};
+
+/** Web's sessionOverview: the first bar to set a high or a low keeps it; null with no bars. */
+export function sessionOverview(
+  rows: readonly {ts: string; spot: number}[],
+): SessionOverview | null {
+  const open = rows[0];
+  const close = rows.at(-1);
+  if (open === undefined || close === undefined) return null;
+  let high = open;
+  let low = open;
+  for (const r of rows) {
+    if (r.spot > high.spot) high = r;
+    if (r.spot < low.spot) low = r;
+  }
+  const change = close.spot - open.spot;
+  return {
+    open: {value: open.spot, at: clockOf(open.ts)},
+    high: {value: high.spot, at: clockOf(high.ts)},
+    low: {value: low.spot, at: clockOf(low.ts)},
+    close: {value: close.spot, at: clockOf(close.ts)},
+    change,
+    changePct: open.spot ? (change / open.spot) * 100 : 0,
+  };
+}
+
+const MIN_CHART_POINTS = 2;
+
+/** A session draws its charts and tiles from two bars on; one bar is a point, not a line. */
+export const canChart = (rows: readonly unknown[]): boolean =>
+  rows.length >= MIN_CHART_POINTS;
+
+/**
+ * The tracked contracts at the newest engine cycle, as the decay-gap table lists them: calls
+ * before puts, each by strike.
+ */
+export function latestDecay(rows: readonly RegimeDecayRow[]): RegimeDecayRow[] {
+  const ts = rows.at(-1)?.ts;
+  if (ts === undefined) return [];
+  return rows
+    .filter(r => r.ts === ts)
+    .sort((a, b) =>
+      a.option_type === b.option_type
+        ? a.strike - b.strike
+        : a.option_type === 'CE'
+          ? -1
+          : 1,
+    );
+}
+
+/** A chart's vertical extent. */
+export type ChartExtent = {readonly min: number; readonly max: number};
+
+// Web's chartFrame: the extent is widened by this share of its span at each end.
+const CHART_PAD = 0.06;
+
+/**
+ * Web's makeScale extent: the finite values with any `include` (a zero line) in them, a flat run
+ * opened to ±1, then widened 6% each way. No values reads as 0–1.
+ */
+export function chartExtent(
+  values: readonly number[],
+  include: readonly number[] = [],
+): ChartExtent {
+  const pool = [...values.filter(Number.isFinite), ...include];
+  let min = pool.length ? Math.min(...pool) : 0;
+  let max = pool.length ? Math.max(...pool) : 1;
+  if (min === max) {
+    min -= 1;
+    max += 1;
+  }
+  const pad = (max - min) * CHART_PAD;
+  return {min: min - pad, max: max + pad};
+}
+
+/** Where web's frame labels its value axis: a tenth in from each end, and the middle. */
+export const chartTicks = ({min, max}: ChartExtent): number[] => [
+  min + (max - min) * 0.1,
+  (min + max) / 2,
+  max - (max - min) * 0.1,
+];
+
+/**
+ * The bars web's frame names under the plot: the first, the quarters and the last, each once — a
+ * short session puts two quarters on one bar.
+ */
+export const chartXTicks = (n: number): number[] =>
+  n > 1
+    ? [
+        ...new Set([
+          0,
+          Math.floor((n - 1) / 4),
+          Math.floor((n - 1) / 2),
+          Math.floor(((n - 1) * 3) / 4),
+          n - 1,
+        ]),
+      ]
+    : [0];
 
 /** A row that has scored the session; a warming-up row has no regime to show yet. */
 export const hasRegime = (row: RegimeRow | undefined): row is RegimeRow =>

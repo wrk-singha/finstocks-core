@@ -422,6 +422,13 @@ export const queryKeys = {
       symbol,
       date ?? 'latest',
     ],
+    /** ["regimepulse", "decay", symbol, date] — one underlying's tracked contracts */
+    decay: (symbol: string | null | undefined, date?: string) => [
+      'regimepulse',
+      'decay',
+      symbol,
+      date ?? 'latest',
+    ],
     /** ["regimepulse", "dates"] — the stored trading days a scanner replays */
     dates: () => ['regimepulse', 'dates'],
     /** ["regimepulse", "me"] */

@@ -105,6 +105,18 @@ message}` only for the handler's own 500 ("Could not verify your broker connecti
   the message's plan cards (backtest and strategies), which the backend's link never reorders. The
   chat and the code are not part of it: the message id is a UUID, and a card whose code changes in
   place deploys to its own row, where a different live version meets the replace prompt.
+
+  The stock page's Regime tab, live (web dev `RegimeTab.tsx` `LiveRegime`, `regimeBlocks.tsx`,
+  `chartFrame.tsx`); additive only. `marketApi.getRegimeDecay(symbol, date?)` reads
+  `GET /market/regimepulse/decay` (backend-go `handlers/regimepulse/live.go` `Decay`, dev), answering
+  `RegimeDecay` (`rows: RegimeDecayRow[]`: each tracked contract's LTP, actual and decay-only
+  change, gap, `gap_z` and `roc` per engine cycle, oldest first; `signal` blank unless internal),
+  keyed `queryKeys.regimePulse.decay(symbol, date?)` as web keys it. `market/regimePulse` gains
+  `sessionOverview(rows)` (open, high, low, last spot with the bar each was set on, and the change
+  — web's session tiles), `canChart(rows)` (two bars or more), `latestDecay(rows)` (the newest
+  cycle, calls before puts, each by strike — web's decay-gap table) and web's chart-frame scale:
+  `chartExtent(values, include?)`, `chartTicks(extent)` and `chartXTicks(n)`.
+
 - **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a

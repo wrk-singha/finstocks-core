@@ -113,5 +113,31 @@ export interface RegimeDetail {
   rows: RegimeRow[];
 }
 
+/**
+ * One tracked contract's move against what time decay alone explains, at one engine cycle (backend
+ * `models.RegimeDecayRow`, dev). `gap` is the actual change less the decay-only change; `gap_z` and
+ * `roc` are null until the engine has enough readings to score them.
+ */
+export interface RegimeDecayRow {
+  ts: string;
+  contract_key: string;
+  strike: number;
+  option_type: 'CE' | 'PE';
+  spot: number;
+  ltp: number;
+  actual_chg: number;
+  theo_chg: number;
+  gap: number;
+  gap_z: number | null;
+  roc: number | null;
+  /** Internal users only; blank for everyone else. */
+  signal: string;
+}
+
+/** One underlying's tracked contracts through a session, oldest cycle first; `[]` before the first. */
+export interface RegimeDecay {
+  rows: RegimeDecayRow[];
+}
+
 /** The two expiry-backtest strategies the engine runs, as a `regime_backtest` chat card names one. */
 export type RegimeStrategyId = 'regime' | 'straddle_sl';

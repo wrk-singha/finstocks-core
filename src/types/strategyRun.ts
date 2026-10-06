@@ -99,6 +99,8 @@ export type RunOptionKind = 'backtest' | 'forward' | 'live';
 export interface ScriptRun {
   script: string;
   scriptHash: string;
+  /** The card's `script_sig`, when it carries one. */
+  scriptSig?: string | undefined;
   strategyId?: string | undefined;
   backtestId?: string | undefined;
 }

@@ -39,7 +39,8 @@ export const SCRIPT_ENTRY_C = 'evaluate_v2';
 
 /**
  * The card's C strategy, when it is one: `script_entry` "evaluate_v2" with its code and the
- * code's hash. Such a card runs only from its own buttons and only through `strategy-action`:
+ * code's hash, and the code's signature when the card carries one (an empty one is none, as the
+ * backend reads it). Such a card runs only from its own buttons and only through `strategy-action`:
  * a create-backtest sent for it has no FSM to send (refused), or an FSM that is not the card's
  * code (deployed as a different rule). Null for every other card, including a composed
  * "script_preview" whose `script` is a receipt rather than an entry point.
@@ -59,6 +60,9 @@ export function scriptRunOf(
   return {
     script: terms.script,
     scriptHash: terms.script_hash,
+    ...(typeof terms.script_sig === 'string' && terms.script_sig !== ''
+      ? {scriptSig: terms.script_sig}
+      : {}),
     strategyId: terms.strategy_id,
     backtestId: terms.backtest_id,
   };

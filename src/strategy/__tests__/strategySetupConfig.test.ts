@@ -41,6 +41,35 @@ test('a C strategy card is its code, its hash and the rows it was saved as; noth
   assert.equal(isScriptCard({}), false);
 });
 
+test('a C card’s code signature is carried exactly when the card carries one', () => {
+  const terms = {
+    script_entry: 'evaluate_v2',
+    script: 'def evaluate_v2(ctx): ...',
+    script_hash: 'abc123',
+  };
+  assert.equal(
+    scriptRunOf({...terms, script_sig: 'sig-1'})?.scriptSig,
+    'sig-1',
+  );
+  // None, or an empty one (which the backend reads as none), is not invented as a key.
+  assert.equal('scriptSig' in (scriptRunOf(terms) ?? {}), false);
+  assert.equal(
+    'scriptSig' in (scriptRunOf({...terms, script_sig: ''}) ?? {}),
+    false,
+  );
+  // A card can arrive with a JSON null where a string belongs.
+  assert.equal(
+    'scriptSig' in
+      (scriptRunOf({...terms, script_sig: null as unknown as string}) ?? {}),
+    false,
+  );
+  // A signature does not make a card a C card on its own.
+  assert.equal(
+    scriptRunOf({...terms, script_sig: 'sig-1', script_entry: 'evaluate'}),
+    null,
+  );
+});
+
 test('extractSetupConfig reads the confirm table rows back into a request', () => {
   const config = extractSetupConfig([
     {k: 'Tickers', v: 'tcs'},

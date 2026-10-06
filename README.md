@@ -177,6 +177,14 @@ before, width?)` (the picked width, else the middle one; both curves area-normal
   The screener's percentage cells follow web main 6414e7a6: a move (`isSignedField`: returns,
   1D %, gap, distance from the 52-week high and low) reads to two decimals, any other percentage
   to one, and a figure of 100 or more to none.
+  A C card's code signature (web `feat/athena-integration` 046148aa, backend-go 5a8a6525
+  `strategyaction.go`); additive only. `BacktestSetupTerms` gains `script_sig`, llm's signature of
+  the card's code for this user, which the backend passes to Athena untouched and Athena may
+  require ("this code was not built for this user"). `ScriptRun` gains `scriptSig?`, set by
+  `scriptRunOf` only from a non-empty string (an empty one is none, as the backend reads it);
+  `StrategyActionRequest` gains `script_sig?`, which `scriptAction` sends exactly when the card
+  carries one and `replaceAction` keeps, so the resend after a 409 carries the same signature as the
+  request it answers. A backend without the field ignores it.
 - **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a

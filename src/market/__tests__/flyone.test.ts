@@ -11,6 +11,7 @@ import {
   isWarmingUp,
   levelOf,
   levelsReading,
+  levelsReadingParts,
   nearestWall,
   nearestWallText,
   parseWidthVotes,
@@ -155,4 +156,46 @@ test('dealer tone, thin chains, warm-up and a pending call read as web reads the
   assert.equal(disagreesWithRegime('LEAN_BEARISH', 'NEUTRAL-TO-BULLISH'), true);
   assert.equal(disagreesWithRegime('BULLISH', 'RANGEBOUND'), false);
   assert.equal(disagreesWithRegime('BULLISH', undefined), false);
+});
+
+test('a wall level with spot is on neither side, so it keeps its own name', () => {
+  assert.equal(callWallSide(25300, 25300), 'wall');
+  assert.equal(putWallSide(24800, 24800), 'wall');
+  assert.equal(callWallSide(25299, 25300), 'resistance');
+  assert.equal(putWallSide(24801, 24800), 'support');
+  assert.equal(putWallSide(null, 24800), 'wall');
+});
+
+test('the reading in parts is what the sentence is built from', () => {
+  assert.deepEqual(levelsReadingParts(row()), {
+    kind: 'levels',
+    position: {
+      kind: 'between',
+      spot: '25,118',
+      putWall: '24,800',
+      callWall: '25,300',
+    },
+    flip: {side: 'above', level: '24,950'},
+  });
+  assert.deepEqual(
+    levelsReadingParts(
+      row({put_wall: 25000, call_wall: 25000, gamma_flip: null}),
+    ),
+    {kind: 'levels', position: {kind: 'pinned', wall: '25,000'}, flip: null},
+  );
+  assert.deepEqual(levelsReadingParts(row({spot: 25300, gamma_flip: 25300})), {
+    kind: 'levels',
+    position: {kind: 'atCall', spot: '25,300', callWall: '25,300'},
+    flip: {side: 'below', level: '25,300'},
+  });
+  // Spot under a lone call wall is neither between the walls nor at one.
+  assert.deepEqual(
+    levelsReadingParts(row({put_wall: null, gamma_flip: null})),
+    {kind: 'levels', position: null, flip: null},
+  );
+  assert.equal(levelsReading(row({put_wall: null, gamma_flip: null})), '');
+  assert.deepEqual(levelsReadingParts(row({spot: null})), {
+    kind: 'none',
+    oiSource: 'today',
+  });
 });

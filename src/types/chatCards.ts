@@ -15,7 +15,7 @@ import type {
   PortfolioAnalysisPosition,
 } from './portfolioAnalysis.ts';
 import type {PortfolioSimPayload} from './portfolioSim.ts';
-import type {ExpiryBacktest, RegimeStrategyId} from './regimePulse.ts';
+import type {RegimeStrategyId} from './regimePulse.ts';
 import type {RsSectorMatrix} from './rsSectorMatrix.ts';
 import type {AlertSetup} from './savedAlert.ts';
 import type {OrderSide, OrderType} from './trade.ts';
@@ -178,8 +178,8 @@ export type ChatCard =
     }
   /**
    * The expiry backtest an options answer asked for: which strategy, which symbols, to which expiry.
-   * Web runs it from the card (`POST /market/regimepulse/expiry-backtest`, minutes for several
-   * symbols); a host that does not run it shows `result` when the payload carries one.
+   * Web runs it from the card (`POST /market/regimepulse/expiry-backtest`); the payload carries no
+   * result.
    */
   | {
       type: 'regime_backtest';
@@ -188,8 +188,6 @@ export type ChatCard =
         expiry: string;
         from?: string;
         strategy: RegimeStrategyId;
-        /** The run's answer, when the answer brought it; absent on web's payload today. */
-        result?: ExpiryBacktest;
       };
     }
   /** F&O names screened by their option levels, run live by the card (llm graph/nodes/options). */

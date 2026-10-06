@@ -465,6 +465,23 @@ export function formatLastUpdatedIST(
 export const formatOrderDayHeading = (isoDate: string): string =>
   orderDayHeadingFormatter.format(dayKeyToUtc(isoDate));
 
+const expiryDateFormatter = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'short',
+  year: '2-digit',
+  timeZone: IST,
+});
+
+/**
+ * An expiry as web's `formatExpiryDate` prints it in a heading: "8 Oct 26", in IST, empty when
+ * missing or unreadable. en-IN, as web's, so September reads "Sept" there too.
+ */
+export function formatExpiryDate(value: string | null | undefined): string {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : expiryDateFormatter.format(d);
+}
+
 /** Net-worth chart readout for a bare YYYY-MM-DD, 2-digit year to keep the row compact: "9 Aug 26". */
 export const formatNetWorthChartDate = (isoDate: string): string =>
   netWorthChartDateFormatter.format(dayKeyToUtc(isoDate));

@@ -174,40 +174,113 @@ export const parseWidthVotes = (
       })
     : [];
 
-/** The sentence under the rail: where spot sits against the walls and the gamma flip. */
-export function levelsReading(row: FlyoneRow): string {
+/**
+ * The reading under the rail, in parts, so a host can word it in its own catalogue: where spot sits
+ * against the walls (null when it is outside them on neither side), and which side of the gamma flip
+ * it is on (null with no flip). `none` when there is no spot or no wall to read against, with the
+ * chain's OI source, which says why. Levels are formatted with `levelOf`, as web prints them.
+ */
+export type LevelsReadingParts =
+  | {readonly kind: 'none'; readonly oiSource: OiSource}
+  | {
+      readonly kind: 'levels';
+      readonly position:
+        | {readonly kind: 'pinned'; readonly wall: string}
+        | {
+            readonly kind: 'between';
+            readonly spot: string;
+            readonly putWall: string;
+            readonly callWall: string;
+          }
+        | {
+            readonly kind: 'atCall';
+            readonly spot: string;
+            readonly callWall: string;
+          }
+        | {
+            readonly kind: 'atPut';
+            readonly spot: string;
+            readonly putWall: string;
+          }
+        | null;
+      readonly flip: {
+        readonly side: 'above' | 'below';
+        readonly level: string;
+      } | null;
+    };
+
+export function levelsReadingParts(row: FlyoneRow): LevelsReadingParts {
   const {spot, put_wall: pw, call_wall: cw, gamma_flip: flip, step} = row;
   if (spot == null || (pw == null && cw == null))
+    return {kind: 'none', oiSource: row.oi_source};
+  const position =
+    pw != null && pw === cw
+      ? {kind: 'pinned' as const, wall: levelOf(cw, step)}
+      : pw != null && cw != null && pw < spot && spot < cw
+        ? {
+            kind: 'between' as const,
+            spot: levelOf(spot, step),
+            putWall: levelOf(pw, step),
+            callWall: levelOf(cw, step),
+          }
+        : cw != null && spot >= cw
+          ? {
+              kind: 'atCall' as const,
+              spot: levelOf(spot, step),
+              callWall: levelOf(cw, step),
+            }
+          : pw != null && spot <= pw
+            ? {
+                kind: 'atPut' as const,
+                spot: levelOf(spot, step),
+                putWall: levelOf(pw, step),
+              }
+            : null;
+  return {
+    kind: 'levels',
+    position,
+    flip:
+      flip == null
+        ? null
+        : {side: spot > flip ? 'above' : 'below', level: levelOf(flip, step)},
+  };
+}
+
+/** The sentence under the rail in web's English: where spot sits against the walls and the gamma flip. */
+export function levelsReading(row: FlyoneRow): string {
+  const parts = levelsReadingParts(row);
+  if (parts.kind === 'none')
     return (
-      OI_NOTE[row.oi_source] ||
+      OI_NOTE[parts.oiSource] ||
       'Dealer levels appear once options have open interest.'
     );
-  const parts: string[] = [];
-  if (pw != null && pw === cw) {
-    parts.push(
-      `Both walls sit at ${levelOf(cw, step)}, so price is likely to be pinned near it.`,
+  const {position, flip} = parts;
+  const sentences: string[] = [];
+  if (position?.kind === 'pinned') {
+    sentences.push(
+      `Both walls sit at ${position.wall}, so price is likely to be pinned near it.`,
     );
-  } else if (pw != null && cw != null && pw < spot && spot < cw) {
-    parts.push(
-      `Spot ${levelOf(spot, step)} sits between support at ${levelOf(pw, step)} and resistance at ${levelOf(cw, step)}.`,
+  } else if (position?.kind === 'between') {
+    sentences.push(
+      `Spot ${position.spot} sits between support at ${position.putWall} and resistance at ${position.callWall}.`,
     );
-  } else if (cw != null && spot >= cw) {
-    parts.push(
-      `Spot ${levelOf(spot, step)} is at or above the call wall (${levelOf(cw, step)}), the level dealers usually defend.`,
+  } else if (position?.kind === 'atCall') {
+    sentences.push(
+      `Spot ${position.spot} is at or above the call wall (${position.callWall}), the level dealers usually defend.`,
     );
-  } else if (pw != null && spot <= pw) {
-    parts.push(
-      `Spot ${levelOf(spot, step)} is at or below the put wall (${levelOf(pw, step)}), the usual support.`,
-    );
-  }
-  if (flip != null) {
-    parts.push(
-      spot > flip
-        ? `Above the gamma flip (${levelOf(flip, step)}), dealer hedging damps moves.`
-        : `Below the gamma flip (${levelOf(flip, step)}), dealer hedging can speed moves up.`,
+  } else if (position?.kind === 'atPut') {
+    sentences.push(
+      `Spot ${position.spot} is at or below the put wall (${position.putWall}), the usual support.`,
     );
   }
-  return parts.join(' ');
+  if (flip !== null) {
+    sentences.push(
+      flip.side === 'above'
+        ? `Above the gamma flip (${flip.level}), dealer hedging damps moves.`
+        : `Below the gamma flip (${flip.level}), dealer hedging can speed moves up.`,
+    );
+  }
+  return sentences.join(' ');
 }
 
 /**

@@ -6,6 +6,7 @@ export {
   formatDayMonthYear,
   formatDurationMins,
   formatEventDayHeading,
+  formatExpiryDate,
   formatLastUpdatedIST,
   formatNetWorthChartDate,
   formatNotificationTime,

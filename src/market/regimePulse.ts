@@ -4,11 +4,9 @@
 import {BSE_INDICES, NSE_INDICES} from '../data/stocksData.ts';
 import {formatNumber} from '../format/number.ts';
 import type {
-  ExpiryBacktest,
   Regime,
   RegimeRow,
   RegimeSentimentRow,
-  RegimeStrategyId,
 } from '../types/regimePulse.ts';
 import {extractUnderlyingSymbol} from './symbols.ts';
 
@@ -46,13 +44,6 @@ export const REGIME_READING: Readonly<Record<Regime, string>> = {
   BEARISH: 'Options are leaning strongly down, and the lean keeps building.',
   WARMING_UP: 'Collecting enough readings since the open to score the session.',
 };
-
-/** The strategies' names when the engine's own list has not been read (web 6448ede1). */
-export const REGIME_STRATEGY_NAMES: Readonly<Record<RegimeStrategyId, string>> =
-  {
-    regime: 'Regime Straddle Add-On',
-    straddle_sl: 'Regime Straddle with Stop-Loss',
-  };
 
 /** Which way a regime leans, for its colour; `warming` has no lean yet. */
 export type RegimeLean = 'bullish' | 'bearish' | 'neutral' | 'warming';
@@ -221,28 +212,3 @@ export const regimeChangedSince = (
   Object.hasOwn(REGIME_LABEL, answered)
     ? (answered as Regime)
     : undefined;
-
-/** What web's expiry-backtest card totals over the symbols that traded; null when none did. */
-export type ExpiryBacktestTotals = {
-  readonly net: number;
-  readonly wins: number;
-  readonly losses: number;
-  readonly worst: number;
-  readonly cost: number;
-};
-
-export const expiryBacktestTotals = (
-  result: Pick<ExpiryBacktest, 'symbols'>,
-): ExpiryBacktestTotals | null => {
-  const summaries = result.symbols.flatMap(s =>
-    s.summary === null ? [] : [s.summary],
-  );
-  if (summaries.length === 0) return null;
-  return {
-    net: summaries.reduce((a, s) => a + s.total_net, 0),
-    wins: summaries.reduce((a, s) => a + s.wins, 0),
-    losses: summaries.reduce((a, s) => a + s.losses, 0),
-    worst: Math.min(...summaries.map(s => s.worst_day)),
-    cost: summaries.reduce((a, s) => a + s.total_cost, 0),
-  };
-};

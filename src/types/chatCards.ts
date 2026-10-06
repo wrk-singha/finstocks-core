@@ -1,6 +1,7 @@
 import type {BacktestSetup, BacktestSweep, StrategySetup} from './backtest.ts';
 import type {CustomIndicatorDraft} from './customIndicator.ts';
 import type {DataTablePayload} from './dataTable.ts';
+import type {FlyoneScreenCardPayload} from './flyone.ts';
 import type {ManualReportPayload} from './manualReport.ts';
 import type {ProfileSnapshot} from './marketProfile.ts';
 import type {
@@ -14,6 +15,7 @@ import type {
   PortfolioAnalysisPosition,
 } from './portfolioAnalysis.ts';
 import type {PortfolioSimPayload} from './portfolioSim.ts';
+import type {RegimeStrategyId} from './regimePulse.ts';
 import type {RsSectorMatrix} from './rsSectorMatrix.ts';
 import type {AlertSetup} from './savedAlert.ts';
 import type {OrderSide, OrderType} from './trade.ts';
@@ -158,6 +160,38 @@ export type ChatCard =
   | {type: 'sectors'; payload: SectorsCardPayload}
   /** The market profiles a market-profile answer is written from. */
   | {type: 'market_profile'; payload: MarketProfileCardPayload}
+  /**
+   * The options regime an options answer was written from (llm graph/nodes/options). The card is
+   * live — it reads the regime again — so it carries only what the answer said and when, and
+   * flags a reading that has moved since.
+   */
+  | {
+      type: 'regime';
+      payload: {
+        underlyings: string[];
+        /** The underlyings whose option levels the answer also read; the card shows them under the regime. */
+        levels?: string[];
+        /** What the answer beside the card said for each underlying, and when it read it. */
+        answered?: Record<string, string>;
+        answered_at?: string;
+      };
+    }
+  /**
+   * The expiry backtest an options answer asked for: which strategy, which symbols, to which expiry.
+   * Web runs it from the card (`POST /market/regimepulse/expiry-backtest`); the payload carries no
+   * result.
+   */
+  | {
+      type: 'regime_backtest';
+      payload: {
+        symbols: string[];
+        expiry: string;
+        from?: string;
+        strategy: RegimeStrategyId;
+      };
+    }
+  /** F&O names screened by their option levels, run live by the card (llm graph/nodes/options). */
+  | {type: 'flyone_screen'; payload: FlyoneScreenCardPayload}
   /**
    * An order the assistant read off the user's instruction. It does NOT place anything: the
    * ticket renders pre-filled and the user confirms it there, through the same path as every

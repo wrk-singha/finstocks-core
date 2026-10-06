@@ -107,3 +107,6 @@ export interface RegimeDetail {
   internal: boolean;
   rows: RegimeRow[];
 }
+
+/** The two expiry-backtest strategies the engine runs, as a `regime_backtest` chat card names one. */
+export type RegimeStrategyId = 'regime' | 'straddle_sl';

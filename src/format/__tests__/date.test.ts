@@ -9,6 +9,7 @@ import {
   formatDurationMins,
   formatEventDayHeading,
   formatLastUpdatedIST,
+  formatExpiryDate,
   formatNetWorthChartDate,
   formatNotificationTime,
   formatOrderDayHeading,
@@ -278,4 +279,13 @@ test('getChatDateGroup buckets by IST recency', () => {
   assert.equal(getChatDateGroup('2025-06-10T03:00:00Z', NOW), 'June 2025');
   assert.equal(getChatDateGroup(null, NOW), 'Older');
   assert.equal(getChatDateGroup('bad', NOW), 'Older');
+});
+
+test("an expiry reads as web's heading prints it: day, short month, two-digit year, in IST", () => {
+  assert.equal(formatExpiryDate('2026-10-08'), '8 Oct 26');
+  assert.equal(formatExpiryDate('2026-09-29'), '29 Sept 26');
+  assert.equal(formatExpiryDate('2026-10-08T20:00:00Z'), '9 Oct 26');
+  assert.equal(formatExpiryDate(''), '');
+  assert.equal(formatExpiryDate(null), '');
+  assert.equal(formatExpiryDate('not a day'), '');
 });

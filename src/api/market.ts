@@ -72,6 +72,12 @@ import type {
   RelatedPartyTxnRow,
 } from '../types/relatedParty.ts';
 import type {
+  ExpiryRank,
+  FlyoneScreen,
+  FlyoneScreenParams,
+  FlyoneSnapshot,
+} from '../types/flyone.ts';
+import type {
   RegimeDetail,
   RegimeSentiment,
   RegimeSnapshot,
@@ -699,6 +705,27 @@ export const marketApi = (http: HttpClient) => ({
 
   /** The underlyings the engine scores. */
   getRegimeSymbols: () => http.request<string[]>('/market/regimepulse/symbols'),
+
+  /**
+   * The option levels (backend `dev`, handlers/flyone): every chain's latest row for one expiry
+   * rank, one request for a screen of levels cards. Without a `date` the newest stored day answers.
+   */
+  getFlyoneSnapshot: (expiry: ExpiryRank, date?: string) =>
+    http.request<FlyoneSnapshot>(
+      `/market/flyone/snapshot${query({expiry, date})}`,
+    ),
+
+  /** F&O names filtered by their levels: `where` is "score>0,gex_regime=POS|STRONG_POS". */
+  getFlyoneScreen: ({symbols, ...params}: FlyoneScreenParams) =>
+    http.request<FlyoneScreen>(
+      `/market/flyone/screen${query({
+        ...params,
+        symbols:
+          symbols === undefined || symbols.length === 0
+            ? undefined
+            : symbols.join(','),
+      })}`,
+    ),
 
   getScreenerStocks: (filters?: ScreenerStocksQuery) =>
     http.request<ScreenerStocksResponse>(

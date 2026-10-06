@@ -128,6 +128,29 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `regimeStamp` (live on the row's own day in market hours, else at close) and
   `regimeChangedSince`. The alert, backtest, chain-overlay and replay routes stay for the units
   that draw them.
+  The last three chat cards (web dev 2226a1e1, `c338cfa2`): `ChatCard` gains
+  `{type: 'regime'; payload: {underlyings, levels?, answered?, answered_at?}}` (the card is live;
+  the payload says only what the answer said and when), `{type: 'regime_backtest'}` with web's
+  payload `{symbols, expiry, from?, strategy}` (`RegimeStrategyId` names the strategy; web runs
+  the backtest from the card, and its answer's types land with the unit that runs it) and
+  `{type: 'flyone_screen'; payload: FlyoneScreenCardPayload}`. The option levels engine (web
+  `interfaces/flyone.ts`, backend-go `handlers/flyone` on dev): `types/flyone` carries `FlyoneRow`
+  (one chain's minute: spot, the expected move, put wall, gamma flip, call wall, the dealer
+  regime, the engine's call), `FlyoneSnapshot`, `FlyoneScreen`, `FlyoneScreenParams` and the card
+  payload. `marketApi.getFlyoneSnapshot(expiry, date?)` (every chain at once) and
+  `getFlyoneScreen(params)` (symbols joined with commas, an empty list dropped; the backend
+  filters the same latest rows the snapshot serves, so `symbols=[u]` is one chain's full row) are
+  web's two reads; `queryKeys.flyone` (`snapshot`, `screen`) keys them as web does. `market/flyone`
+  is the whole of web's `utils/market/flyone.ts` less its CSS, kept whole for the direction sheet
+  and direction scanner units that read its direction, pattern and width-vote helpers: the
+  direction and pattern words, the dealer regime's label, reading and tone (`gexTone`),
+  `OI_NOTE`, `levelOf`, `pctAway`, `levelsReading`, `isThin`, `isWarmingUp`, `pendingDirection`,
+  `parseWidthVotes`, `disagreesWithRegime`; plus `levelsReadingParts` (the reading's parts, which
+  `levelsReading` words in web's English, for a host to word in its own catalogue) and what web's
+  cards work out inline: `callWallSide`/`putWallSide` (a wall named by its side of spot, web
+  c338cfa2; level with spot it keeps its own name) and `nearestWall`/`nearestWallText`
+  ("put −0.4%"). `format/date` gains web's `formatExpiryDate` ("8 Oct 26", en-IN in IST, empty
+  when unreadable).
 - **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
   backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,

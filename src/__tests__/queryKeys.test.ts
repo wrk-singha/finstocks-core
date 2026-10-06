@@ -66,3 +66,24 @@ test('the options regime keys as web does: no date is "latest"', () => {
   ]);
   assert.deepEqual(queryKeys.regimePulse.me(), ['regimepulse', 'me']);
 });
+
+test('the option levels key by expiry rank and screen request as web does', () => {
+  assert.deepEqual(queryKeys.flyone.snapshot('near'), [
+    'flyone',
+    'snapshot',
+    'near',
+    'latest',
+  ]);
+  assert.deepEqual(queryKeys.flyone.snapshot('next', '2026-10-06'), [
+    'flyone',
+    'snapshot',
+    'next',
+    '2026-10-06',
+  ]);
+  const params = {where: 'score>0', universe: 'stock' as const, limit: 50};
+  assert.deepEqual(queryKeys.flyone.screen(params), [
+    'flyone',
+    'screen',
+    params,
+  ]);
+});

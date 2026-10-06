@@ -131,11 +131,19 @@ export {
 } from './strategySetupConfig.ts';
 export type {SetupConfig, SetupTerms} from './strategySetupConfig.ts';
 export {
+  ATHENA_CALL_TIMEOUT_MS,
   replaceAction,
   scriptAction,
   STRATEGY_ACTION_BY_KIND,
   strategyActionRefusal,
+  strategyActionSettleMs,
 } from './strategyAction.ts';
+export {
+  SCRIPT_DEPLOY_NAMESPACE,
+  scriptDeployId,
+  uuidV5,
+} from './scriptDeployId.ts';
+export type {ScriptDeployIdentity} from './scriptDeployId.ts';
 export type {StrategyActionRefusal} from './strategyAction.ts';
 export {
   BACKTEST_STATUSES,

@@ -75,6 +75,23 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   "Use as limit" fills), `depthRefusal` (`crossed` or `thin`, the two things a reader is told), and
   `depthBookStatus` (`live` / `stored` / `preopen` / `closed`; an earlier day's book served in
   market hours is `stored`, web 3cf478ff, and only a `live` book offers its fair price).
+  The research report (web `interfaces/manualReport.ts`, dev 2226a1e1): `types/manualReport`
+  carries `ManualReportPayload` and its parts (`ReportItem`, `ReportKpi`, `ReportGap`,
+  `ReportCardSection`, `StageResult`, `ReportFact`, `ReportVerdict`, `ResearchNote`,
+  `IndustryGuide`, with the gate, cap, stage and coverage shapes named), and `ChatCard` gains
+  `{type: 'report'; payload: ManualReportPayload}` — a host with an exhaustive switch over
+  `ChatCardType` adds the one case. There is no endpoint: the payload is the chat card's.
+  `market/manualReport` holds what web's ResearchReport page derives from it, as it does: the
+  vocabulary (`REPORT_MARK_WORD`, `REPORT_STOP_WORD`, `REPORT_MARK_GLYPH`, `REPORT_VIEW_LABEL`,
+  `REPORT_STAGES`, `REPORT_GAP_STATUS_WORDS`, `REPORT_BAND_LABEL`), the figure formatting
+  (`reportNumber` — Indian grouping, at most two places — `typographicMinus`, `factUnit`,
+  `bareLabel`, `factText`, `kpiValueText`, `signedChangeText`, `reportDay`), the names
+  (`reportShortName`, `capBandLabel`, `reportBenchmark`, `reportSector`), the citations
+  (`reportFactIndex`, `citedFacts`, `citesLine`, `kpiGapLine`, `kpiTrail`), the tables
+  (`historyTable`, `coverageGroups`, `fiscalYears`, `figureRows`), the summary strip
+  (`reportKeyFigures`), the gate tally (`gateTally`), `coveragePct`, `partTitle`, `partTally`,
+  `qualityGoodCount`, `monitorChips`, `riskChainSteps` and `sparkPoints`. Web's
+  `utils/market/manualReport.ts` (localStorage for the page's new tab) stays in web.
 - **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
   backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,

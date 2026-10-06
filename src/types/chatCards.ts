@@ -1,6 +1,7 @@
 import type {BacktestSetup, BacktestSweep, StrategySetup} from './backtest.ts';
 import type {CustomIndicatorDraft} from './customIndicator.ts';
 import type {DataTablePayload} from './dataTable.ts';
+import type {ManualReportPayload} from './manualReport.ts';
 import type {
   FindingAction,
   PortfolioAnalysis,
@@ -76,6 +77,12 @@ export type ChatCard =
    * in the chart picker.
    */
   | {type: 'custom_indicator'; payload: CustomIndicatorDraft}
+  /**
+   * A stock's research report: Finstocks research guidance for its industry and cap band applied
+   * item by item, with the note an investor reads. The card is the short summary; the report
+   * itself opens on its own screen. There is no endpoint: the payload is the whole report.
+   */
+  | {type: 'report'; payload: ManualReportPayload}
   /**
    * An order the assistant read off the user's instruction. It does NOT place anything: the
    * ticket renders pre-filled and the user confirms it there, through the same path as every

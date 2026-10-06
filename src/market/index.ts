@@ -106,6 +106,8 @@ export type {
   TrendLine,
 } from './alertRule.ts';
 
+export {atmLockTarget, crossedMidpoint} from './atmLock.ts';
+
 export {
   chartIntervalLabel,
   chartIntervalMinutes,

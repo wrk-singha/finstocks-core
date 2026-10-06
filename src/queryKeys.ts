@@ -441,6 +441,8 @@ export const queryKeys = {
     ],
     /** ["flyone", "screen", params] — one screen's rows, by the whole request */
     screen: (params: FlyoneScreenParams) => ['flyone', 'screen', params],
+    /** ["flyone", "dates"] — the stored trading days the direction scanner replays */
+    dates: () => ['flyone', 'dates'],
   },
 
   fno: {

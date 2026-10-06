@@ -94,6 +94,11 @@ export interface FlyoneSnapshot {
   rows: FlyoneRow[];
 }
 
+/** The trading days the engine has stored, newest first (at most 60): the sessions a scanner replays. */
+export interface FlyoneDates {
+  dates: string[];
+}
+
 export interface FlyoneScreenFilter {
   field: string;
   op: string;

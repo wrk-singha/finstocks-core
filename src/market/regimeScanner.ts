@@ -9,6 +9,11 @@ import {
   REGIME_ORDER,
   REGIME_SHORT,
 } from './regimePulse.ts';
+import {
+  type ScannerSortSpec,
+  scannerSortStartsDescending,
+  sortScannerRows,
+} from './scannerSort.ts';
 
 /**
  * Web's search and filter: a row stays when its regime is one of `regimes` (none picked keeps
@@ -53,17 +58,15 @@ export type RegimeSortKey = (typeof REGIME_SORT_KEYS)[number];
 /** Web's table opens sorted by the bias, strongest bullish first. */
 export const REGIME_DEFAULT_SORT: RegimeSortKey = 'zBias';
 
-type SortSpec =
-  | {readonly text: (row: RegimeRow) => string}
-  | {readonly num: (row: RegimeRow) => number | null};
-
 /** Bullish ranks highest; a regime outside the order (warming up) has no rank and sorts last. */
 const regimeRank = (row: RegimeRow): number | null => {
   const i = REGIME_ORDER.indexOf(row.regime);
   return i < 0 ? null : -i;
 };
 
-const REGIME_SORTS: Readonly<Record<RegimeSortKey, SortSpec>> = {
+const REGIME_SORTS: Readonly<
+  Record<RegimeSortKey, ScannerSortSpec<RegimeRow>>
+> = {
   symbol: {text: r => r.underlying},
   lastLog: {text: r => r.ts},
   spot: {num: r => r.spot},
@@ -79,12 +82,7 @@ const REGIME_SORTS: Readonly<Record<RegimeSortKey, SortSpec>> = {
 
 /** A figure starts high-first, text A–Z, as a fresh column does on web. */
 export const regimeSortStartsDescending = (key: RegimeSortKey): boolean =>
-  'num' in REGIME_SORTS[key];
-
-// The tie-break compares code points where web calls localeCompare: the keys are upper-case
-// tickers, which order the same either way, and a collator per comparison is slow on Hermes.
-const bySymbol = (a: RegimeRow, b: RegimeRow): number =>
-  a.underlying < b.underlying ? -1 : a.underlying > b.underlying ? 1 : 0;
+  scannerSortStartsDescending(REGIME_SORTS[key]);
 
 /**
  * The rows in `key` order, a new array; ties fall back to the symbol A–Z whichever way the sort
@@ -95,22 +93,12 @@ export function sortRegimeRows(
   key: RegimeSortKey,
   isDescending: boolean,
 ): RegimeRow[] {
-  const spec = REGIME_SORTS[key];
-  const dir = isDescending ? -1 : 1;
-  if ('text' in spec) {
-    return [...rows].sort((a, b) => {
-      const va = spec.text(a);
-      const vb = spec.text(b);
-      return va < vb ? -dir : va > vb ? dir : bySymbol(a, b);
-    });
-  }
-  const valueOf = (row: RegimeRow): number =>
-    spec.num(row) ?? Number.NEGATIVE_INFINITY;
-  return [...rows].sort((a, b) => {
-    const va = valueOf(a);
-    const vb = valueOf(b);
-    return va < vb ? -dir : va > vb ? dir : bySymbol(a, b);
-  });
+  return sortScannerRows(
+    rows,
+    REGIME_SORTS[key],
+    isDescending,
+    r => r.underlying,
+  );
 }
 
 /**

@@ -738,6 +738,24 @@ test('pruning drops what the catalogue cannot answer', () => {
   assert.deepEqual(pruned.columns, ['roe', 'rsi14@1w']);
 });
 
+test('a sort on a field the catalogue does not know falls back to the default order', () => {
+  const known = {universes: new Set(['nifty50'])};
+  const byName = screen({sort: {key: 'name', dir: 'asc'}});
+  assert.equal(pruneScreen(byName, index, known), byName);
+  const byRoe = screen({sort: {key: 'roe', dir: 'asc'}});
+  assert.equal(pruneScreen(byRoe, index, known), byRoe);
+  const unsorted = screen({sort: null});
+  assert.equal(pruneScreen(unsorted, index, known), unsorted);
+  const byEsf = screen({
+    filters: [{field: 'roe', min: 15}],
+    sort: {key: 'esf_score', dir: 'desc'},
+  });
+  const pruned = pruneScreen(byEsf, index, known);
+  assert.notEqual(pruned, byEsf);
+  assert.deepEqual(pruned.sort, EMPTY_SCREEN.sort);
+  assert.deepEqual(pruned.filters, byEsf.filters);
+});
+
 test('a screen is known when the catalogue has every field it filters on or shows', () => {
   assert.equal(
     hasKnownFields(index, {

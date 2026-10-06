@@ -76,7 +76,9 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   otherwise drop every filter and open the whole market as matches). The row closes with web
   dev's three options-regime screens (`regime-leaning-up`, `regime-leaning-down`,
   `regime-rangebound-melting`, RegimePulse 48a081d5) on the `regime_*` fields, which likewise exist
-  only on the backend's `dev` catalogue; they carry no sort.
+  only on the backend's `dev` catalogue; they carry no sort. `pruneScreen` now also checks the
+  sort: a key the catalogue does not serve (other than `name`) falls back to `EMPTY_SCREEN.sort`,
+  so a link from a richer catalogue cannot leave a dead sort behind.
 - **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena
   script ("C") strategies (backend feat/athena-integration), whose `budget_config` is the engine's
   `{val, type, allocate}` with no `mode`, and which carry no `fsm`; `deriveStrategyCards` threw on

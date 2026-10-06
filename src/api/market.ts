@@ -82,6 +82,7 @@ import type {
 } from '../types/flyone.ts';
 import type {
   RegimeDates,
+  RegimeDecay,
   RegimeDetail,
   RegimeSentiment,
   RegimeSnapshot,
@@ -704,6 +705,15 @@ export const marketApi = (http: HttpClient) => ({
   getRegimeDetail: (symbol: string, date?: string) =>
     http.request<RegimeDetail>(
       `/market/regimepulse/detail${query({symbol, date})}`,
+    ),
+
+  /**
+   * One underlying's tracked contracts against decay-only pricing through the session, oldest cycle
+   * first; the internal `signal` is blank unless the account sees it.
+   */
+  getRegimeDecay: (symbol: string, date?: string) =>
+    http.request<RegimeDecay>(
+      `/market/regimepulse/decay${query({symbol, date})}`,
     ),
 
   /** Whether the account sees the internal signals the snapshot otherwise blanks. */

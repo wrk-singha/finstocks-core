@@ -631,12 +631,17 @@ export type {PfSpan, RsResult} from './rsSectorMatrix.ts';
 
 export {
   breadthCounts,
+  canChart,
+  chartExtent,
+  chartTicks,
+  chartXTicks,
   clockOf,
   hasRegime,
   isBearish,
   isBullish,
   fractionPct,
   ivPointsOf,
+  latestDecay,
   REGIME_LABEL,
   REGIME_ORDER,
   REGIME_READING,
@@ -648,11 +653,19 @@ export {
   regimeRowFor,
   regimeStamp,
   regimeTone,
+  sessionOverview,
   signed,
   signedFixed,
   zBiasRegime,
 } from './regimePulse.ts';
-export type {RegimeLean, RegimeStamp, RegimeTone} from './regimePulse.ts';
+export type {
+  ChartExtent,
+  RegimeLean,
+  RegimeStamp,
+  RegimeTone,
+  SessionMark,
+  SessionOverview,
+} from './regimePulse.ts';
 
 export {
   filterRegimeRows,

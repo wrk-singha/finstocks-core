@@ -1,15 +1,24 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import type {Regime, RegimeRow} from '../../types/regimePulse.ts';
+import type {
+  Regime,
+  RegimeDecayRow,
+  RegimeRow,
+} from '../../types/regimePulse.ts';
 import {
   breadthCounts,
+  canChart,
+  chartExtent,
+  chartTicks,
+  chartXTicks,
   clockOf,
   hasRegime,
   isBearish,
   isBullish,
   ivPointsOf,
   fractionPct,
+  latestDecay,
   REGIME_LABEL,
   REGIME_ORDER,
   REGIME_SHORT,
@@ -20,6 +29,7 @@ import {
   regimeRowFor,
   regimeStamp,
   regimeTone,
+  sessionOverview,
   signed,
   signedFixed,
   zBiasRegime,
@@ -213,4 +223,84 @@ test('a reading is live only in market hours on its own day; a changed answer is
   assert.equal(regimeChangedSince('BULLISH', live), undefined);
   assert.equal(regimeChangedSince(undefined, live), undefined);
   assert.equal(regimeChangedSince('toString', live), undefined);
+});
+
+test('the session tiles: the first bar to set a high or low keeps it, the change runs open to last', () => {
+  const bars = [
+    {ts: '2026-10-06 09:16:00', spot: 100},
+    {ts: '2026-10-06 09:21:00', spot: 104},
+    {ts: '2026-10-06 09:26:00', spot: 104},
+    {ts: '2026-10-06 09:31:00', spot: 97},
+    {ts: '2026-10-06 09:36:00', spot: 97},
+    {ts: '2026-10-06 09:41:00', spot: 102},
+  ];
+  assert.deepEqual(sessionOverview(bars), {
+    open: {value: 100, at: '09:16'},
+    high: {value: 104, at: '09:21'},
+    low: {value: 97, at: '09:31'},
+    close: {value: 102, at: '09:41'},
+    change: 2,
+    changePct: 2,
+  });
+  assert.equal(sessionOverview([]), null);
+  assert.equal(
+    sessionOverview([{ts: '2026-10-06 09:16:00', spot: 0}])?.changePct,
+    0,
+  );
+  assert.equal(canChart([1]), false);
+  assert.equal(canChart([1, 2]), true);
+});
+
+const decay = (
+  ts: string,
+  strike: number,
+  type: 'CE' | 'PE',
+): RegimeDecayRow => ({
+  ts,
+  contract_key: `NIFTY-${String(strike)}-${type}`,
+  strike,
+  option_type: type,
+  spot: 25000,
+  ltp: 100,
+  actual_chg: -4,
+  theo_chg: -3,
+  gap: -1,
+  gap_z: null,
+  roc: null,
+  signal: '',
+});
+
+test('the decay table lists the newest cycle only: calls before puts, each by strike', () => {
+  const rows = [
+    decay('2026-10-06 14:31:00', 25000, 'CE'),
+    decay('2026-10-06 14:32:00', 25050, 'PE'),
+    decay('2026-10-06 14:32:00', 25050, 'CE'),
+    decay('2026-10-06 14:32:00', 24950, 'PE'),
+    decay('2026-10-06 14:32:00', 24950, 'CE'),
+  ];
+  assert.deepEqual(
+    latestDecay(rows).map(r => r.contract_key),
+    ['NIFTY-24950-CE', 'NIFTY-25050-CE', 'NIFTY-24950-PE', 'NIFTY-25050-PE'],
+  );
+  assert.deepEqual(latestDecay([]), []);
+});
+
+test("the chart frame's extent, value ticks and clock ticks are web's", () => {
+  assert.deepEqual(chartExtent([10, 20]), {min: 9.4, max: 20.6});
+  // A zero line widens the extent to take it in; a flat run opens to ±1; nothing reads 0–1.
+  const withZero = chartExtent([2, 4], [0]);
+  assert.ok(Math.abs(withZero.min + 0.24) < 1e-9);
+  assert.ok(Math.abs(withZero.max - 4.24) < 1e-9);
+  const flat = chartExtent([5, 5, NaN]);
+  assert.ok(Math.abs(flat.min - 3.88) < 1e-9);
+  assert.ok(Math.abs(flat.max - 6.12) < 1e-9);
+  const none = chartExtent([]);
+  assert.ok(Math.abs(none.min + 0.06) < 1e-9);
+  assert.ok(Math.abs(none.max - 1.06) < 1e-9);
+
+  assert.deepEqual(chartTicks({min: 0, max: 100}), [10, 50, 90]);
+  assert.deepEqual(chartXTicks(9), [0, 2, 4, 6, 8]);
+  assert.deepEqual(chartXTicks(3), [0, 1, 2]);
+  assert.deepEqual(chartXTicks(2), [0, 1]);
+  assert.deepEqual(chartXTicks(1), [0]);
 });

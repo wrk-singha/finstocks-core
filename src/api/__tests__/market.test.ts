@@ -543,6 +543,8 @@ test('the options regime reads: a missing date asks for the newest day', async (
   await api.getRegimeDates();
   await api.getRegimeDetail('NIFTY');
   await api.getRegimeDetail('M&M', '2026-10-06');
+  await api.getRegimeDecay('NIFTY');
+  await api.getRegimeDecay('M&M', '2026-10-06');
   await api.getRegimeMe();
   await api.getRegimeSymbols();
   assert.deepEqual(
@@ -555,6 +557,8 @@ test('the options regime reads: a missing date asks for the newest day', async (
       '/market/regimepulse/dates',
       '/market/regimepulse/detail?symbol=NIFTY',
       '/market/regimepulse/detail?symbol=M%26M&date=2026-10-06',
+      '/market/regimepulse/decay?symbol=NIFTY',
+      '/market/regimepulse/decay?symbol=M%26M&date=2026-10-06',
       '/market/regimepulse/me',
       '/market/regimepulse/symbols',
     ],

@@ -425,6 +425,9 @@ export const queryKeys = {
     indexUnderlyings: () => ['fno-index-underlyings'],
   },
 
+  /** ["manual-page", slug] — whether a field manual page answers where it is served. */
+  manualPage: (slug: string) => ['manual-page', slug],
+
   /** ["esf-score", symbol] — one stock's FinStocks Score (ESF), as web keys it */
   esfScore: (symbol: string | null) => ['esf-score', symbol],
 

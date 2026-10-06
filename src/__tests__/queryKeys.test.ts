@@ -34,3 +34,10 @@ test('the sector matrix and its pair key as web does', () => {
     'NIFTY',
   ]);
 });
+
+test('a manual page keys on its slug', () => {
+  assert.deepEqual(queryKeys.manualPage('banking-field-manual'), [
+    'manual-page',
+    'banking-field-manual',
+  ]);
+});

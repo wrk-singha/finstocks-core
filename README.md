@@ -104,7 +104,9 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   a host that knows only the older kinds compiles and ignores it. Web dev also serves 142 field
   manual pages as static documents under `/manuals/` (bd5a93ba), which such a button points at:
   `isManualPagePath`, `manualPageSlug`, `manualPageUrl(frontendUrl, slug)` and `manualPageTitle`
-  in `@finstocks/core/market` tell one from a route and spell where it is served.
+  in `@finstocks/core/market` tell one from a route and spell where it is served; a host that gates
+  the button on the page answering keys the probe with `queryKeys.manualPage(slug)`, and
+  `HttpMethod` now admits `HEAD` for it.
 - **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena
   script ("C") strategies (backend feat/athena-integration), whose `budget_config` is the engine's
   `{val, type, allocate}` with no `mode`, and which carry no `fsm`; `deriveStrategyCards` threw on

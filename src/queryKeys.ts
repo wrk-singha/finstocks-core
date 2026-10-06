@@ -10,6 +10,7 @@ import type {
   FundamentalsSection,
   StatementBasis,
 } from './types/fundamentalsDetail.ts';
+import type {ExpiryRank, FlyoneScreenParams} from './types/flyone.ts';
 import type {FundamentalPeriod} from './types/fundamentalSeries.ts';
 import type {WatchlistSearchType} from './types/stockWatchlist.ts';
 import type {GetStockEventsRequest} from './types/stockEvents.ts';
@@ -425,6 +426,19 @@ export const queryKeys = {
     me: () => ['regimepulse', 'me'],
     /** ["regimepulse", "symbols"] */
     symbols: () => ['regimepulse', 'symbols'],
+  },
+
+  /** The option levels, keyed as web keys them: a missing date is "latest". */
+  flyone: {
+    /** ["flyone", "snapshot", expiry, date] — every chain's latest row for one expiry rank */
+    snapshot: (expiry: ExpiryRank, date?: string) => [
+      'flyone',
+      'snapshot',
+      expiry,
+      date ?? 'latest',
+    ],
+    /** ["flyone", "screen", params] — one screen's rows, by the whole request */
+    screen: (params: FlyoneScreenParams) => ['flyone', 'screen', params],
   },
 
   fno: {

@@ -632,6 +632,7 @@ export type {PfSpan, RsResult} from './rsSectorMatrix.ts';
 export {
   breadthCounts,
   clockOf,
+  expiryBacktestTotals,
   hasRegime,
   isBearish,
   isBullish,
@@ -641,6 +642,7 @@ export {
   REGIME_ORDER,
   REGIME_READING,
   REGIME_SHORT,
+  REGIME_STRATEGY_NAMES,
   regimeChangedSince,
   regimeDistribution,
   regimeKey,
@@ -652,7 +654,39 @@ export {
   signedFixed,
   zBiasRegime,
 } from './regimePulse.ts';
-export type {RegimeLean, RegimeStamp, RegimeTone} from './regimePulse.ts';
+export type {
+  ExpiryBacktestTotals,
+  RegimeLean,
+  RegimeStamp,
+  RegimeTone,
+} from './regimePulse.ts';
+
+export {
+  callWallSide,
+  DIRECTION_LABEL,
+  DIRECTION_ORDER,
+  DIRECTION_SHORT,
+  directionSide,
+  disagreesWithRegime,
+  GEX_REGIME_LABEL,
+  GEX_REGIME_READING,
+  gexTone,
+  isThin,
+  isWarmingUp,
+  levelOf,
+  levelsReading,
+  nearestWall,
+  nearestWallText,
+  OI_NOTE,
+  parseWidthVotes,
+  PATTERN_LABEL,
+  PATTERN_READING,
+  pctAway,
+  pendingDirection,
+  putWallSide,
+  THIN_WIDTHS,
+} from './flyone.ts';
+export type {GexTone, WallSide} from './flyone.ts';
 
 export {
   parseSectorStrengthPath,

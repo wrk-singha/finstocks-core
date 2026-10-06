@@ -13,6 +13,7 @@ export type * from './customIndicator.ts';
 export type * from './dataTable.ts';
 export type * from './dividends.ts';
 export type * from './esf.ts';
+export type * from './flyone.ts';
 export type * from './fno.ts';
 export type * from './fundamentals.ts';
 export type * from './fundamentalsDetail.ts';

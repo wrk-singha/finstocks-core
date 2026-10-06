@@ -5,6 +5,7 @@ import type {Regime, RegimeRow} from '../../types/regimePulse.ts';
 import {
   breadthCounts,
   clockOf,
+  expiryBacktestTotals,
   hasRegime,
   isBearish,
   isBullish,
@@ -13,6 +14,7 @@ import {
   REGIME_LABEL,
   REGIME_ORDER,
   REGIME_SHORT,
+  REGIME_STRATEGY_NAMES,
   regimeChangedSince,
   regimeDistribution,
   regimeKey,
@@ -213,4 +215,44 @@ test('a reading is live only in market hours on its own day; a changed answer is
   assert.equal(regimeChangedSince('BULLISH', live), undefined);
   assert.equal(regimeChangedSince(undefined, live), undefined);
   assert.equal(regimeChangedSince('toString', live), undefined);
+});
+
+test('the expiry backtest totals over the symbols that traded; the strategy names carry no method name', () => {
+  const summary = (
+    wins: number,
+    losses: number,
+    net: number,
+    worst: number,
+  ) => ({
+    days: wins + losses,
+    wins,
+    losses,
+    win_pct: (wins / (wins + losses)) * 100,
+    best_day: 1000,
+    worst_day: worst,
+    total_gross: net + 100,
+    total_cost: 100,
+    total_net: net,
+  });
+  const empty = {rows: [], total: {gross: 0, cost: 0, net: 0, count: 0}};
+  assert.deepEqual(
+    expiryBacktestTotals({
+      symbols: [
+        {symbol: 'NIFTY', summary: summary(5, 2, 4200, -1800), detail: empty},
+        {symbol: 'BANKNIFTY', summary: null, detail: empty},
+        {symbol: 'SBIN', summary: summary(3, 4, -600, -2400), detail: empty},
+      ],
+    }),
+    {net: 3600, wins: 8, losses: 6, worst: -2400, cost: 200},
+  );
+  assert.equal(
+    expiryBacktestTotals({
+      symbols: [{symbol: 'NIFTY', summary: null, detail: empty}],
+    }),
+    null,
+  );
+  assert.deepEqual(REGIME_STRATEGY_NAMES, {
+    regime: 'Regime Straddle Add-On',
+    straddle_sl: 'Regime Straddle with Stop-Loss',
+  });
 });

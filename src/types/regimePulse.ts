@@ -107,3 +107,76 @@ export interface RegimeDetail {
   internal: boolean;
   rows: RegimeRow[];
 }
+
+/** The two expiry-backtest strategies the engine runs (`GET /market/regimepulse/strategies`). */
+export type RegimeStrategyId = 'regime' | 'straddle_sl';
+
+export interface RegimeStrategy {
+  id: RegimeStrategyId;
+  label: string;
+  short: string;
+  description: string;
+}
+
+export interface DrilldownRow {
+  label: string;
+  atm: number | null;
+  lot_size: number;
+  trades: number;
+  peak: number;
+  trough: number;
+  gross: number;
+  cost: number;
+  net: number;
+}
+
+export interface Drilldown {
+  rows: DrilldownRow[];
+  total: {gross: number; cost: number; net: number; count: number};
+}
+
+/** One symbol's record over every trading day to the expiry. */
+export interface SymbolBacktestSummary {
+  days: number;
+  wins: number;
+  losses: number;
+  win_pct: number;
+  best_day: number;
+  worst_day: number;
+  total_gross: number;
+  total_cost: number;
+  total_net: number;
+}
+
+export interface DateBacktestSummary {
+  date: string;
+  traded: number;
+  wins: number;
+  losses: number;
+  win_pct: number;
+  best_symbol: string;
+  best_net: number;
+  worst_symbol: string;
+  worst_net: number;
+  gross: number;
+  cost: number;
+  net: number;
+  detail: Drilldown;
+}
+
+/**
+ * What `POST /market/regimepulse/expiry-backtest` answers: the strategy walked over every trading
+ * day to `expiry` for each symbol, with a null summary for a symbol that traded nothing.
+ */
+export interface ExpiryBacktest {
+  expiry: string;
+  from: string | null;
+  strategy: RegimeStrategyId;
+  trading_days: string[];
+  symbols: {
+    symbol: string;
+    summary: SymbolBacktestSummary | null;
+    detail: Drilldown;
+  }[];
+  dates: DateBacktestSummary[];
+}

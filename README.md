@@ -128,6 +128,27 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `regimeStamp` (live on the row's own day in market hours, else at close) and
   `regimeChangedSince`. The alert, backtest, chain-overlay and replay routes stay for the units
   that draw them.
+  The last three chat cards (web dev 2226a1e1, `c338cfa2`): `ChatCard` gains
+  `{type: 'regime'; payload: {underlyings, levels?, answered?, answered_at?}}` (the card is live;
+  the payload says only what the answer said and when), `{type: 'regime_backtest'}` with
+  `{symbols, expiry, from?, strategy, result?}` — `result?: ExpiryBacktest` is core's addition,
+  not on web's payload: web runs the backtest from the card, a host that does not shows the result
+  the answer brought — and `{type: 'flyone_screen'; payload: FlyoneScreenCardPayload}`. The option
+  levels engine (web `interfaces/flyone.ts`, backend-go `handlers/flyone` on dev): `types/flyone`
+  carries `FlyoneRow` (one chain's minute: spot, the expected move, put wall, gamma flip, call
+  wall, the dealer regime, the engine's call), `FlyoneSnapshot`, `FlyoneScreen`,
+  `FlyoneScreenParams` and the card payload; `types/regimePulse` gains the expiry backtest's
+  answer (`RegimeStrategyId`, `RegimeStrategy`, `ExpiryBacktest`, `SymbolBacktestSummary`,
+  `DateBacktestSummary`, `Drilldown`). `marketApi.getFlyoneSnapshot(expiry, date?)` and
+  `getFlyoneScreen(params)` (symbols joined with commas, an empty list dropped) are the two reads
+  the cards make; `queryKeys.flyone` (`snapshot`, `screen`) keys them as web does. `market/flyone`
+  holds web's `utils/market/flyone.ts` less its CSS: the direction and pattern words, the dealer
+  regime's label, reading and tone (`gexTone`), `OI_NOTE`, `levelOf`, `pctAway`, `levelsReading`,
+  `isThin`, `isWarmingUp`, `pendingDirection`, `parseWidthVotes`, `disagreesWithRegime`, and what
+  web's cards work out inline: `callWallSide`/`putWallSide` (a wall named by its side of spot, web
+  c338cfa2) and `nearestWall`/`nearestWallText` ("put −0.4%"). `market/regimePulse` gains
+  `REGIME_STRATEGY_NAMES` (web 6448ede1's names, no method name) and `expiryBacktestTotals`
+  (web's card totals over the symbols that traded).
 - **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
   backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,

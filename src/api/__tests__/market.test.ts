@@ -556,3 +556,27 @@ test('the options regime reads: a missing date asks for the newest day', async (
     ],
   );
 });
+
+test('the option levels reads: the screen joins its symbols and drops an empty list', async () => {
+  const {http, calls} = fakeHttp();
+  const api = marketApi(http);
+  await api.getFlyoneSnapshot('near');
+  await api.getFlyoneSnapshot('next', '2026-10-06');
+  await api.getFlyoneScreen({
+    where: 'score>0,gex_regime=POS|STRONG_POS',
+    universe: 'stock',
+    limit: 50,
+  });
+  await api.getFlyoneScreen({symbols: ['NIFTY', 'M&M'], expiry: 'near'});
+  await api.getFlyoneScreen({symbols: []});
+  assert.deepEqual(
+    calls.map(c => c.path),
+    [
+      '/market/flyone/snapshot?expiry=near',
+      '/market/flyone/snapshot?expiry=next&date=2026-10-06',
+      '/market/flyone/screen?where=score%3E0%2Cgex_regime%3DPOS%7CSTRONG_POS&universe=stock&limit=50',
+      '/market/flyone/screen?expiry=near&symbols=NIFTY%2CM%26M',
+      '/market/flyone/screen',
+    ],
+  );
+});

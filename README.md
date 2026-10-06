@@ -82,7 +82,15 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   (`basketCharges`). To carry it, `trading/orderCharges` gains web's `ChargeTotals`, `NO_CHARGES`,
   `addCharges`, `chargeGroups` and the `ChargesBreakdown` that `OrderChargesEstimate` now
   extends; `estimateOrderCharges` is unchanged in what it returns. `format` gains
-  `signedFractionPct` (0.042 → "+4.2%") and `MONTH_SHORT_NAMES`.
+  `signedFractionPct` (0.042 → "+4.2%") and `MONTH_SHORT_NAMES`. The alerts gain the baskets
+  scope as web has it (web 635bdd59): `AlertScope` adds `'baskets'`, `AlertChannelId` adds
+  `'basket_rebalances'`, `ALERT_SCOPES`, `ALERT_CHANNELS` and the defaults list the one channel
+  ("Basket reviews", on by default once the master is), and `withAlertsEnabled` flips the
+  master the way web does, subscribing to the defaults when nothing is chosen.
+  The channel is the backend's `alert_preferences.basket_rebalances` (migration 000034), which
+  its nightly review broadcast reads; `POST /market/basket/follow` writes a `basket_followers`
+  row nothing reads, so it is not here. A host with a `Record` over `AlertScope` or
+  `AlertChannelId` adds the one entry.
 - **v0.8.3** — the screener's ESF prebuilt screens; additive only. `PrebuiltScreen` gains an
   optional `sort` (`{key, dir}`), and `PREBUILT_SCREENS` opens with web's seven FinStocks Score
   screens (`esf-leaders`, `esf-growth-leaders`, `esf-big-money`, `esf-ready-to-rise`,

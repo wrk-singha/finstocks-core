@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {chargeSegmentFor, estimateOrderCharges} from '../orderCharges.ts';
+import {
+  addCharges,
+  chargeGroups,
+  chargeSegmentFor,
+  estimateOrderCharges,
+  NO_CHARGES,
+} from '../orderCharges.ts';
 
 test('a single delivery buy is itemised like a contract note', () => {
   const est = estimateOrderCharges(
@@ -76,4 +82,40 @@ test('chargeSegmentFor maps the pad flags onto a segment', () => {
   assert.equal(chargeSegmentFor('INFY', false, false), 'delivery');
   assert.equal(chargeSegmentFor('NIFTY24JULFUT', true, true), 'futures');
   assert.equal(chargeSegmentFor('NIFTY24JUL22000PE', true, false), 'options');
+});
+
+test('charges add line by line, and the groups read the same as an estimate’s', () => {
+  const a = {...NO_CHARGES, brokerage: 10, gst: 1.8, totalCharges: 11.8};
+  const b = {
+    ...NO_CHARGES,
+    brokerage: 5,
+    dpCharges: 15.93,
+    totalCharges: 20.93,
+  };
+  const sum = addCharges(a, b);
+  assert.equal(sum.brokerage, 15);
+  assert.equal(sum.gst, 1.8);
+  assert.equal(sum.dpCharges, 15.93);
+  assert.equal(Number(sum.totalCharges.toFixed(2)), 32.73);
+  assert.deepEqual(addCharges(NO_CHARGES, NO_CHARGES), NO_CHARGES);
+
+  const groups = chargeGroups(sum, 'zerodha');
+  assert.deepEqual(
+    groups.map(g => [g.title, g.lines.map(l => l.label)]),
+    [
+      ['Zerodha charges', ['Brokerage']],
+      [
+        'External charges',
+        [
+          'Exchange transaction charges',
+          'Stamp duty',
+          'SEBI turnover charges',
+          'IPFT',
+          'DP charges',
+        ],
+      ],
+      ['Taxes', ['GST', 'Securities Transaction Tax']],
+    ],
+  );
+  assert.equal(chargeGroups(a, 'groww')[1]?.lines.length, 4);
 });

@@ -1,7 +1,7 @@
 import {BROKER_NAMES, DEFAULT_BROKER} from '../data/brokers.ts';
 import {formatCurrency, formatNumber} from '../format/index.ts';
 import type {BrokerOptions} from '../types/broker.ts';
-import type {OrderSide} from '../types/trade.ts';
+import type {BrokerageBreakdown, OrderSide} from '../types/trade.ts';
 import {resolveBrokerageSegment} from './brokerage.ts';
 import {calculateBrokerage} from './brokerageCalculator.ts';
 import type {BrokerageSegment} from './brokerageCalculator.ts';
@@ -23,17 +23,80 @@ export interface ChargeGroup {
   lines: ChargeLine[];
 }
 
-export interface OrderChargesEstimate {
+/** The charges of one or many trades, summed line by line. */
+export type ChargeTotals = Omit<BrokerageBreakdown, 'grossPnl' | 'netPnl'>;
+
+export const NO_CHARGES: ChargeTotals = {
+  brokerage: 0,
+  exchangeCharges: 0,
+  stampDuty: 0,
+  sebiCharges: 0,
+  ipft: 0,
+  gst: 0,
+  stt: 0,
+  dpCharges: 0,
+  totalCharges: 0,
+};
+
+export const addCharges = (a: ChargeTotals, b: ChargeTotals): ChargeTotals => ({
+  brokerage: a.brokerage + b.brokerage,
+  exchangeCharges: a.exchangeCharges + b.exchangeCharges,
+  stampDuty: a.stampDuty + b.stampDuty,
+  sebiCharges: a.sebiCharges + b.sebiCharges,
+  ipft: a.ipft + b.ipft,
+  gst: a.gst + b.gst,
+  stt: a.stt + b.stt,
+  dpCharges: a.dpCharges + b.dpCharges,
+  totalCharges: a.totalCharges + b.totalCharges,
+});
+
+/** What a charges breakdown panel needs: the traded value and its itemised charges. */
+export interface ChargesBreakdown {
   /** "₹339.65 × 12 qty" for a single leg, "3 legs" for a basket. */
   tradeValueDetail: string;
   /** Net debit of the legs before charges. Negative on a net-credit structure. */
   tradeValue: number;
   totalCharges: number;
+  groups: ChargeGroup[];
+}
+
+export interface OrderChargesEstimate extends ChargesBreakdown {
   /** Trade value plus charges — what a buy actually takes out of the account. */
   netDebit: number;
   /** Trade value minus charges — what a sell actually leaves behind. */
   netCredit: number;
-  groups: ChargeGroup[];
+}
+
+/** Itemised the way a contract note is: the broker's own fee, then the levies, then the taxes. */
+export function chargeGroups(
+  totals: ChargeTotals,
+  broker: BrokerOptions,
+): ChargeGroup[] {
+  const external: ChargeLine[] = [
+    {label: 'Exchange transaction charges', value: totals.exchangeCharges},
+    {label: 'Stamp duty', value: totals.stampDuty},
+    {label: 'SEBI turnover charges', value: totals.sebiCharges},
+    {label: 'IPFT', value: totals.ipft},
+  ];
+  // Only the delivery sell that actually debits shares carries one, so a ₹0 row on every other
+  // order would be four words of noise.
+  if (totals.dpCharges > 0) {
+    external.push({label: 'DP charges', value: totals.dpCharges});
+  }
+  return [
+    {
+      title: `${BROKER_NAMES[broker]} charges`,
+      lines: [{label: 'Brokerage', value: totals.brokerage}],
+    },
+    {title: 'External charges', lines: external},
+    {
+      title: 'Taxes',
+      lines: [
+        {label: 'GST', value: totals.gst},
+        {label: 'Securities Transaction Tax', value: totals.stt},
+      ],
+    },
+  ];
 }
 
 /**
@@ -63,51 +126,23 @@ export function estimateOrderCharges(
 
   let buyValue = 0;
   let sellValue = 0;
-  const totals = {
-    brokerage: 0,
-    exchangeCharges: 0,
-    stampDuty: 0,
-    sebiCharges: 0,
-    ipft: 0,
-    gst: 0,
-    stt: 0,
-    dpCharges: 0,
-    totalCharges: 0,
-  };
+  let totals = NO_CHARGES;
 
   for (const leg of priced) {
     const isBuy = leg.side === 'BUY';
     if (isBuy) buyValue += leg.price * leg.qty;
     else sellValue += leg.price * leg.qty;
 
-    const charges = calculateBrokerage(
-      isBuy ? leg.price : 0,
-      isBuy ? 0 : leg.price,
-      leg.qty,
-      segment,
-      key,
+    totals = addCharges(
+      totals,
+      calculateBrokerage(
+        isBuy ? leg.price : 0,
+        isBuy ? 0 : leg.price,
+        leg.qty,
+        segment,
+        key,
+      ),
     );
-    totals.brokerage += charges.brokerage;
-    totals.exchangeCharges += charges.exchangeCharges;
-    totals.stampDuty += charges.stampDuty;
-    totals.sebiCharges += charges.sebiCharges;
-    totals.ipft += charges.ipft;
-    totals.gst += charges.gst;
-    totals.stt += charges.stt;
-    totals.dpCharges += charges.dpCharges;
-    totals.totalCharges += charges.totalCharges;
-  }
-
-  const external: ChargeLine[] = [
-    {label: 'Exchange transaction charges', value: totals.exchangeCharges},
-    {label: 'Stamp duty', value: totals.stampDuty},
-    {label: 'SEBI turnover charges', value: totals.sebiCharges},
-    {label: 'IPFT', value: totals.ipft},
-  ];
-  // Only the delivery sell that actually debits shares carries one, so a ₹0 row on every other
-  // order would be four words of noise.
-  if (totals.dpCharges > 0) {
-    external.push({label: 'DP charges', value: totals.dpCharges});
   }
 
   const single = priced.length === 1 ? priced[0] : undefined;
@@ -120,20 +155,7 @@ export function estimateOrderCharges(
     totalCharges: totals.totalCharges,
     netDebit: buyValue - sellValue + totals.totalCharges,
     netCredit: sellValue - buyValue - totals.totalCharges,
-    groups: [
-      {
-        title: `${BROKER_NAMES[key]} charges`,
-        lines: [{label: 'Brokerage', value: totals.brokerage}],
-      },
-      {title: 'External charges', lines: external},
-      {
-        title: 'Taxes',
-        lines: [
-          {label: 'GST', value: totals.gst},
-          {label: 'Securities Transaction Tax', value: totals.stt},
-        ],
-      },
-    ],
+    groups: chargeGroups(totals, key),
   };
 }
 

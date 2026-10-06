@@ -32,10 +32,18 @@ export {
   oneTapProductFor,
 } from './oneTapBrackets.ts';
 export type {BookTop, BracketLegs} from './oneTapBrackets.ts';
-export {chargeSegmentFor, estimateOrderCharges} from './orderCharges.ts';
+export {
+  addCharges,
+  chargeGroups,
+  chargeSegmentFor,
+  estimateOrderCharges,
+  NO_CHARGES,
+} from './orderCharges.ts';
 export type {
   ChargeGroup,
   ChargeLine,
+  ChargesBreakdown,
+  ChargeTotals,
   OrderChargeLeg,
   OrderChargesEstimate,
 } from './orderCharges.ts';

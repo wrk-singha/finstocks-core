@@ -5,7 +5,7 @@ import type {
   AlertScope,
 } from '../types/alerts.ts';
 
-export const ALERT_SCOPES: readonly AlertScope[] = ['stocks', 'fno'];
+export const ALERT_SCOPES: readonly AlertScope[] = ['stocks', 'fno', 'baskets'];
 
 /**
  * What a user can be alerted about, per tab. The ids are the backend's channel column names
@@ -65,6 +65,16 @@ export const ALERT_CHANNELS: Record<AlertScope, AlertChannel[]> = {
         'When an open F&O position hits its planned exit or its risk gate.',
     },
   ],
+  // One channel, one promise: the baskets are reviewed on a schedule, and this says when a
+  // review changed the stocks. It never places an order (web 635bdd59).
+  baskets: [
+    {
+      id: 'basket_rebalances',
+      label: 'Basket reviews',
+      description:
+        'When a rule-based basket reviews its stocks: how many came in and went out.',
+    },
+  ],
 };
 
 /**
@@ -89,6 +99,7 @@ export const alertScopeForChannel = (channelId: string): AlertScope | null => {
 const DEFAULT_ON: Record<AlertScope, AlertChannelId[]> = {
   stocks: ['stocks_intraday', 'strategies_intraday'],
   fno: ['fno_intraday', 'fno_exits'],
+  baskets: ['basket_rebalances'],
 };
 
 /** Alerts are opt-in — nothing is sent until the user turns the master on. */
@@ -101,3 +112,16 @@ export const defaultAlertPreferences = (
   }
   return {enabled: false, channels};
 };
+
+/**
+ * Flips the master switch. Turning it on with nothing chosen subscribes to the scope's defaults,
+ * so "on" never means on-but-silent.
+ */
+export const withAlertsEnabled = (
+  scope: AlertScope,
+  prefs: AlertPreferences,
+  enabled: boolean,
+): AlertPreferences =>
+  enabled && !Object.values(prefs.channels).some(Boolean)
+    ? {...defaultAlertPreferences(scope), enabled}
+    : {...prefs, enabled};

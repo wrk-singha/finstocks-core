@@ -63,6 +63,34 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
+  (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
+  backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,
+  `EsfBacktestDetail` and their parts, nullable where the Go struct is a pointer), and
+  `queryKeys.esfBaskets` / `esfBasket` / `esfBacktest`, keyed as web keys them. Web's
+  `basketFormat` helpers move into `market/basketFormat` as they are (web dev 2226a1e1): the
+  cadence, review-day and stock-count copy, `minAmountHint` (the minimum explained with the
+  basket's own numbers, web e22b9154), `basketHeadline` (the live record once it is a year long,
+  else the primary backtest), `navSummary`, `trackingStart`, `planBasketBuy` and
+  `subscriptionStatusLabel`. Web's `periodLabel` / `periodsLabel` are `reviewPeriodLabel` /
+  `reviewPeriodsLabel` here, because fundamentals already exports a `periodLabel` for a filed
+  statement. `market/basketBacktest` is web's `utils/market/basketBacktest.ts` as it is:
+  `equityCurve`, `dailyReturns`, `yearlyReturns`, `monthlyReturns`, `summarize` (final multiple,
+  annual return once a year is on record, worst trough and its day, Sharpe at a 0% risk-free
+  rate, win rate by review), `monteCarlo` (seeded, so the band holds still) and `picksByReview`;
+  `market/basketCharges` replays a backtest's trades at a capital on a broker's published rates
+  (`basketCharges`). To carry it, `trading/orderCharges` gains web's `ChargeTotals`, `NO_CHARGES`,
+  `addCharges`, `chargeGroups` and the `ChargesBreakdown` that `OrderChargesEstimate` now
+  extends; `estimateOrderCharges` is unchanged in what it returns. `format` gains
+  `signedFractionPct` (0.042 → "+4.2%") and `MONTH_SHORT_NAMES`. The alerts gain the baskets
+  scope as web has it (web 635bdd59): `AlertScope` adds `'baskets'`, `AlertChannelId` adds
+  `'basket_rebalances'`, `ALERT_SCOPES`, `ALERT_CHANNELS` and the defaults list the one channel
+  ("Basket reviews", on by default once the master is), and `withAlertsEnabled` flips the
+  master the way web does, subscribing to the defaults when nothing is chosen.
+  The channel is the backend's `alert_preferences.basket_rebalances` (migration 000034), which
+  its nightly review broadcast reads; `POST /market/basket/follow` writes a `basket_followers`
+  row nothing reads, so it is not here. A host with a `Record` over `AlertScope` or
+  `AlertChannelId` adds the one entry.
 - **v0.8.3** — the screener's ESF prebuilt screens; additive only. `PrebuiltScreen` gains an
   optional `sort` (`{key, dir}`), and `PREBUILT_SCREENS` opens with web's seven FinStocks Score
   screens (`esf-leaders`, `esf-growth-leaders`, `esf-big-money`, `esf-ready-to-rise`,

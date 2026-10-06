@@ -151,6 +151,56 @@ export {
 } from './customIndicators.ts';
 
 export {
+  dailyReturns,
+  equityCurve,
+  monteCarlo,
+  monthlyReturns,
+  picksByReview,
+  summarize,
+  TRADING_DAYS_PER_YEAR,
+  yearlyReturns,
+  yearsBetween,
+} from './basketBacktest.ts';
+export type {
+  BacktestSummary,
+  CurvePoint,
+  MonteCarloBand,
+  MonthCell as BasketMonthCell,
+  PeriodReturn,
+} from './basketBacktest.ts';
+export {basketCharges} from './basketCharges.ts';
+export type {BasketCharges} from './basketCharges.ts';
+export {
+  awaitingFirstOrders,
+  basketHeadline,
+  BENCHMARK_LABEL,
+  cadenceLabel,
+  DEFAULT_CAPITAL,
+  marketLabel,
+  minAmountHint,
+  MODE_LABEL,
+  navChange,
+  navSummary,
+  ORDER_STATUS,
+  reviewPeriodLabel,
+  reviewPeriodsLabel,
+  planBasketBuy,
+  primaryBacktest,
+  reviewDayLabel,
+  stockCountLabel,
+  subscriptionStatusLabel,
+  trackingStart,
+  volatilityLabel,
+  weightLabel,
+} from './basketFormat.ts';
+export type {
+  BasketBuyLine,
+  BasketBuyPlan,
+  BasketHeadline,
+  EsfOrderTone,
+  NavSummary,
+} from './basketFormat.ts';
+export {
   formatTopPct,
   MARKET_LABELS,
   STAGE_CYCLE,

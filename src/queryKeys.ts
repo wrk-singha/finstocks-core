@@ -413,6 +413,12 @@ export const queryKeys = {
 
   /** ["esf-score", symbol] — one stock's FinStocks Score (ESF), as web keys it */
   esfScore: (symbol: string | null) => ['esf-score', symbol],
+  /** ["esf-baskets"] — every rule-based basket as a card, as web keys it */
+  esfBaskets: () => ['esf-baskets'],
+  /** ["esf-basket", slug] — one basket's detail */
+  esfBasket: (slug: string) => ['esf-basket', slug],
+  /** ["esf-backtest", slug, id] — one backtest run's months, picks and days */
+  esfBacktest: (slug: string, id: number) => ['esf-backtest', slug, id],
 
   /** ["ownership", symbol] — one stock's holder register, bulk and block deals and insider
    *  trades; no symbol is "" rather than null, as web keys it */

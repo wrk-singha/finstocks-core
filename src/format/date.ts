@@ -221,6 +221,9 @@ const MONTHS_SHORT = [
   'Dec',
 ];
 
+/** January to December, three letters each, as web's `MONTH_SHORT_NAMES` (en-IN). */
+export const MONTH_SHORT_NAMES: readonly string[] = MONTHS_SHORT;
+
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 
 // ICU prints en-IN day periods as "am"/"pm" from v72 and "AM"/"PM" before it, and pads the

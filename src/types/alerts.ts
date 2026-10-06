@@ -1,5 +1,5 @@
-/** Which tab's alert set the bell is opening — Stocks or F&O. */
-export type AlertScope = 'stocks' | 'fno';
+/** Which alert set the bell is opening — Stocks, F&O, or the rule-based baskets. */
+export type AlertScope = 'stocks' | 'fno' | 'baskets';
 
 /** The backend's channel column names (services/notifications/kinds.go). */
 export type AlertChannelId =
@@ -10,7 +10,8 @@ export type AlertChannelId =
   | 'fno_intraday'
   | 'fno_positional'
   | 'fno_expiry'
-  | 'fno_exits';
+  | 'fno_exits'
+  | 'basket_rebalances';
 
 export interface AlertChannel {
   id: AlertChannelId;

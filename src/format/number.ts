@@ -162,6 +162,12 @@ export const signedPct = (
     ? `${value >= 0 ? '+' : ''}${value.toFixed(decimals)}%`
     : '—';
 
+/** A fraction in, a signed percent out: 0.042 → "+4.2%"; null and undefined print a dash. */
+export const signedFractionPct = (
+  fraction: number | null | undefined,
+  decimals = 1,
+): string => (fraction == null ? '—' : signedPct(fraction * 100, decimals));
+
 // drift resolved 2026-09-13: both apps export this helper as `formatCompactINR`; core named it
 // `formatCompactInr`. One implementation, the app-facing spelling aliased so call sites move
 // without a rename.

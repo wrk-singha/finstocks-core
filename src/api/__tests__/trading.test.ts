@@ -58,6 +58,10 @@ test('strategy lifecycle endpoints', async () => {
   const backtest = {symbol: 'TCS', timeframe: '1d', original_query: 'q'};
   await api.createBacktest(backtest, 'k1');
   await api.createBacktestBatch({variants: [backtest], message_id: 'm'}, 'k2');
+  await api.strategyAction(
+    {...backtest, action: 'deploy', script: 'code', script_hash: 'h'},
+    'k6',
+  );
   await api.stopStrategy('s1');
   await api.updateStrategyStatus('s1', 'PAUSED');
   await api.redeployStrategy('s1', {original_query: 'q2'}, 'k3');
@@ -70,6 +74,7 @@ test('strategy lifecycle endpoints', async () => {
     [
       ['/trading/create-backtest', 'POST', 'k1'],
       ['/trading/create-backtest-batch', 'POST', 'k2'],
+      ['/trading/strategy-action', 'POST', 'k6'],
       ['/trading/stop-strategy', 'PUT', undefined],
       ['/trading/update-strategy', 'PUT', undefined],
       ['/trading/switch-strategy', 'PUT', 'k3'],
@@ -79,12 +84,12 @@ test('strategy lifecycle endpoints', async () => {
       ['/trading/stop-trade', 'POST', undefined],
     ],
   );
-  assert.deepEqual(calls[3]?.init?.body, {strategy_id: 's1', status: 'PAUSED'});
-  assert.deepEqual(calls[4]?.init?.body, {
+  assert.deepEqual(calls[4]?.init?.body, {strategy_id: 's1', status: 'PAUSED'});
+  assert.deepEqual(calls[5]?.init?.body, {
     strategy_id: 's1',
     original_query: 'q2',
   });
-  assert.deepEqual(calls[5]?.init?.body, {
+  assert.deepEqual(calls[6]?.init?.body, {
     strategy_id: 's1',
     fsm: {},
     timeframe: '5m',

@@ -63,6 +63,32 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **Unreleased** — the C strategy cards' run (web `feat/athena-integration` 0bc7e131); additive
+  only. A chat plan card whose `terms.script_entry` is `"evaluate_v2"` with a `script` and
+  `script_hash` is a C strategy card: its rules are its code, and it runs only through the
+  backend's `POST /trading/strategy-action`, never create-backtest (which has no FSM to send for
+  it, or an FSM that is not its code). `BacktestSetupTerms` gains `script_entry`, `strategy_id`
+  and `backtest_id`; `strategy/strategySetupConfig` gains `SCRIPT_ENTRY_C`, `scriptRunOf(terms)`
+  (the card's `ScriptRun` — code, hash and the saved rows — or null) and `isScriptCard(setup)`.
+  `tradingApi.strategyAction(body, idempotencyKey)` sends `StrategyActionRequest`: the
+  `RunSettings` (create-backtest's fields less `is_backtest`, `is_mock`, `fsm`) plus `action`
+  (`StrategyAction`: `backtest`, `deploy`, `deploy_live`, `replace`), `script`, `script_hash`,
+  `strategy_id?`, `backtest_id?`, `expected_compile_hash?`; 200 is `StrategyActionResponse`
+  (create-backtest's). `deploy` and `deploy_live` activate the same row (only `is_mock` flips),
+  so a live deploy of a paper run turns it live keeping its history; `replace` swaps live code
+  from the next candle, keeping positions, and is sent only after the 409 that asked for it.
+  `strategy/strategyAction` holds `STRATEGY_ACTION_BY_KIND` and `scriptAction(kind, settings,
+script)` (a run option as its request, ids omitted when the card has none), `replaceAction(
+request, compileHash)` (the same request as a replace of the version named, the card's own
+  `script_hash` kept) and `strategyActionRefusal(error, fallback)`, which reads a failed call on
+  either host's error shape: `{kind: 'replace', message, compileHash, liveName?}` for the 409
+  with `needs: "replace"` (nothing changed; `message` is the backend's confirm), `{kind:
+'refused', message}` for a 400 (the settings; QTY and RISK_PERCENT sizing; PERCENT with no
+  capital), 403, 404, a 409 asking for no replace, 412, 422, 503 and any other 4xx, in the
+  backend's words, `{kind: 'unavailable', message}` for a 500 or 502, and null for a timeout,
+  the network or anything without a status, where the request may have been carried out and a
+  host re-reads rather than resends. `strategyActionTouches()` lists what such a call changes:
+  the books (`status.all()`) and every strategy's logs (`['strategyLogs']`).
 - **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a

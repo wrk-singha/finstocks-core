@@ -9,6 +9,7 @@
  */
 import type {BacktestSetupTerms} from '../types/backtest.ts';
 import type {ConsoleSizingMode} from '../types/console.ts';
+import type {ScriptRun} from '../types/strategyRun.ts';
 
 export interface SetupConfig {
   symbol?: string;
@@ -32,6 +33,41 @@ export interface SetupConfig {
 
 export const normalizeSetupKey = (k: string): string =>
   k.toLowerCase().replace(/\s+/g, '_');
+
+/** The `script_entry` that marks a C strategy card. */
+export const SCRIPT_ENTRY_C = 'evaluate_v2';
+
+/**
+ * The card's C strategy, when it is one: `script_entry` "evaluate_v2" with its code and the
+ * code's hash. Such a card runs only from its own buttons and only through `strategy-action`:
+ * a create-backtest sent for it has no FSM to send (refused), or an FSM that is not the card's
+ * code (deployed as a different rule). Null for every other card, including a composed
+ * "script_preview" whose `script` is a receipt rather than an entry point.
+ */
+export function scriptRunOf(
+  terms: BacktestSetupTerms | null | undefined,
+): ScriptRun | null {
+  if (
+    terms?.script_entry !== SCRIPT_ENTRY_C ||
+    typeof terms.script !== 'string' ||
+    terms.script === '' ||
+    typeof terms.script_hash !== 'string' ||
+    terms.script_hash === ''
+  ) {
+    return null;
+  }
+  return {
+    script: terms.script,
+    scriptHash: terms.script_hash,
+    strategyId: terms.strategy_id,
+    backtestId: terms.backtest_id,
+  };
+}
+
+/** Whether a plan card is a C strategy card (`scriptRunOf` on its terms). */
+export const isScriptCard = (setup: {
+  terms?: BacktestSetupTerms | undefined;
+}): boolean => scriptRunOf(setup.terms) !== null;
 
 /** The machine terms a plan card carries, when it carries them. */
 export type SetupTerms = BacktestSetupTerms;

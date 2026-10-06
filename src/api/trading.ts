@@ -105,6 +105,46 @@ export interface CreateBacktestResponse {
   message?: string;
 }
 
+/** A run's settings, as both create-backtest and strategy-action take them. */
+export type RunSettings = Omit<
+  CreateBacktestRequest,
+  'is_backtest' | 'is_mock' | 'fsm'
+>;
+
+/**
+ * What `POST /trading/strategy-action` does with a C strategy card's code. `deploy` and
+ * `deploy_live` activate the SAME row and differ only in `is_mock`, so a live deploy of a paper run
+ * turns that run live and keeps its history; `replace` swaps the code of a live strategy from the
+ * next candle, keeping its positions, and is sent only after the 409 that asked for it.
+ */
+export type StrategyAction = 'backtest' | 'deploy' | 'deploy_live' | 'replace';
+
+/** A C strategy card's run: its settings, its code, and the rows it was saved as. */
+export interface StrategyActionRequest extends RunSettings {
+  action: StrategyAction;
+  /** The saved strategy the card is a version of; `replace` needs it. */
+  strategy_id?: string;
+  /** On a backtest card, the backtest row saved for it. */
+  backtest_id?: string;
+  script: string;
+  script_hash: string;
+  /** The live version's `compile_hash` from the replace prompt the user confirmed. */
+  expected_compile_hash?: string;
+}
+
+export type StrategyActionResponse = CreateBacktestResponse;
+
+/**
+ * A failed strategy-action's body. `needs: "replace"` on a 409 means `error` is a confirm to show
+ * and `compile_hash` the live version a replace must name.
+ */
+export interface StrategyActionFailure {
+  error: string;
+  needs?: 'replace';
+  live_name?: string;
+  compile_hash?: string;
+}
+
 /** One POST creates every variant of a sweep, so the whole run either starts or it doesn't. */
 export interface CreateBacktestBatchRequest {
   variants: CreateBacktestRequest[];
@@ -364,6 +404,19 @@ export const tradingApi = (http: HttpClient) => ({
     http.request<CreateBacktestResponse>('/trading/create-backtest', {
       method: 'POST',
       body: config,
+      idempotencyKey,
+    }),
+
+  /**
+   * Runs a C strategy card (`terms.script_entry === "evaluate_v2"`) through Athena: backtests,
+   * deploys (paper or live) or replaces the live version with the card's code. 200 answers the
+   * row it acted on; a failure's body is `StrategyActionFailure`, read with
+   * `strategyActionRefusal`. Money code: one request per press, never retried by a client.
+   */
+  strategyAction: (body: StrategyActionRequest, idempotencyKey: string) =>
+    http.request<StrategyActionResponse>('/trading/strategy-action', {
+      method: 'POST',
+      body,
       idempotencyKey,
     }),
 

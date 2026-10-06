@@ -32,7 +32,11 @@ export * from './screener/index.ts';
 export * from './portfolio/index.ts';
 export * from './fundamentals/index.ts';
 export * from './api/index.ts';
-export {esfSubscriptionTouches, queryKeys} from './queryKeys.ts';
+export {
+  esfSubscriptionTouches,
+  queryKeys,
+  strategyActionTouches,
+} from './queryKeys.ts';
 // Runtime values that live beside their types (types/index.ts is type-only).
 export {DEFAULT_TIMEFRAME, TIMEFRAME_OPTIONS} from './types/screenerFilters.ts';
 export {

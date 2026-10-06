@@ -34,11 +34,13 @@ export const scriptAction = (
   ...(script.backtestId === undefined ? {} : {backtest_id: script.backtestId}),
   script: script.script,
   script_hash: script.scriptHash,
+  ...(script.scriptSig === undefined ? {} : {script_sig: script.scriptSig}),
 });
 
 /**
  * The same request as a replace of the live version the 409 named: sent once, after the user
- * confirmed the prompt, and bound to the card's own code by carrying the same `script_hash`.
+ * confirmed the prompt, and bound to the card's own code by carrying the same `script_hash` and
+ * `script_sig`.
  */
 export const replaceAction = (
   request: StrategyActionRequest,

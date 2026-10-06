@@ -60,6 +60,22 @@ test('each run option is its action, carrying the code, its hash and the saved r
   assert.equal('backtest_id' in unsaved, false);
 });
 
+test('every action carries the card’s code signature when it has one, and none when it has none', () => {
+  const signed: ScriptRun = {...script, scriptSig: 'sig-1'};
+  for (const kind of ['backtest', 'forward', 'live'] as const) {
+    assert.equal(scriptAction(kind, settings, signed).script_sig, 'sig-1');
+    // Not an empty or undefined one: absent, as a card without one sends it.
+    assert.equal('script_sig' in scriptAction(kind, settings, script), false);
+  }
+  const deploy = scriptAction('live', settings, signed);
+  // The resend after the 409 is bound to the same code, signature included.
+  assert.equal(replaceAction(deploy, 'live-v3').script_sig, 'sig-1');
+  assert.equal(
+    'script_sig' in replaceAction(scriptAction('live', settings, script), 'v'),
+    false,
+  );
+});
+
 test('a replace is the same request, as a replace of the version the 409 named', () => {
   const deploy = scriptAction('live', settings, script);
   assert.deepEqual(replaceAction(deploy, 'live-v3'), {

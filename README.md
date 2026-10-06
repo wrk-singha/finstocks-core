@@ -105,6 +105,14 @@ message}` only for the handler's own 500 ("Could not verify your broker connecti
   the message's plan cards (backtest and strategies), which the backend's link never reorders. The
   chat and the code are not part of it: the message id is a UUID, and a card whose code changes in
   place deploys to its own row, where a different live version meets the replace prompt.
+  A C card's code signature (web `feat/athena-integration` 046148aa, backend-go 5a8a6525
+  `strategyaction.go`); additive only. `BacktestSetupTerms` gains `script_sig`, llm's signature of
+  the card's code for this user, which the backend passes to Athena untouched and Athena may
+  require ("this code was not built for this user"). `ScriptRun` gains `scriptSig?`, set by
+  `scriptRunOf` only from a non-empty string (an empty one is none, as the backend reads it);
+  `StrategyActionRequest` gains `script_sig?`, which `scriptAction` sends exactly when the card
+  carries one and `replaceAction` keeps, so the resend after a 409 carries the same signature as the
+  request it answers. A backend without the field ignores it.
 - **v0.8.3** — an IST date-and-time stamp keeps its clock on iOS. Hermes on iOS formats a format
   that asks for both a date and a clock as "7 Oct at 11:05 AM" and types the hour, minute and AM/PM
   as plain literals, so `istDateTimeParts` (and with it `formatShortDateTime`,

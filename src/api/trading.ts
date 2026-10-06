@@ -128,6 +128,8 @@ export interface StrategyActionRequest extends RunSettings {
   backtest_id?: string;
   script: string;
   script_hash: string;
+  /** The card's `script_sig`, passed to Athena untouched; sent only when the card carries one. */
+  script_sig?: string;
   /** The live version's `compile_hash` from the replace prompt the user confirmed. */
   expected_compile_hash?: string;
 }

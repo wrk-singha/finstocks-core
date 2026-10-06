@@ -80,6 +80,11 @@ export function marketMinutesNow(now: Date = new Date()): number {
   return (Number(get('hour')) % 24) * 60 + Number(get('minute'));
 }
 
+/** Whether the holiday table covers this UTC-midnight date's year: outside it a session day is a guess. */
+export function hasHolidayCalendar(date: Date, market = 'IN'): boolean {
+  return HOLIDAYS[market]?.[String(date.getUTCFullYear())] !== undefined;
+}
+
 /** Whether a UTC-midnight market date is a session day at all (not a weekend or holiday). */
 export function isTradingDay(date: Date, market = 'IN'): boolean {
   const weekday = date.getUTCDay();

@@ -3,6 +3,7 @@ import {test} from 'node:test';
 
 import {
   addMarketDays,
+  hasHolidayCalendar,
   isMarketOpen,
   isTradingDay,
   lastSessionOpen,
@@ -51,6 +52,15 @@ test('trading days exclude weekends and the holiday table', () => {
   assert.equal(isTradingDay(new Date('2026-09-12T00:00:00Z')), false);
   assert.equal(isTradingDay(new Date('2026-09-14T00:00:00Z')), false);
   assert.equal(isTradingDay(new Date('2026-09-14T00:00:00Z'), 'XX'), true);
+});
+
+test('the holiday table covers whole years, and a date outside them is not a known session day', () => {
+  assert.equal(hasHolidayCalendar(new Date('2026-09-11T00:00:00Z')), true);
+  assert.equal(hasHolidayCalendar(new Date('2030-01-01T00:00:00Z')), false);
+  assert.equal(
+    hasHolidayCalendar(new Date('2026-09-11T00:00:00Z'), 'XX'),
+    false,
+  );
 });
 
 test('the market is open only inside the session on a trading day', () => {

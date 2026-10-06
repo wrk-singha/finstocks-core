@@ -1,5 +1,6 @@
 export {
   IST,
+  formatChartLongDate,
   formatChatListTime,
   formatDateTime,
   formatDateTimeStamp,

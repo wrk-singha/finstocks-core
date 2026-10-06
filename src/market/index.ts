@@ -316,6 +316,7 @@ export type {
 
 export {
   addMarketDays,
+  hasHolidayCalendar,
   isMarketOpen,
   isTradingDay,
   lastSessionOpen,
@@ -330,6 +331,9 @@ export {
   SESSION_CLOSE,
   SESSION_OPEN,
 } from './marketHours.ts';
+
+export {expiryCalendar, NSE_TUESDAY_EXPIRY_FROM} from './expiryDays.ts';
+export type {ExpiryCalendar, ExpiryDay} from './expiryDays.ts';
 
 export {
   buildFuturesSymbol,

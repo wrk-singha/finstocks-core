@@ -132,6 +132,33 @@ before, width?)` (the picked width, else the middle one; both curves area-normal
   — web's session tiles), `canChart(rows)` (two bars or more), `latestDecay(rows)` (the newest
   cycle, calls before puts, each by strike — web's decay-gap table) and web's chart-frame scale:
   `chartExtent(values, include?)`, `chartTicks(extent)` and `chartXTicks(n)`.
+  A backtest's trades and the user's own as round trips, the journal's figures, trade excursion and
+  a seeded Monte Carlo (web `feat/chart-parity` 76f1dfee, 10a0f390, 564c3b99, 148eba34); additive
+  only, pure. `strategy/roundTrips`: `RoundTrip` (`id`, `symbol`, `side`, `qty`, `entryMs`,
+  `entryPrice`, `exitMs`/`exitPrice`/`pnl` null while open, `exitReason?`, `source`
+  `TripSource`: `backtest`, `mock`, `live`, `strategyId?`), `tradeInstantMs(value)` (a time with no
+  offset is IST wall clock, the engine's), `backtestRoundTrips(trades)` (one trip per
+  `ExecutionLogEntry` row, `bt<i>`, short by `trade_side`, a row with no recorded P&L kept without
+  one rather than as ₹0), `bookRoundTrips(trades)` (Mock and Live lots only, premium-aware as
+  `calculatePNL`) and `tripSymbols(trips)`. `strategy/journalStats`: `filterTrips(trips, filter)`
+  (`JournalFilter`), `journalStats(trips, isExpiryDay?)` (closed trips only: win rate, net,
+  expectancy, avg win and loss, avg R with 1R the average loss, profit factor, every entry hour
+  with the best and worst among hours of `MIN_TRADES_PER_HOUR` or more, and an expiry-day split
+  that counts a day the calendar cannot place apart), `istDay`, `istHour`, `hourLabel`.
+  `strategy/tradeExcursion`: `tradeExcursion(trip, bars, barMs)` (MAE, MFE, the best exit and
+  exit efficiency from the candles a trade was open through; a price its candle never traded,
+  past `PRICE_TOLERANCE`, is refused as `entry-off-candles`/`exit-off-candles`) and
+  `tripExcursions(trips, minute, daily)` (minute candles where they reach the entry, else daily).
+  `strategy/monteCarlo`: `runMonteCarlo(MonteCarloInput)` (a mulberry32 bootstrap of the trade
+  P&Ls, not compounded: the fan's percentiles at `fanSteps(n)`, final-return and max-drawdown
+  percentiles and histograms, loss and ruin shares, the mean trade's middle 95% and the
+  `EdgeVerdict`), `ruinProbability(result, threshold)` (re-read from the same paths),
+  `mulberry32`, `MIN_MONTE_CARLO_TRADES` (20), `DEFAULT_PATHS`, `DEFAULT_SEED`. Web's bar-replay
+  cut (`tripsAsOf`) and `tripPnlAt` are not ported: nothing here reads them. `market/expiryDays`:
+  `expiryCalendar(catalogue, from?)` (the listed expiries, and past Tuesdays from
+  `NSE_TUESDAY_EXPIRY_FROM` worked out over the holiday table, a month outside it left out);
+  `market/marketHours` gains `hasHolidayCalendar(date, market?)`. `format` gains
+  `formatChartLongDate(ms, intraday)` ("12 Mar 2026, 10:15", IST).
 - **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a

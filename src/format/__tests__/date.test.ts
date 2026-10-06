@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
 import {
+  formatChartLongDate,
   formatChatListTime,
   formatDateTime,
   formatDateTimeStamp,
@@ -288,4 +289,14 @@ test("an expiry reads as web's heading prints it: day, short month, two-digit ye
   assert.equal(formatExpiryDate(''), '');
   assert.equal(formatExpiryDate(null), '');
   assert.equal(formatExpiryDate('not a day'), '');
+});
+
+test("the chart's long stamp is the IST day, with its clock for an intraday candle", () => {
+  const ms = Date.parse('2026-03-12T04:45:00Z');
+  assert.equal(formatChartLongDate(ms, false), '12 Mar 2026');
+  assert.equal(formatChartLongDate(ms, true), '12 Mar 2026, 10:15');
+  assert.equal(
+    formatChartLongDate(Date.parse('2026-03-12T19:00:00Z'), false),
+    '13 Mar 2026',
+  );
 });

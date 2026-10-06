@@ -318,6 +318,8 @@ export type {
 
 export {
   addMarketDays,
+  hasHolidayCalendar,
+  IST_OFFSET_MS,
   isMarketOpen,
   isTradingDay,
   lastSessionOpen,
@@ -332,6 +334,15 @@ export {
   SESSION_CLOSE,
   SESSION_OPEN,
 } from './marketHours.ts';
+
+export {mulberry32, percentileSorted} from './sampling.ts';
+
+export {
+  expiryCalendar,
+  FNO_HISTORY_START,
+  NSE_TUESDAY_EXPIRY_FROM,
+} from './expiryDays.ts';
+export type {ExpiryCalendar, ExpiryDay} from './expiryDays.ts';
 
 export {
   buildFuturesSymbol,

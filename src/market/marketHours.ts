@@ -10,6 +10,8 @@ export const SESSION_CLOSE = 15 * 60 + 30;
 /** NSE's equity pre-open call auction: 09:00 until the 09:15 open. */
 export const PRE_OPEN_START = 9 * 60;
 export const MARKET_TIMEZONE = IST;
+/** IST is UTC+05:30 all year (no daylight saving): an IST wall clock is this far ahead of UTC. */
+export const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
 // Hoisted: constructing a DateTimeFormat costs more than the check itself, and
 // the chart's scene serializer calls this on every message send.
@@ -78,6 +80,11 @@ export function marketMinutesNow(now: Date = new Date()): number {
     parts.find(p => p.type === type)?.value ?? '';
   // hour "24" can surface at midnight under hour12:false; normalise to 0.
   return (Number(get('hour')) % 24) * 60 + Number(get('minute'));
+}
+
+/** Whether the holiday table covers this UTC-midnight date's year: outside it a session day is a guess. */
+export function hasHolidayCalendar(date: Date, market = 'IN'): boolean {
+  return HOLIDAYS[market]?.[String(date.getUTCFullYear())] !== undefined;
 }
 
 /** Whether a UTC-midnight market date is a session day at all (not a weekend or holiday). */

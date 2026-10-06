@@ -137,6 +137,43 @@ before, width?)` (the picked width, else the middle one; both curves area-normal
   strike nearest spot, moving off the current one only once spot is past the midpoint by a tenth
   of the gap; a strike the list no longer carries snaps straight to the money. The list may come
   in any order. `crossedMidpoint(from, to, strikes)` names the midpoint a move crossed.
+  A backtest's trades and the user's own as round trips, the journal's figures, trade excursion and
+  a seeded Monte Carlo (web `feat/chart-parity` 76f1dfee, 10a0f390, 564c3b99, 148eba34); additive
+  only, pure. `strategy/roundTrips`: `RoundTrip` (`id`, `symbol`, `side`, `qty`, `entryMs`,
+  `entryPrice`, `exitMs`/`exitPrice`/`pnl` null while open, `exitReason?`, `source`
+  `TripSource`: `backtest`, `mock`, `live`, `strategyId?`), `tradeInstantMs(value)` (a time with no
+  offset is IST wall clock, the engine's), `backtestRoundTrips(trades)` (one trip per
+  `ExecutionLogEntry` row, `bt<i>`, short by `trade_side`, a row with no recorded P&L kept without
+  one rather than as ₹0), `bookRoundTrips(trades)` (Mock and Live lots only, premium-aware as
+  `calculatePNL`) and `tripSymbols(trips)`. `strategy/journalStats`: `filterTrips(trips, filter)`
+  (`JournalFilter`), `journalStats(trips, isExpiryDay?)` (closed trips only: win rate, net,
+  expectancy, avg win and loss, avg R with 1R the average loss, profit factor, every entry hour
+  with the best and worst among hours of `MIN_TRADES_PER_HOUR` or more, and an expiry-day split
+  that counts a day the calendar cannot place apart), `istDay`, `istHour`, `hourLabel`.
+  `strategy/tradeExcursion`: `tradeExcursion(trip, bars, barMs)` (MAE, MFE, the best exit and
+  exit efficiency from the candles a trade was open through; a price its candle never traded,
+  past `PRICE_TOLERANCE`, is refused as `entry-off-candles`/`exit-off-candles`) and
+  `tripExcursions(trips, minute, daily)` (minute candles where they reach the entry, else daily).
+  `strategy/monteCarlo`: `runMonteCarlo(MonteCarloInput)` (a mulberry32 bootstrap of the trade
+  P&Ls, not compounded: the fan's percentiles at `fanSteps(n)`, final-return and max-drawdown
+  percentiles and histograms, loss and ruin shares, the mean trade's middle 95% and the
+  `EdgeVerdict`), `ruinProbability(result, threshold)` (re-read from the same paths),
+  `MIN_MONTE_CARLO_TRADES` (20), `DEFAULT_PATHS`, `DEFAULT_SEED`; and the same run a slice at a
+  time for a host with no worker: `createMonteCarloJob(input)` (`MonteCarloJob`),
+  `advanceMonteCarlo(job, maxDraws?)` (whole paths within the draw budget, then the fan's steps
+  a few sorts at a time; always at least one), `isMonteCarloDone`, `monteCarloProgress` (0–1),
+  `monteCarloDraws(job)` (paths × trades) and `monteCarloResult(job)` — the same seed gives
+  `runMonteCarlo`'s figures however it is sliced. Web's bar-replay cut (`tripsAsOf`) and
+  `tripPnlAt` are not ported: nothing here reads them. `market/sampling` holds the seeded
+  `mulberry32` and `percentileSorted` both Monte Carlos draw with (the basket backtest's band
+  now reads them there; the same stream it drew before). `market/expiryDays`:
+  `expiryCalendar(catalogue, from?)` (the listed expiries, and past Tuesdays from
+  `NSE_TUESDAY_EXPIRY_FROM` worked out over the holiday table, a month outside it left out) and
+  `FNO_HISTORY_START` (stored 1-minute F&O history starts 2 Jan 2026); `market/marketHours`
+  gains `hasHolidayCalendar(date, market?)` and `IST_OFFSET_MS`. `format` gains
+  `formatChartLongDate(ms, intraday)` ("12 Mar 2026, 10:15", IST). `GraphDataQuery` gains
+  `page` (`GraphDataPage`: `to`, Unix seconds, and `count`), sent as `to`/`count` — minute paging
+  backend-go serves on `feat/chart-parity`; a backend without it answers the plain period.
 - **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a

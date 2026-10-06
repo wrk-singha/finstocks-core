@@ -327,6 +327,30 @@ export function formatShortDateIST(
   return d ? shortDateISTFormatter.format(d) : '—';
 }
 
+// The chart's long stamps, IST (web `formatChartLongDate`): "12 Mar 2026", "12 Mar 2026, 10:15".
+const chartLongDayFormatter = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: IST,
+});
+const chartLongMinuteFormatter = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: IST,
+});
+
+/** An instant as the chart names a candle: the day, and its IST clock when `intraday`. */
+export const formatChartLongDate = (
+  epochMs: number,
+  intraday: boolean,
+): string =>
+  (intraday ? chartLongMinuteFormatter : chartLongDayFormatter).format(epochMs);
+
 /** Device-local "MMM D, YYYY" ("Jan 5, 2024"); "—" when missing or invalid. */
 // drift resolved 2026-09-13: mobile returned "N/A" and rejected undefined; web returned "—" and
 // accepted it. Web won so the fallback matches the other short-date formatters here.

@@ -10,11 +10,11 @@
  * mobile copy had grown a second, narrower buildEquityPath - one version now).
  */
 import {signedCurrency, signedPct} from '../format/index.ts';
+import {IST_OFFSET_MS} from '../market/marketHours.ts';
 import type {BacktestTradeInput, TradeSummary} from '../types/backtest.ts';
 
 export const DEFAULT_STARTING_CAPITAL = 100000;
 
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const DAY_MS = 86400000;
 
 const exitTime = (t: BacktestTradeInput): number =>

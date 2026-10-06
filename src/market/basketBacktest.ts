@@ -3,6 +3,7 @@ import type {
   EsfBacktestMonth,
   EsfBacktestPick,
 } from '../types/esf.ts';
+import {mulberry32, percentileSorted} from './sampling.ts';
 
 /**
  * What a basket's backtest log turns into on the page, as the web works it out
@@ -153,27 +154,6 @@ export function summarize(
   };
 }
 
-/** Mulberry32: the same seed gives the same paths, so the band does not jump between renders. */
-function seededRandom(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const percentile = (sorted: number[], p: number): number => {
-  const pos = p * (sorted.length - 1);
-  const lo = Math.floor(pos);
-  const hi = Math.min(lo + 1, sorted.length - 1);
-  const low = sorted[lo] ?? 0;
-  const high = sorted[hi] ?? low;
-  return low + (high - low) * (pos - lo);
-};
-
 /**
  * Resamples the daily returns into `paths` forward paths of `steps` days from `capital`, and
  * reads the percentiles at each step.
@@ -186,20 +166,21 @@ export function monteCarlo(
   seed = 7,
 ): MonteCarloBand[] {
   if (returns.length === 0 || steps === 0) return [];
-  const random = seededRandom(seed);
+  // The same seed gives the same paths, so the band does not jump between renders.
+  const random = mulberry32(seed);
   const values = Array.from({length: paths}, () => capital);
   const bands: MonteCarloBand[] = [];
   const record = (step: number) => {
     const sorted = [...values].sort((a, b) => a - b);
     bands.push({
       step,
-      p5: percentile(sorted, 0.05),
-      p10: percentile(sorted, 0.1),
-      p25: percentile(sorted, 0.25),
-      p50: percentile(sorted, 0.5),
-      p75: percentile(sorted, 0.75),
-      p90: percentile(sorted, 0.9),
-      p95: percentile(sorted, 0.95),
+      p5: percentileSorted(sorted, 0.05),
+      p10: percentileSorted(sorted, 0.1),
+      p25: percentileSorted(sorted, 0.25),
+      p50: percentileSorted(sorted, 0.5),
+      p75: percentileSorted(sorted, 0.75),
+      p90: percentileSorted(sorted, 0.9),
+      p95: percentileSorted(sorted, 0.95),
     });
   };
   record(0);

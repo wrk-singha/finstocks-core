@@ -95,6 +95,11 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `volume_ratio`, and the cap's `mcap_cr` are `number | null` and optional, as the wire can leave
   them: a host reads null as absent. Web's
   `utils/market/manualReport.ts` (localStorage for the page's new tab) stays in web.
+  The chat's evidence cards, as web's `interfaces/chatCards.ts` declares them (dev 2226a1e1):
+  `ChatCard` gains `{type: 'depth'; payload: {books: DepthCardBook[]}}` — `DepthCardBook` is one
+  order book the depth branch read, as it stood when read, with the book's own `source` line, its
+  `live` flag, its `status` (`stock` / `contract` / `index`), a contract's parts, and the ladder in
+  the wire's snake case (`total_bid_qty`, `as_of`, `interpretation`, `auction`).
 - **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
   backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,

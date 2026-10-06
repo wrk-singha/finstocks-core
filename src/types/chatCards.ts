@@ -3,6 +3,11 @@ import type {CustomIndicatorDraft} from './customIndicator.ts';
 import type {DataTablePayload} from './dataTable.ts';
 import type {ManualReportPayload} from './manualReport.ts';
 import type {
+  DepthInterpretation,
+  DepthLevel,
+  PreOpenAuction,
+} from './market.ts';
+import type {
   FindingAction,
   PortfolioAnalysis,
   PortfolioAnalysisPosition,
@@ -10,6 +15,38 @@ import type {
 import type {PortfolioSimPayload} from './portfolioSim.ts';
 import type {AlertSetup} from './savedAlert.ts';
 import type {OrderSide, OrderType} from './trade.ts';
+
+/**
+ * One order book the depth branch read (llm graph/nodes/depth/node.py), as it stood when read.
+ * `source` is the code-built line saying where and when — "NSE order book · as of 23 Sep, 3:11 PM
+ * IST" — and `live` is true only for a book seen in the last two minutes, so an older one is never
+ * shown as live. `status` "index" means `symbol` is the index's nearest future, read instead.
+ */
+export interface DepthCardBook {
+  query: string;
+  status: 'stock' | 'contract' | 'index';
+  symbol: string;
+  /** How a person names it: "NIFTY 25000 CE · 6 Oct"; the symbol for a stock. */
+  name?: string;
+  /** A contract's parts, which its own page is addressed by; absent for a stock. */
+  contract?: {
+    underlying: string;
+    expiry: string;
+    strike: number;
+    right: 'FUT' | 'CE' | 'PE';
+  } | null;
+  live: boolean;
+  source: string;
+  ltp?: number | null;
+  bids: DepthLevel[];
+  asks: DepthLevel[];
+  total_bid_qty: number;
+  total_ask_qty: number;
+  as_of?: number;
+  interpretation?: DepthInterpretation | null;
+  interpretation_error?: string;
+  auction?: PreOpenAuction | null;
+}
 
 /**
  * Typed chat card list emitted by the LLM on the completion frame (`cards[]`).
@@ -83,6 +120,8 @@ export type ChatCard =
    * itself opens on its own screen. There is no endpoint: the payload is the whole report.
    */
   | {type: 'report'; payload: ManualReportPayload}
+  /** The order books a depth answer is written from, one card per book. */
+  | {type: 'depth'; payload: {books: DepthCardBook[]}}
   /**
    * An order the assistant read off the user's instruction. It does NOT place anything: the
    * ticket renders pre-filled and the user confirms it there, through the same path as every

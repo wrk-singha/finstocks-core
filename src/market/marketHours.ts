@@ -1,11 +1,14 @@
 import {HOLIDAYS} from '../data/holidays.ts';
 import {IST} from '../format/index.ts';
+import type {MarketSession} from '../types/market.ts';
 
 // NSE regular session: 09:15–15:30 IST, minutes-since-midnight bounds. Exported
 // because the chart's scene serializer reports session bounds to the LLM and
 // must not restate these hours as a second source of truth.
 export const SESSION_OPEN = 9 * 60 + 15;
 export const SESSION_CLOSE = 15 * 60 + 30;
+/** NSE's equity pre-open call auction: 09:00 until the 09:15 open. */
+export const PRE_OPEN_START = 9 * 60;
 export const MARKET_TIMEZONE = IST;
 
 // Hoisted: constructing a DateTimeFormat costs more than the check itself, and
@@ -141,4 +144,21 @@ export function isMarketOpen(market = 'IN', now: Date = new Date()): boolean {
   if (!isTradingDay(marketToday(now), market)) return false;
   const minutes = marketMinutesNow(now);
   return minutes >= SESSION_OPEN && minutes <= SESSION_CLOSE;
+}
+
+/**
+ * Which part of the NSE day it is — pre-open, open or closed — evaluated in
+ * IST regardless of the device's local timezone. Mirrors calendar.SessionAt in
+ * backend-go, which stamps every depth book with the session it was served for.
+ */
+export function marketSession(
+  market = 'IN',
+  now: Date = new Date(),
+): MarketSession {
+  if (!isTradingDay(marketToday(now), market)) return 'closed';
+  const minutes = marketMinutesNow(now);
+  if (minutes >= PRE_OPEN_START && minutes < SESSION_OPEN) return 'preopen';
+  return minutes >= SESSION_OPEN && minutes <= SESSION_CLOSE
+    ? 'open'
+    : 'closed';
 }

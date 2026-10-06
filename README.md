@@ -63,6 +63,18 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
+  `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
+  IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a
+  book was refused one), `session` (`MarketSession`: `preopen` / `open` / `closed`, which part of
+  the day the book was served for), `auction` (`PreOpenAuction`, NSE's call auction on the visible
+  pre-open book), and the three fields the app read through its own extension until now: `symbol`,
+  `ltp` and `note`. `market/marketHours` gains `PRE_OPEN_START` (09:00) and `marketSession()`,
+  web's `marketSession` as it is (mirrors `calendar.SessionAt` in backend-go). `market/depthReading`
+  holds the three rules both panels apply: `fairLimitPrice` (the rounded IEP at two decimals, what
+  "Use as limit" fills), `depthRefusal` (`crossed` or `thin`, the two things a reader is told), and
+  `depthBookStatus` (`live` / `stored` / `preopen` / `closed`; an earlier day's book served in
+  market hours is `stored`, web 3cf478ff, and only a `live` book offers its fair price).
 - **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
   backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,

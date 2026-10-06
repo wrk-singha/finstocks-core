@@ -252,6 +252,9 @@ export type {
   IPOStepState,
 } from './ipo.ts';
 
+export {depthBookStatus, depthRefusal, fairLimitPrice} from './depthReading.ts';
+export type {DepthBookStatus, DepthRefusal} from './depthReading.ts';
+
 export {livePriceFor, priceSymbolFor} from './livePrice.ts';
 
 export {
@@ -263,8 +266,10 @@ export {
   marketDateString,
   marketDaysUntil,
   marketMinutesNow,
+  marketSession,
   marketToday,
   nextTradingDay,
+  PRE_OPEN_START,
   SESSION_CLOSE,
   SESSION_OPEN,
 } from './marketHours.ts';

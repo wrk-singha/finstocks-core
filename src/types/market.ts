@@ -246,6 +246,77 @@ export interface MarketDepth {
   lowerCircuit?: number;
   spreadBps?: number;
   bidAskImbalance?: number;
+  /**
+   * The instrument the book is of. A stored book names the symbol as it was asked for, in upper
+   * case; a live one names it as the feed spells it, which for a contract need not be the
+   * spelling it was asked under.
+   */
+  symbol?: string;
+  /** Last traded price in the book. Left out when it is nought. */
+  ltp?: number;
+  /** Why an answer has empty sides, where the backend gives a reason. */
+  note?: string;
+  /** The quant's Depth IEP reading of this book (backend-go/internal/market/depthiep). */
+  interpretation?: DepthInterpretation;
+  /** Why the book was refused a reading (crossed, one-sided, empty touch). */
+  interpretationError?: string;
+  /** Which part of the day the backend served this book for. */
+  session?: MarketSession;
+  /** Pre-open only: NSE's call auction run on the visible book. */
+  auction?: PreOpenAuction;
+}
+
+/** backend-go/internal/market/depthiep/auction.go. `iep` is null until buyers
+ *  and sellers overlap at some price. */
+export interface PreOpenAuction {
+  iep: number | null;
+  matched_quantity: number;
+  unmatched_quantity: number;
+  unmatched_side?: 'buy' | 'sell';
+  reference_price: number | null;
+  total_buy_quantity: number;
+  total_sell_quantity: number;
+  total_book_imbalance: number;
+  total_book_imbalance_pct: number;
+  broader_bias: DepthBias;
+  neutral_band: number;
+}
+
+export type DepthBias = 'bullish' | 'bearish' | 'neutral';
+
+export type MarketSession = 'preopen' | 'open' | 'closed';
+
+/** Field names are the quant's own, from Zerodha Depth IEP.py. Imbalances are
+ *  decimals (0.3171 = 31.71%); the *_pct fields carry the same as percentages. */
+export interface DepthInterpretation {
+  last_price: number | null;
+  best_bid: number;
+  best_ask: number;
+  midpoint: number;
+  spread: number;
+  total_buy_quantity: number;
+  total_sell_quantity: number;
+  visible_buy_quantity: number;
+  visible_sell_quantity: number;
+  total_book_imbalance: number;
+  top5_imbalance: number;
+  weighted_top5_imbalance: number;
+  total_book_imbalance_pct: number;
+  top5_imbalance_pct: number;
+  weighted_top5_imbalance_pct: number;
+  best_level_microprice: number;
+  rough_iep: number;
+  rough_iep_rounded: number;
+  tick_size: number;
+  neutral_band: number;
+  stale_spread_multiple: number;
+  ltp_distance_from_mid: number | null;
+  ltp_distance_in_spreads: number | null;
+  data_quality: 'valid' | 'stale_or_unsynchronised_depth';
+  signal_valid: boolean;
+  broader_bias: DepthBias;
+  immediate_bias: DepthBias;
+  final_interpretation: string;
 }
 
 /** The list a stock was opened from — screen results, recommendations,

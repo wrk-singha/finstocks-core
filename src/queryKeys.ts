@@ -535,3 +535,15 @@ export const queryKeys = {
    *  first; the chat card and the chart picker's Custom tab read the same list. */
   customIndicators: () => ['custom-indicators'],
 };
+
+/**
+ * What a write to a basket subscription (`esfApi.subscribe`, `setSubscriptionStatus`) changes on
+ * the read side, as web's `useEsfSubscribe` / `useEsfSubscriptionStatus` invalidate it: the
+ * basket's own detail, which carries the subscription, and the cards, which carry each basket's
+ * `my_subscription_mode`. Also the host's own paper or live book, which the backend's basket
+ * orders write to: that key is the host's (`portfolio`, `status`) and is not listed here.
+ */
+export const esfSubscriptionTouches = (slug: string) => [
+  queryKeys.esfBasket(slug),
+  queryKeys.esfBaskets(),
+];

@@ -91,6 +91,21 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   its nightly review broadcast reads; `POST /market/basket/follow` writes a `basket_followers`
   row nothing reads, so it is not here. A host with a `Record` over `AlertScope` or
   `AlertChannelId` adds the one entry.
+  Investing in a basket (web dev 635bdd59, backend dev `handlers/esf/subscriptions.go`); additive.
+  `esfApi.subscribe(slug, {mode, capital, confirm_live})` is `POST
+/esf/baskets/{slug}/subscriptions` and answers the created `EsfSubscription`; the backend
+  places the first orders inside that call and trades the subscription at every review after
+  with no further consent, so a request that gets no answer may have created it, and a host
+  re-reads the basket rather than sending again. `esfApi.setSubscriptionStatus(id, status)` is
+  `PATCH /esf/subscriptions/{id}` with `{status}` (`active`, `paused`, `cancelled`; cancelled
+  removes the row) and answers the bare `EsfSubscriptionRecord`, which `EsfSubscription` now
+  extends. `EsfSubscribeRequest` and `EsfSubscriptionStatusRequest` are the bodies.
+  `market/basketSubscribe`'s `esfSubscribeRefusal(error, fallback)` reads a failed subscribe on
+  either host's error shape: 409 `alreadySubscribed` ("You already subscribe to this basket"),
+  412 `noBroker`, 400/422 `invalid` (the mode, the capital floor, a live subscription without
+  `confirm_live`) with the backend's text, 401/403/404/429 `refused`; null for a timeout, the
+  network or a 5xx, where the subscription may exist. `esfSubscriptionTouches(slug)` lists what
+  such a write invalidates, as web does: the basket's detail and the cards.
 - **v0.8.3** — the screener's ESF prebuilt screens; additive only. `PrebuiltScreen` gains an
   optional `sort` (`{key, dir}`), and `PREBUILT_SCREENS` opens with web's seven FinStocks Score
   screens (`esf-leaders`, `esf-growth-leaders`, `esf-big-money`, `esf-ready-to-rise`,

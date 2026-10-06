@@ -12,6 +12,22 @@ export interface StrategyLog {
 }
 
 /**
+ * A strategy_logs row as backend-go's `models.StrategyLogs` writes it, which is how a forked
+ * chat's `source_strategy_logs` arrive (handlers/chat/getbyid.go): `message` and `payload` are
+ * left out when empty, and the row is not wrapped as a get-logs timeline item.
+ * `sourceLogTimeline` turns these rows into the items the logs card reads.
+ */
+export interface StrategyLogRow {
+  log_id: number;
+  strategy_id: string;
+  log_level: LogLevel;
+  message?: string;
+  payload?: LogPayload | null;
+  created_at: string;
+  symbol: string;
+}
+
+/**
  * Backend /trading/get-logs feed shape: a discriminated union of real
  * strategy_logs rows and raw transactions, so a freshly-deployed live
  * strategy still shows fills before its first strategy_logs row lands.

@@ -113,6 +113,22 @@ message}` only for the handler's own 500 ("Could not verify your broker connecti
   `StrategyActionRequest` gains `script_sig?`, which `scriptAction` sends exactly when the card
   carries one and `replaceAction` keeps, so the resend after a 409 carries the same signature as the
   request it answers. A backend without the field ignores it.
+  A forked chat's shared strategies, read-only (web `feat/athena-integration` 3eb0664b, backend-go
+  19740aa5…5a8a6525); additive only. `getChatByIdResponse` is now `ChatWithSource`: the chat with
+  `source_strategies?` (`StrategyRow[]`, is-alive's summary rows, backtests only) and
+  `source_strategy_logs?` (`StrategyLogRow[]`, strategy_logs rows as `models.StrategyLogs` writes
+  them: `message` and `payload` left out when empty, not wrapped as timeline items). GET
+  /chats/{id} sends them for the strategies another owner shared that the chat's copied messages
+  name, and leaves both out otherwise, as a backend that predates them does.
+  `strategy/sourceStrategies` holds `strategyCardSource(strategyIds, chat)` (web's: a card naming
+  a shared strategy reads the snapshot, read-only, `fromSource` true; any other card stays live
+  with no snapshot; a share link's read-only chat passes its snapshot through) with its
+  `StrategySnapshot`, and `sourceLogTimeline(rows)`, the raw rows as get-logs `LogFeedLogEntry`
+  items, newest first as get-logs sorts them, a left-out payload as null. `strategy/strategyQuery`
+  holds web's `buildDeployQuery(strategy, entryQuery, capital?, symbol?, timeframe?)` and
+  `buildBacktestAgainQuery(strategy)` ("Run again": `Backtest this exact strategy:
+<original_query>`, then the symbol, timeframe or intraday, take profit, stop loss and prose
+  exits the row carries, and no size).
 - **v0.8.3** — an IST date-and-time stamp keeps its clock on iOS. Hermes on iOS formats a format
   that asks for both a date and a clock as "7 Oct at 11:05 AM" and types the hour, minute and AM/PM
   as plain literals, so `istDateTimeParts` (and with it `formatShortDateTime`,

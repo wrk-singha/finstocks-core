@@ -81,6 +81,7 @@ test('the option levels key by expiry rank and screen request as web does', () =
     'next',
     '2026-10-06',
   ]);
+  assert.deepEqual(queryKeys.flyone.dates(), ['flyone', 'dates']);
   const params = {where: 'score>0', universe: 'stock' as const, limit: 50};
   assert.deepEqual(queryKeys.flyone.screen(params), [
     'flyone',

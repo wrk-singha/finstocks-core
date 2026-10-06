@@ -73,6 +73,7 @@ import type {
 } from '../types/relatedParty.ts';
 import type {
   ExpiryRank,
+  FlyoneDates,
   FlyoneDetail,
   FlyoneDetailParams,
   FlyoneScreen,
@@ -720,6 +721,9 @@ export const marketApi = (http: HttpClient) => ({
     http.request<FlyoneSnapshot>(
       `/market/flyone/snapshot${query({expiry, date})}`,
     ),
+
+  /** The trading days the engine has stored, newest first: the days the direction scanner replays. */
+  getFlyoneDates: () => http.request<FlyoneDates>('/market/flyone/dates'),
 
   /** F&O names filtered by their levels: `where` is "score>0,gex_regime=POS|STRONG_POS". */
   getFlyoneScreen: ({symbols, ...params}: FlyoneScreenParams) =>

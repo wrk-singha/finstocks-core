@@ -145,6 +145,26 @@ test('the headline is the live record once it is a year long, else the primary b
     short: 'A year · backtest',
   });
   assert.equal(basketHeadline(null, null, null), null);
+  // A run whose metrics have not landed reads as a dash, not a crash.
+  assert.deepEqual(
+    basketHeadline(null, null, {
+      ...run,
+      metrics: null as unknown as EsfBacktestRun['metrics'],
+    }),
+    {
+      value: null,
+      benchmark: null,
+      caption: 'a year · backtest since Apr 1, 2016',
+      short: 'A year · backtest',
+    },
+  );
+  assert.equal(
+    basketHeadline(null, null, {
+      ...run,
+      metrics: {window: '10y'} as unknown as EsfBacktestRun['metrics'],
+    })?.value,
+    null,
+  );
   assert.equal(primaryBacktest([{...run, is_primary: false}, run]), run);
 });
 

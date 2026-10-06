@@ -128,6 +128,13 @@ test('the Monte Carlo band is seeded, so the same returns give the same percenti
   assert.ok(end.p5 <= end.p10 && end.p10 <= end.p25 && end.p25 <= end.p50);
   assert.ok(end.p50 <= end.p75 && end.p75 <= end.p90 && end.p90 <= end.p95);
   assert.ok(end.p50 > 100000);
+  // Pinned to web's seeded RNG: a drift in the generator or the percentile read fails here.
+  assert.equal(end.p5.toFixed(2), '99391.04');
+  assert.equal(end.p50.toFixed(2), '107770.75');
+  assert.equal(end.p95.toFixed(2), '114764.67');
+  // Paths compound from the capital, so a unit run scaled by the capital is the same band.
+  const unit = monteCarlo(returns, 20, 1, 200);
+  assert.equal(((unit[20]?.p50 ?? 0) * 100000).toFixed(6), end.p50.toFixed(6));
   assert.deepEqual(monteCarlo([], 10, 100), []);
   assert.deepEqual(monteCarlo(returns, 0, 100), []);
 });

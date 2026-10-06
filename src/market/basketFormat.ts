@@ -4,6 +4,7 @@ import {
   signedPct,
 } from '../format/index.ts';
 import type {
+  EsfBacktestMetrics,
   EsfBacktestRun,
   EsfBasketBase,
   EsfMember,
@@ -184,9 +185,12 @@ export function basketHeadline(
     };
   }
   if (!primary) return null;
+  // The backend stores metrics as JSON and does not coalesce it: a run written before its metrics
+  // landed reads as "—" rather than throwing on the card.
+  const metrics = primary.metrics as Partial<EsfBacktestMetrics> | null;
   return {
-    value: primary.metrics.strategy_net['cagr_%'],
-    benchmark: primary.metrics.nifty500['cagr_%'],
+    value: metrics?.strategy_net?.['cagr_%'] ?? null,
+    benchmark: metrics?.nifty500?.['cagr_%'] ?? null,
     caption: `a year · backtest since ${formatShortDateIST(primary.window_start)}`,
     short: 'A year · backtest',
   };

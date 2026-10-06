@@ -162,8 +162,11 @@ function drawdownOf(
   return {amount, pct: capital != null ? pct : null};
 }
 
-const now = (): number =>
-  typeof performance !== 'undefined' ? performance.now() : Date.now();
+// Read off globalThis: the mobile app typechecks this file against React Native's globals, which
+// declare no `performance`.
+const clock = (globalThis as {readonly performance?: {now: () => number}})
+  .performance;
+const now = (): number => clock?.now() ?? Date.now();
 
 export function runMonteCarlo(input: MonteCarloInput): MonteCarloResult {
   const started = now();

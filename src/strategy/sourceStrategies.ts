@@ -12,6 +12,12 @@ export interface StrategySnapshot {
 }
 
 /**
+ * The backend canonicalises strategy ids (lower-case UUIDs) before it looks them up, so an id a
+ * message carries in capitals names the same strategy.
+ */
+const idKey = (id: string): string => id.toLowerCase();
+
+/**
  * Which data a strategy card reads from. A forked chat holds the sharer's strategies as a
  * read-only snapshot, so a card whose ids are in it renders that snapshot; every other card keeps
  * its live queries. A read-only chat (a share link) passes its snapshot to every card, as it
@@ -22,12 +28,39 @@ export const strategyCardSource = (
   chat: StrategySnapshot,
 ): StrategySnapshot & {fromSource: boolean} => {
   if (chat.isReadOnly) return {...chat, fromSource: false};
+  const keys = new Set(strategyIds.map(idKey));
   const fromSource = !!chat.sharedStrategies?.some(s =>
-    strategyIds.includes(s.strategy_id),
+    keys.has(idKey(s.strategy_id)),
   );
   return fromSource
     ? {...chat, isReadOnly: true, fromSource}
     : {isReadOnly: false, fromSource};
+};
+
+/**
+ * A card's ids split by whose they are, for a card that names the sharer's strategies beside the
+ * viewer's own: `shared` holds the snapshot's rows among them, in the card's order and once each,
+ * and `liveIds` the rest, once each, which the card reads live as any other.
+ */
+export const splitSharedIds = (
+  strategyIds: readonly string[],
+  sharedStrategies: readonly Strategy[] | undefined,
+): {shared: Strategy[]; liveIds: string[]} => {
+  const byKey = new Map(
+    (sharedStrategies ?? []).map(row => [idKey(row.strategy_id), row]),
+  );
+  const seen = new Set<string>();
+  const shared: Strategy[] = [];
+  const liveIds: string[] = [];
+  for (const id of strategyIds) {
+    const key = idKey(id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const row = byKey.get(key);
+    if (row === undefined) liveIds.push(id);
+    else shared.push(row);
+  }
+  return {shared, liveIds};
 };
 
 const timeOf = (row: StrategyLogRow): number => {

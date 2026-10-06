@@ -187,8 +187,12 @@ before, width?)` (the picked width, else the middle one; both curves area-normal
   `strategy/sourceStrategies` holds `strategyCardSource(strategyIds, chat)` (web's: a card naming
   a shared strategy reads the snapshot, read-only, `fromSource` true; any other card stays live
   with no snapshot; a share link's read-only chat passes its snapshot through) with its
-  `StrategySnapshot`, and `sourceLogTimeline(rows)`, the raw rows as get-logs `LogFeedLogEntry`
-  items, newest first as get-logs sorts them, a left-out payload as null. `strategy/strategyQuery`
+  `StrategySnapshot`; `splitSharedIds(strategyIds, sharedStrategies)`, a card's ids split into
+  the snapshot's rows among them (`shared`, in the card's order) and the ids to read live
+  (`liveIds`), each once, so a card naming both keeps the viewer's own live; and
+  `sourceLogTimeline(rows)`, the raw rows as get-logs `LogFeedLogEntry` items, newest first as
+  get-logs sorts them, a left-out payload as null. Ids match case-insensitively, as the backend
+  canonicalises them. `strategy/strategyQuery`
   holds web's `buildDeployQuery(strategy, entryQuery, capital?, symbol?, timeframe?)` and
   `buildBacktestAgainQuery(strategy)` ("Run again": `Backtest this exact strategy:
 <original_query>`, then the symbol, timeframe or intraday, take profit, stop loss and prose

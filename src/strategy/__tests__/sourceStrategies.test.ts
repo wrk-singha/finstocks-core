@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
 import type {StrategyLog, StrategyLogRow} from '../../types/strategyLogs.ts';
-import {sourceLogTimeline, strategyCardSource} from '../sourceStrategies.ts';
+import {
+  sourceLogTimeline,
+  splitSharedIds,
+  strategyCardSource,
+} from '../sourceStrategies.ts';
 import {findBacktestPayloadLog} from '../strategyStatus.ts';
 import {strategy, UUID_A, UUID_B, UUID_C} from './fixtures.ts';
 
@@ -46,6 +50,37 @@ test('strategyCardSource: a chat with no snapshot (a backend that sends none) is
   assert.deepEqual(strategyCardSource([UUID_A], {isReadOnly: false}), {
     isReadOnly: false,
     fromSource: false,
+  });
+});
+
+test('strategyCardSource: an id in capitals names the same shared strategy', () => {
+  assert.equal(
+    strategyCardSource([UUID_A.toUpperCase()], {
+      isReadOnly: false,
+      sharedStrategies: shared,
+      sharedLogs,
+    }).fromSource,
+    true,
+  );
+});
+
+test('splitSharedIds: the shared rows in the card’s order, the rest left live, each once', () => {
+  const second = strategy({strategy_id: UUID_B, is_backtest: true});
+  const {shared: rows, liveIds} = splitSharedIds(
+    [UUID_C, UUID_B, UUID_A.toUpperCase(), UUID_C, UUID_A],
+    [...shared, second],
+  );
+  assert.deepEqual(
+    rows.map(row => row.strategy_id),
+    [UUID_B, UUID_A],
+  );
+  assert.deepEqual(liveIds, [UUID_C]);
+});
+
+test('splitSharedIds: with no snapshot every id is live', () => {
+  assert.deepEqual(splitSharedIds([UUID_A, UUID_B], undefined), {
+    shared: [],
+    liveIds: [UUID_A, UUID_B],
   });
 });
 

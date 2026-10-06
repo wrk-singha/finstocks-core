@@ -298,6 +298,10 @@ export const queryKeys = {
     timeframe: string,
     year: number,
   ) => ['screener-strategy-detail', strategyId, timeframe, year],
+  /** ["strategy-library"] — the black-box library, whole, as web keys it (STRATEGY_LIBRARY_KEY). */
+  strategyLibrary: () => ['strategy-library'],
+  /** ["strategy-library", id] — one library strategy's detail. */
+  strategyLibraryDetail: (id: string) => ['strategy-library', id],
 
   // Canonical /market/* keys (distinct from the legacy ["dividends"] key).
   market: {

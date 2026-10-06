@@ -4,10 +4,15 @@ export const isShortDirection = (direction?: string | null): boolean =>
 
 /**
  * Title for a chat derived from its first message. Stores a generous slice with no trailing
- * "…" — the list truncates visually at the actual row edge.
+ * "…" — the list truncates visually at the actual row edge. Hidden `[<…>]` markers (a library
+ * strategy's id, a strategy context) are stripped first, so a title never shows one; a no-op for
+ * every message that carries none.
  */
 export const deriveChatTitle = (text: string, maxLength = 80): string => {
-  const normalized = text.trim().replace(/\s+/g, ' ');
+  const normalized = text
+    .replace(/\[<[\s\S]*?>\]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ');
   return normalized.length > maxLength
     ? normalized.slice(0, maxLength).trimEnd()
     : normalized;

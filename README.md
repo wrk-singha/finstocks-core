@@ -78,7 +78,18 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `regime-rangebound-melting`, RegimePulse 48a081d5) on the `regime_*` fields, which likewise exist
   only on the backend's `dev` catalogue; they carry no sort. `pruneScreen` now also checks the
   sort: a key the catalogue does not serve (other than `name`) falls back to `EMPTY_SCREEN.sort`,
-  so a link from a richer catalogue cannot leave a dead sort behind.
+  so a link from a richer catalogue cannot leave a dead sort behind. Also the black-box strategy
+  library (web dev `src/interfaces/strategyLibrary.ts`, backend dev `GET
+/templates/strategy-library` and `/{id}`): the `LibraryStrategy` types,
+  `templatesApi.getStrategyLibrary` / `getStrategyLibraryDetail`, `queryKeys.strategyLibrary` /
+  `strategyLibraryDetail`, and web's reading of it in `@finstocks/core/strategy` — the labels,
+  the six-step SEBI risk scale (`RISK_LEVELS`, `riskLabel`, `riskShort`, `riskTone`, `clampRisk`),
+  `riskDrivers`, `backtestPreview`, the chat hand-off (`libraryChatMessage`, `libraryChatContext`),
+  and the client-side filters and sorts (`LibraryFilterState`, `applyLibraryFilters`,
+  `sortLibrary`, `nextLibrarySort`, `viewLibrary`, `presentValues`, `scopeLibrary`). Every sort
+  keeps reference strategies after the deployable ones. `deriveChatTitle` now strips hidden
+  `[<…>]` markers, as web's does, so a library chat's title never shows one; a no-op for every
+  message that carries none.
 - **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena
   script ("C") strategies (backend feat/athena-integration), whose `budget_config` is the engine's
   `{val, type, allocate}` with no `mode`, and which carry no `fsm`; `deriveStrategyCards` threw on

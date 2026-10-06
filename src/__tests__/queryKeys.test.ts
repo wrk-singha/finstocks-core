@@ -12,3 +12,11 @@ test('the FinStocks Score is keyed as web keys it, one entry a symbol', () => {
   assert.deepEqual(queryKeys.esfScore('TCS'), ['esf-score', 'TCS']);
   assert.deepEqual(queryKeys.esfScore(null), ['esf-score', null]);
 });
+
+test('the library keys as web does', () => {
+  assert.deepEqual(queryKeys.strategyLibrary(), ['strategy-library']);
+  assert.deepEqual(queryKeys.strategyLibraryDetail('krishna'), [
+    'strategy-library',
+    'krishna',
+  ]);
+});

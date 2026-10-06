@@ -664,6 +664,34 @@ export {
 } from './regimeScanner.ts';
 export type {RegimeScannerStatus, RegimeSortKey} from './regimeScanner.ts';
 
+export {scannerSortStartsDescending, sortScannerRows} from './scannerSort.ts';
+export type {ScannerSortSpec} from './scannerSort.ts';
+
+export {
+  clashesWithRegime,
+  DIRECTION_DEFAULT_SORT,
+  DIRECTION_PRESETS,
+  DIRECTION_SORT_KEYS,
+  DIRECTION_UNIVERSES,
+  directionBreadth,
+  directionPreset,
+  directionScannerStatus,
+  directionSortStartsDescending,
+  directionUniverseRows,
+  filterDirectionRows,
+  inDirectionUniverse,
+  NEAR_WALL_PCT,
+  sortDirectionRows,
+} from './directionScanner.ts';
+export type {
+  DirectionBreadth,
+  DirectionPreset,
+  DirectionPresetKey,
+  DirectionScannerStatus,
+  DirectionSortKey,
+  DirectionUniverse,
+} from './directionScanner.ts';
+
 export {
   callWallSide,
   DIRECTION_LABEL,

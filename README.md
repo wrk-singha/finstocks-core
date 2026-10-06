@@ -162,6 +162,24 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   (ties by symbol either way, a missing figure last; a code-point tie-break where web calls
   `localeCompare`), and `regimeScannerStatus` (`replay` / `live` with the engine's cycle /
   `lastSession` at the newest reading / `closed`), for each app to word.
+  The options direction scanner (web dev 2226a1e1, `DirectionScanner.tsx` and
+  `DirectionScannerTable.tsx`): `marketApi.getFlyoneDates()` (`GET /market/flyone/dates`, the
+  stored trading days newest first, at most 60, as backend-go `handlers/flyone/live.go` on dev
+  serves them) with `FlyoneDates` and `queryKeys.flyone.dates()`. `market/scannerSort` is the sort
+  web's shared `ScannerTable` puts both scanners in (`ScannerSortSpec`, `sortScannerRows`,
+  `scannerSortStartsDescending`); `sortRegimeRows` now runs on it, unchanged.
+  `market/directionScanner` holds what web works out around the direction table: the universe
+  toggle (`DirectionUniverse`, `DIRECTION_UNIVERSES`, `inDirectionUniverse` and
+  `directionUniverseRows`, indices by `isIndexSymbol`, so SENSEX and BANKEX count as indices),
+  `directionBreadth` (a count per call with warming chains in none, and the calm, fast and
+  balanced dealers), web's five presets as data (`DIRECTION_PRESETS`, `DirectionPresetKey`,
+  `directionPreset`, `NEAR_WALL_PCT`; each app words their labels and hints), `clashesWithRegime`
+  (the scanner's "!": a call against the regime of the same name, never while warming up),
+  `filterDirectionRows` (the direction filters, which never keep a warming chain, a preset joined
+  to the regime map, and the symbol search), `DIRECTION_SORT_KEYS`/`DirectionSortKey`,
+  `DIRECTION_DEFAULT_SORT` (`score`), `directionSortStartsDescending` and `sortDirectionRows`, and
+  `directionScannerStatus` (the regime scanner's four states, the last session carrying its day
+  as web's direction status prints it).
 - **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
   backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,

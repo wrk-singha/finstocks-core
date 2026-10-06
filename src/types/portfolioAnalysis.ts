@@ -94,7 +94,7 @@ export interface Concentration {
 export type FindingSeverity = 'critical' | 'warning' | 'positive';
 export type FindingTier = 'action' | 'working';
 export type FindingActionType =
-  'chat_prompt' | 'open_symbol' | 'exit_position' | 'none';
+  'chat_prompt' | 'open_symbol' | 'open_page' | 'exit_position' | 'none';
 
 export interface FindingAction {
   type: FindingActionType;
@@ -103,6 +103,8 @@ export interface FindingAction {
   prompt?: string | null;
   /** Present when type === "open_symbol" or "exit_position". */
   symbol?: string | null;
+  /** Present when type === "open_page": an in-app path such as "/market#sector-strength". */
+  path?: string | null;
 }
 
 export interface Finding {

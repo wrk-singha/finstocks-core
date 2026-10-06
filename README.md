@@ -99,7 +99,12 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `pfLastColumnBoxes`, `pfRatioChange`), `RS_BOXES`, `RS_DEFAULT_BOX`, `RS_TOP_N`. Nothing here
   computes P&F; the backend does. The link into the section is `sectorStrengthPath(pair?)` /
   `parseSectorStrengthPath(path)` (`/market?rs=A&vs=B#sector-strength`), so a chat button and
-  both apps spell it once.
+  both apps spell it once. A chat answer's next-step button can now open a page:
+  `FindingActionType` gains `open_page` and `FindingAction` an optional `path` (web dev 2ec8dd38);
+  a host that knows only the older kinds compiles and ignores it. Web dev also serves 142 field
+  manual pages as static documents under `/manuals/` (bd5a93ba), which such a button points at:
+  `isManualPagePath`, `manualPageSlug`, `manualPageUrl(frontendUrl, slug)` and `manualPageTitle`
+  in `@finstocks/core/market` tell one from a route and spell where it is served.
 - **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena
   script ("C") strategies (backend feat/athena-integration), whose `budget_config` is the engine's
   `{val, type, allocate}` with no `mode`, and which carry no `fsm`; `deriveStrategyCards` threw on

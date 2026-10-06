@@ -523,3 +523,11 @@ export {
   sectorStrengthPath,
 } from './sectorStrength.ts';
 export type {SectorStrengthLink} from './sectorStrength.ts';
+
+export {
+  isManualPagePath,
+  MANUAL_PAGE_PREFIX,
+  manualPageSlug,
+  manualPageTitle,
+  manualPageUrl,
+} from './manualPages.ts';

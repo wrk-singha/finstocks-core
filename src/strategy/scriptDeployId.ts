@@ -14,15 +14,21 @@ import type {RunOptionKind} from '../types/strategyRun.ts';
 /** This app's namespace for deploy ids; changing it would orphan every row named before. */
 export const SCRIPT_DEPLOY_NAMESPACE = '3f0e6a52-9c1d-4b7e-8a25-6d4c1b9e7f30';
 
-/** What names a card's deploy row: where the card is, the run it is, and the code it carries. */
+/**
+ * What names a card's deploy row: the card, and the run it is. Not its code: a card whose code
+ * changes in place deploys to the same row, where a different live version meets the backend's
+ * replace prompt rather than a second live strategy. Not the chat: the message id is a UUID.
+ */
 export interface ScriptDeployIdentity {
-  chatId: string;
   /** The saved message the card is in; a turn not saved yet has nothing lasting to name. */
   messageId: string;
-  /** The card's place among that message's cards. */
+  /**
+   * The card's lasting place in that message: its position among the message's plan cards
+   * (backtest and strategies), which the backend's link never reorders. Not its index among all
+   * the message's cards: the link moves the strategy cards to the end.
+   */
   cardKey: string;
   kind: Exclude<RunOptionKind, 'backtest'>;
-  scriptHash: string;
 }
 
 const utf8 = (text: string): number[] => {
@@ -141,13 +147,11 @@ export function uuidV5(name: string, namespace: string): string {
  * activate that row again, never start a second one.
  */
 export const scriptDeployId = ({
-  chatId,
   messageId,
   cardKey,
   kind,
-  scriptHash,
 }: ScriptDeployIdentity): string =>
   uuidV5(
-    ['c-card', chatId, messageId, cardKey, kind, scriptHash].join('\u0000'),
+    ['c-card', messageId, cardKey, kind].join('\u0000'),
     SCRIPT_DEPLOY_NAMESPACE,
   );

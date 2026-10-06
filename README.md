@@ -63,6 +63,18 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
+  (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
+  backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,
+  `EsfBacktestDetail` and their parts, nullable where the Go struct is a pointer), and
+  `queryKeys.esfBaskets` / `esfBasket` / `esfBacktest`, keyed as web keys them. Web's
+  `basketFormat` helpers move into `market/basketFormat` as they are (web dev 2226a1e1): the
+  cadence, review-day and stock-count copy, `minAmountHint` (the minimum explained with the
+  basket's own numbers, web e22b9154), `basketHeadline` (the live record once it is a year long,
+  else the primary backtest), `navSummary`, `trackingStart`, `planBasketBuy` and
+  `subscriptionStatusLabel`. Web's `periodLabel` / `periodsLabel` are `reviewPeriodLabel` /
+  `reviewPeriodsLabel` here, because fundamentals already exports a `periodLabel` for a filed
+  statement. `yearsBetween` opens `market/basketBacktest`.
 - **v0.8.3** — the screener's ESF prebuilt screens; additive only. `PrebuiltScreen` gains an
   optional `sort` (`{key, dir}`), and `PREBUILT_SCREENS` opens with web's seven FinStocks Score
   screens (`esf-leaders`, `esf-growth-leaders`, `esf-big-money`, `esf-ready-to-rise`,

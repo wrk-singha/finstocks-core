@@ -36,3 +36,23 @@ test('a symbol the endpoint has no score for fails rather than reading as empty'
   const api = esfApi({request: () => Promise.reject(notScored)});
   await assert.rejects(api.getScore('NIFTY'), notScored);
 });
+
+test('the baskets are read as cards, one basket by its slug, and a backtest by its run id', async () => {
+  const {http, calls} = fakeHttp([
+    {baskets: []},
+    {slug: 'momentum'},
+    {run: {}},
+  ]);
+  const api = esfApi(http);
+  assert.deepEqual(await api.getBaskets(), {baskets: []});
+  await api.getBasket('momentum');
+  await api.getBacktest('trending value/2026', 7);
+  assert.deepEqual(
+    calls.map(call => [call.path, call.init]),
+    [
+      ['/esf/baskets', undefined],
+      ['/esf/baskets/momentum', undefined],
+      ['/esf/baskets/trending%20value%2F2026/backtests/7', undefined],
+    ],
+  );
+});

@@ -150,6 +150,37 @@ export {
   upsertCustomIndicator,
 } from './customIndicators.ts';
 
+export {yearsBetween} from './basketBacktest.ts';
+export {
+  awaitingFirstOrders,
+  basketHeadline,
+  BENCHMARK_LABEL,
+  cadenceLabel,
+  DEFAULT_CAPITAL,
+  marketLabel,
+  minAmountHint,
+  MODE_LABEL,
+  navChange,
+  navSummary,
+  ORDER_STATUS,
+  reviewPeriodLabel,
+  reviewPeriodsLabel,
+  planBasketBuy,
+  primaryBacktest,
+  reviewDayLabel,
+  stockCountLabel,
+  subscriptionStatusLabel,
+  trackingStart,
+  volatilityLabel,
+  weightLabel,
+} from './basketFormat.ts';
+export type {
+  BasketBuyLine,
+  BasketBuyPlan,
+  BasketHeadline,
+  EsfOrderTone,
+  NavSummary,
+} from './basketFormat.ts';
 export {
   formatTopPct,
   MARKET_LABELS,

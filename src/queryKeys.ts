@@ -404,6 +404,29 @@ export const queryKeys = {
     ],
   },
 
+  /** The options regime, keyed as web keys it: a missing date is "latest". */
+  regimePulse: {
+    /** ["regimepulse", "snapshot", date] — every underlying's latest reading */
+    snapshot: (date?: string) => ['regimepulse', 'snapshot', date ?? 'latest'],
+    /** ["regimepulse", "sentiment", date] — the regime counts through the session */
+    sentiment: (date?: string) => [
+      'regimepulse',
+      'sentiment',
+      date ?? 'latest',
+    ],
+    /** ["regimepulse", "detail", symbol, date] — one underlying's session */
+    detail: (symbol: string | null | undefined, date?: string) => [
+      'regimepulse',
+      'detail',
+      symbol,
+      date ?? 'latest',
+    ],
+    /** ["regimepulse", "me"] */
+    me: () => ['regimepulse', 'me'],
+    /** ["regimepulse", "symbols"] */
+    symbols: () => ['regimepulse', 'symbols'],
+  },
+
   fno: {
     /** ["fno-ideas", underlying] */
     ideas: (underlying?: string) => ['fno-ideas', underlying ?? 'all'],

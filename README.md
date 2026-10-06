@@ -107,6 +107,27 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `{type: 'market_profile'; payload: MarketProfileCardPayload}` — the profiles as read, one per
   instrument (`name`, web's `page` path, the `ProfileSnapshot` and its `source` line), and
   `horizon` (`intraday` / `swing` / `both`), which setups the question was about.
+  The options regime, read-only (web dev 2226a1e1): `types/regimePulse` carries the wire types
+  as backend-go's `internal/models/regimepulse.go` (dev) serves them: `Regime` (the five regimes
+  and `WARMING_UP`), `RegimeRow` (one reading per underlying: spot, the bias figures, the ATM
+  straddle and IVs with their changes, expiry, ATM strike, `regime_since`; the internal signal
+  fields blank for everyone else), `RegimeSentimentRow`, `RegimeSnapshot`, `RegimeSentiment`,
+  `RegimeDetailMeta` (`lot_size` null when the table does not know the underlying) and `RegimeDetail`. `marketApi.getRegimeSnapshot(date?)`,
+  `getRegimeSentiment(date?)`, `getRegimeDetail(symbol, date?)`, `getRegimeMe()` and
+  `getRegimeSymbols()` are the `GET /market/regimepulse/*` reads web's `useRegimePulse` makes
+  (routes per backend-go `main.go` on dev); `queryKeys.regimePulse` (`snapshot`, `sentiment`,
+  `detail`, `me`, `symbols`) keys them as web does, a missing date as `"latest"`.
+  `market/regimePulse` holds what web keeps beside the chip, as it is at dev 2226a1e1:
+  `REGIME_ORDER`, `REGIME_SHORT`, `REGIME_LABEL`, `REGIME_READING` (the post-6448ede1 sentences),
+  `regimeTone` (lean and strength, in place of web's CSS colour tables), `isBullish`/`isBearish`,
+  `zBiasRegime`, `clockOf`, `fractionPct` (web's `pctOf`; core's statement rows already export
+  that name), `signed`, `signedFixed`, `ivPointsOf`, `breadthCounts`, `regimeDistribution`,
+  `hasRegime`, `regimeMap` (rows keyed by underlying), `regimeKey`/`regimeRowFor` (web's
+  `regimeWatch`: a watchlist spelling to the engine's underlying, with web's index aliases —
+  NIFTY50, NIFTYMIDSELECT, NIFTY MID SELECT, NIFTYFINANCE, NIFTY FIN SERVICE), and the reading stamp web 993b2ca1 writes inline in its card:
+  `regimeStamp` (live on the row's own day in market hours, else at close) and
+  `regimeChangedSince`. The alert, backtest, chain-overlay and replay routes stay for the units
+  that draw them.
 - **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
   backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,

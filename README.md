@@ -185,6 +185,26 @@ before, width?)` (the picked width, else the middle one; both curves area-normal
   `StrategyActionRequest` gains `script_sig?`, which `scriptAction` sends exactly when the card
   carries one and `replaceAction` keeps, so the resend after a 409 carries the same signature as the
   request it answers. A backend without the field ignores it.
+  A forked chat's shared strategies, read-only (web `feat/athena-integration` 3eb0664b, backend-go
+  19740aa5…5a8a6525); additive only. `getChatByIdResponse` is now `ChatWithSource`: the chat with
+  `source_strategies?` (`StrategyRow[]`, is-alive's summary rows, backtests only) and
+  `source_strategy_logs?` (`StrategyLogRow[]`, strategy_logs rows as `models.StrategyLogs` writes
+  them: `message` and `payload` left out when empty, not wrapped as timeline items). GET
+  /chats/{id} sends them for the strategies another owner shared that the chat's copied messages
+  name, and leaves both out otherwise, as a backend that predates them does.
+  `strategy/sourceStrategies` holds `strategyCardSource(strategyIds, chat)` (web's: a card naming
+  a shared strategy reads the snapshot, read-only, `fromSource` true; any other card stays live
+  with no snapshot; a share link's read-only chat passes its snapshot through) with its
+  `StrategySnapshot`; `splitSharedIds(strategyIds, sharedStrategies)`, a card's ids split into
+  the snapshot's rows among them (`shared`, in the card's order) and the ids to read live
+  (`liveIds`), each once, so a card naming both keeps the viewer's own live; and
+  `sourceLogTimeline(rows)`, the raw rows as get-logs `LogFeedLogEntry` items, newest first as
+  get-logs sorts them, a left-out payload as null. Ids match case-insensitively, as the backend
+  canonicalises them. `strategy/strategyQuery`
+  holds web's `buildDeployQuery(strategy, entryQuery, capital?, symbol?, timeframe?)` and
+  `buildBacktestAgainQuery(strategy)` ("Run again": `Backtest this exact strategy:
+<original_query>`, then the symbol, timeframe or intraday, take profit, stop loss and prose
+  exits the row carries, and no size).
 - **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a

@@ -187,6 +187,13 @@ export {
 } from './strategySetupConfig.ts';
 export type {SetupConfig, SetupTerms} from './strategySetupConfig.ts';
 export {
+  sourceLogTimeline,
+  splitSharedIds,
+  strategyCardSource,
+} from './sourceStrategies.ts';
+export type {StrategySnapshot} from './sourceStrategies.ts';
+export {buildBacktestAgainQuery, buildDeployQuery} from './strategyQuery.ts';
+export {
   ATHENA_CALL_TIMEOUT_MS,
   replaceAction,
   scriptAction,

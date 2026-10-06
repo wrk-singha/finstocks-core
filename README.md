@@ -100,6 +100,10 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   order book the depth branch read, as it stood when read, with the book's own `source` line, its
   `live` flag, its `status` (`stock` / `contract` / `index`), a contract's parts, and the ladder in
   the wire's snake case (`total_bid_qty`, `as_of`, `interpretation`, `auction`).
+  `{type: 'sectors'; payload: SectorsCardPayload}` — the sector reading as read: the
+  `RsSectorMatrix` itself (carried, not fetched again, so card and answer agree in an old
+  transcript too), `focus`, `highlight`, the `pair` asked about or null, `source`, and `method`
+  (how the standings are worked out, in plain words; absent on older messages).
 - **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
   backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,

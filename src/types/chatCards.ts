@@ -13,8 +13,24 @@ import type {
   PortfolioAnalysisPosition,
 } from './portfolioAnalysis.ts';
 import type {PortfolioSimPayload} from './portfolioSim.ts';
+import type {RsSectorMatrix} from './rsSectorMatrix.ts';
 import type {AlertSetup} from './savedAlert.ts';
 import type {OrderSide, OrderType} from './trade.ts';
+
+/**
+ * The sector reading a sectors answer was written from (llm graph/nodes/sectors/node.py `_card`):
+ * the matrix as read, the sector the answer is about, the pair when one was asked, and `source`,
+ * the code-built line saying which close it is from.
+ */
+export interface SectorsCardPayload {
+  matrix: RsSectorMatrix;
+  focus: string;
+  highlight: string[];
+  pair: {row: string; col: string} | null;
+  source: string;
+  /** How the standings are worked out, in plain words; web shows it on hover over `source`. Absent on older messages. */
+  method?: string;
+}
 
 /**
  * One order book the depth branch read (llm graph/nodes/depth/node.py), as it stood when read.
@@ -122,6 +138,8 @@ export type ChatCard =
   | {type: 'report'; payload: ManualReportPayload}
   /** The order books a depth answer is written from, one card per book. */
   | {type: 'depth'; payload: {books: DepthCardBook[]}}
+  /** The sector reading a sectors answer is written from. */
+  | {type: 'sectors'; payload: SectorsCardPayload}
   /**
    * An order the assistant read off the user's instruction. It does NOT place anything: the
    * ticket renders pre-filled and the user confirms it there, through the same path as every

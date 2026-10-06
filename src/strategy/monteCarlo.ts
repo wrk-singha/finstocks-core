@@ -1,3 +1,5 @@
+import {mulberry32, percentileSorted} from '../market/sampling.ts';
+
 /**
  * Bootstrap Monte Carlo of a backtest (web feat/chart-parity 76f1dfee, 10a0f390): each path
  * redraws the trade P&Ls with replacement and sums them (not compounded). Seeded (mulberry32) so a
@@ -80,28 +82,6 @@ const HISTOGRAM_BINS = 24;
 /** Below this many trades "likely" is never said, however clean the resample. */
 const LIKELY_MIN_TRADES = 30;
 
-/** mulberry32: a small, fast, well-mixed 32-bit PRNG. Returns [0, 1). */
-export function mulberry32(seed: number): () => number {
-  let a = seed | 0;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/** Linear-interpolated percentile of an ascending array (numpy's default). */
-function percentileSorted(sorted: ArrayLike<number>, p: number): number {
-  const n = sorted.length;
-  if (n === 0) return NaN;
-  const h = (n - 1) * p;
-  const lo = Math.floor(h);
-  const hi = Math.min(n - 1, lo + 1);
-  const low = sorted[lo] ?? NaN;
-  return low + (h - lo) * ((sorted[hi] ?? low) - low);
-}
-
 function percentiles(sorted: ArrayLike<number>): Percentiles {
   return {
     p5: percentileSorted(sorted, 0.05),
@@ -168,34 +148,131 @@ const clock = (globalThis as {readonly performance?: {now: () => number}})
   .performance;
 const now = (): number => clock?.now() ?? Date.now();
 
-export function runMonteCarlo(input: MonteCarloInput): MonteCarloResult {
+/**
+ * A run done a slice at a time: `createMonteCarloJob`, then `advanceMonteCarlo` until
+ * `isMonteCarloDone`, then `monteCarloResult`. A slice draws paths and, once they are all drawn,
+ * reads the fan's percentiles a few steps at a time (sorting every path's value at a step is most
+ * of what is left). One PRNG stream draws the paths in order, so the same seed gives the same
+ * result however the run is sliced, and the same as `runMonteCarlo`. A host without a worker hands
+ * the thread back between slices.
+ */
+export interface MonteCarloJob {
+  readonly n: number;
+  readonly paths: number;
+  readonly seed: number;
+  readonly capital: number | null;
+  readonly ruin: RuinThreshold;
+  readonly pnls: readonly number[];
+  /** Paths drawn so far. */
+  done: number;
+  /** Fan steps read so far, once every path is drawn. */
+  read: number;
+  readonly fan: MonteCarloResult['fan'];
+  /** Milliseconds spent drawing and reading so far, not counting the time between slices. */
+  ms: number;
+  losses: number;
+  ruined: number;
+  readonly draws: Float64Array;
+  readonly rand: () => number;
+  readonly steps: number[];
+  readonly stepIndex: Int32Array;
+  /** Column-major: all paths' values at one step sit together, ready to sort. */
+  readonly atStep: Float64Array[];
+  readonly finals: Float64Array;
+  readonly dds: Float64Array;
+  readonly ddPcts: Float64Array;
+  readonly means: Float64Array;
+}
+
+/** Draws a run makes in all: one per trade per path. */
+export const monteCarloDraws = (
+  job: Pick<MonteCarloJob, 'n' | 'paths'>,
+): number => job.n * job.paths;
+
+export function createMonteCarloJob(input: MonteCarloInput): MonteCarloJob {
   const started = now();
   const pnls = input.pnls.filter(v => Number.isFinite(v));
   const n = pnls.length;
   const paths = Math.max(1, Math.floor(input.paths ?? DEFAULT_PATHS));
-  const seed = input.seed ?? DEFAULT_SEED;
   const capital =
     input.capital != null && input.capital > 0 ? input.capital : null;
-  const ruin: RuinThreshold =
-    capital == null && input.ruin.kind === 'pct'
-      ? {kind: 'amount', value: Infinity}
-      : input.ruin;
-  const rand = mulberry32(seed);
-  const draws = Float64Array.from(pnls);
-
   const steps = fanSteps(n);
   const stepIndex = new Int32Array(n + 1).fill(-1);
   steps.forEach((s, i) => (stepIndex[s] = i));
-  // Column-major: all paths' values at one step sit together, ready to sort.
-  const atStep = steps.map(() => new Float64Array(paths));
-  const finals = new Float64Array(paths);
-  const dds = new Float64Array(paths);
-  const ddPcts = new Float64Array(paths);
-  const means = new Float64Array(paths);
-  let losses = 0;
-  let ruined = 0;
+  const job: MonteCarloJob = {
+    n,
+    paths,
+    seed: input.seed ?? DEFAULT_SEED,
+    capital,
+    ruin:
+      capital == null && input.ruin.kind === 'pct'
+        ? {kind: 'amount', value: Infinity}
+        : input.ruin,
+    pnls,
+    done: 0,
+    read: 0,
+    fan: {p5: [], p25: [], p50: [], p75: [], p95: []},
+    ms: 0,
+    losses: 0,
+    ruined: 0,
+    draws: Float64Array.from(pnls),
+    rand: mulberry32(input.seed ?? DEFAULT_SEED),
+    steps,
+    stepIndex,
+    atStep: steps.map(() => new Float64Array(paths)),
+    finals: new Float64Array(paths),
+    dds: new Float64Array(paths),
+    ddPcts: new Float64Array(paths),
+    means: new Float64Array(paths),
+  };
+  job.ms = now() - started;
+  return job;
+}
 
-  for (let p = 0; p < paths; p += 1) {
+export const isMonteCarloDone = (job: MonteCarloJob): boolean =>
+  job.done >= job.paths && job.read >= job.atStep.length;
+
+/** How far through a run is, 0–1: its paths drawn and its fan steps read. */
+export const monteCarloProgress = (job: MonteCarloJob): number =>
+  (job.done + job.read) / (job.paths + job.atStep.length);
+
+/**
+ * One slice of a run: whole paths, as many as fit in `maxDraws` draws and always at least one; once
+ * every path is drawn, fan steps, as many whose sort fits the same budget (a step sorts one value a
+ * path) and always at least one. Returns the paths and steps this call did.
+ */
+export function advanceMonteCarlo(
+  job: MonteCarloJob,
+  maxDraws = Infinity,
+): number {
+  const started = now();
+  if (job.done < job.paths) {
+    const drawn = drawPaths(job, maxDraws);
+    job.ms += now() - started;
+    return drawn;
+  }
+  const fit = Math.max(1, Math.floor(maxDraws / job.paths));
+  const end = Math.min(job.atStep.length, job.read + fit);
+  const from = job.read;
+  for (let s = from; s < end; s += 1) {
+    const q = percentiles(job.atStep[s]?.sort() ?? []);
+    job.fan.p5.push(q.p5);
+    job.fan.p25.push(q.p25);
+    job.fan.p50.push(q.p50);
+    job.fan.p75.push(q.p75);
+    job.fan.p95.push(q.p95);
+  }
+  job.read = end;
+  job.ms += now() - started;
+  return end - from;
+}
+
+function drawPaths(job: MonteCarloJob, maxDraws: number): number {
+  const {n, capital, ruin, draws, rand, stepIndex, atStep} = job;
+  const fit = n === 0 ? job.paths : Math.max(1, Math.floor(maxDraws / n));
+  const end = Math.min(job.paths, job.done + fit);
+  const from = job.done;
+  for (let p = from; p < end; p += 1) {
     let cum = 0;
     let peak = 0;
     let dd = 0;
@@ -213,31 +290,26 @@ export function runMonteCarlo(input: MonteCarloInput): MonteCarloResult {
       const column = atStep[stepIndex[k] ?? -1];
       if (column !== undefined) column[p] = cum;
     }
-    finals[p] = cum;
-    dds[p] = dd;
-    ddPcts[p] = ddPct;
-    means[p] = n ? cum / n : 0;
-    if (cum < 0) losses += 1;
+    job.finals[p] = cum;
+    job.dds[p] = dd;
+    job.ddPcts[p] = ddPct;
+    job.means[p] = n ? cum / n : 0;
+    if (cum < 0) job.losses += 1;
     if (ruin.kind === 'pct' ? ddPct >= ruin.value : dd >= ruin.value) {
-      ruined += 1;
+      job.ruined += 1;
     }
   }
+  job.done = end;
+  return end - from;
+}
 
-  const fan: MonteCarloResult['fan'] = {
-    p5: [],
-    p25: [],
-    p50: [],
-    p75: [],
-    p95: [],
-  };
-  for (const column of atStep) {
-    const q = percentiles(column.sort());
-    fan.p5.push(q.p5);
-    fan.p25.push(q.p25);
-    fan.p50.push(q.p50);
-    fan.p75.push(q.p75);
-    fan.p95.push(q.p95);
+/** The figures of a finished run. Throws on one with paths or fan steps still to do. */
+export function monteCarloResult(job: MonteCarloJob): MonteCarloResult {
+  if (!isMonteCarloDone(job)) {
+    throw new Error('monteCarloResult: the run has paths or steps left');
   }
+  const started = now();
+  const {n, paths, capital, pnls, steps, fan} = job;
 
   const cumActual: number[] = [0];
   let running = 0;
@@ -248,12 +320,12 @@ export function runMonteCarlo(input: MonteCarloInput): MonteCarloResult {
   const actual = steps.map(s => cumActual[s] ?? 0);
   const actualDd = drawdownOf(pnls, capital);
 
-  const finalSorted = sortedCopy(finals);
-  const ddSorted = sortedCopy(dds);
-  const meanSorted = sortedCopy(means);
+  const finalSorted = sortedCopy(job.finals);
+  const ddSorted = sortedCopy(job.dds);
+  const meanSorted = sortedCopy(job.means);
   const finalQ = percentiles(finalSorted);
   let finalMean = 0;
-  for (const value of finals) finalMean += value;
+  for (const value of job.finals) finalMean += value;
   finalMean /= paths;
 
   const net = running;
@@ -265,7 +337,7 @@ export function runMonteCarlo(input: MonteCarloInput): MonteCarloResult {
     .slice(0, 3)
     .filter(v => v > 0)
     .reduce((s, v) => s + v, 0);
-  const probLoss = losses / paths;
+  const probLoss = job.losses / paths;
 
   let verdict: EdgeVerdict;
   if (meanTradeValue <= 0) verdict = 'negative';
@@ -273,13 +345,15 @@ export function runMonteCarlo(input: MonteCarloInput): MonteCarloResult {
   else if (1 - probLoss >= 0.6) verdict = 'uncertain';
   else verdict = 'unsupported';
 
-  const ddPctSorted = capital != null ? sortedCopy(ddPcts) : null;
+  const ddPctSorted = capital != null ? sortedCopy(job.ddPcts) : null;
   const ofCapital = (value: number, base: number): number =>
     (value / base) * 100;
+  const drawdownPcts = ddPctSorted ? Array.from(ddPctSorted) : null;
+  const ms = job.ms + (now() - started);
   return {
     n,
     paths,
-    seed,
+    seed: job.seed,
     steps,
     fan,
     actual,
@@ -301,16 +375,23 @@ export function runMonteCarlo(input: MonteCarloInput): MonteCarloResult {
     actualMaxDrawdown: actualDd.amount,
     actualMaxDrawdownPct: actualDd.pct,
     probLoss,
-    probRuin: ruined / paths,
-    ruin,
+    probRuin: job.ruined / paths,
+    ruin: job.ruin,
     meanTrade: {value: meanTradeValue, low: meanLow, high: meanHigh},
     top3Share: net > 0 ? top3 / net : null,
     netWithoutTop3: net - top3,
     verdict,
     drawdowns: Array.from(ddSorted),
-    drawdownPcts: ddPctSorted ? Array.from(ddPctSorted) : null,
-    ms: now() - started,
+    drawdownPcts,
+    ms,
   };
+}
+
+/** The whole run at once: web's `runMonteCarlo`. */
+export function runMonteCarlo(input: MonteCarloInput): MonteCarloResult {
+  const job = createMonteCarloJob(input);
+  while (!isMonteCarloDone(job)) advanceMonteCarlo(job);
+  return monteCarloResult(job);
 }
 
 /**

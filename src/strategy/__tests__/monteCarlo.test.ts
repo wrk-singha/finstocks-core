@@ -2,8 +2,13 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
 import {
+  advanceMonteCarlo,
+  createMonteCarloJob,
   fanSteps,
-  mulberry32,
+  isMonteCarloDone,
+  monteCarloDraws,
+  monteCarloProgress,
+  monteCarloResult,
   ruinProbability,
   runMonteCarlo,
 } from '../monteCarlo.ts';
@@ -12,18 +17,6 @@ import {
 const pnls = Array.from({length: 40}, (_, i) =>
   i % 5 === 4 ? -300 : 150 + (i % 3) * 20,
 );
-
-test('mulberry32 is the same stream for the same seed, in [0, 1)', () => {
-  const a = mulberry32(7);
-  const b = mulberry32(7);
-  const draws = Array.from({length: 1000}, () => a());
-  assert.deepEqual(
-    draws,
-    Array.from({length: 1000}, () => b()),
-  );
-  assert.ok(draws.every(v => v >= 0 && v < 1));
-  assert.notEqual(mulberry32(8)(), mulberry32(7)());
-});
 
 test('a seed reproduces every figure; another seed gives other paths', () => {
   const input = {
@@ -151,4 +144,52 @@ test('a long run is drawn at no more than 401 steps, both ends kept', () => {
   assert.equal(steps[0], 0);
   assert.equal(steps.at(-1), 2000);
   assert.deepEqual(fanSteps(3), [0, 1, 2, 3]);
+});
+
+test('a run drawn in slices is the run drawn at once, path for path', () => {
+  const input = {
+    pnls,
+    capital: 100_000,
+    paths: 300,
+    seed: 11,
+    ruin: {kind: 'pct', value: 1} as const,
+  };
+  const job = createMonteCarloJob(input);
+  assert.equal(monteCarloDraws(job), 40 * 300);
+  const slices: number[] = [];
+  const progress: number[] = [];
+  while (!isMonteCarloDone(job)) {
+    slices.push(advanceMonteCarlo(job, 1000));
+    progress.push(monteCarloProgress(job));
+  }
+  // 1,000 draws is 25 paths of 40 trades, then 3 of the 41 fan steps (300 paths each).
+  assert.deepEqual(slices, [
+    ...Array.from({length: 12}, () => 25),
+    ...Array.from({length: 13}, () => 3),
+    2,
+  ]);
+  assert.ok(progress.every((p, i) => i === 0 || p > (progress[i - 1] ?? 0)));
+  assert.equal(progress.at(-1), 1);
+  assert.deepEqual(
+    {...monteCarloResult(job), ms: 0},
+    {...runMonteCarlo(input), ms: 0},
+  );
+});
+
+test('a slice always does a path or a step, and a run is read only once it is done', () => {
+  const job = createMonteCarloJob({
+    pnls,
+    capital: null,
+    paths: 3,
+    ruin: {kind: 'amount', value: 1},
+  });
+  assert.equal(advanceMonteCarlo(job, 1), 1);
+  assert.throws(() => monteCarloResult(job), /left/);
+  assert.equal(advanceMonteCarlo(job), 2);
+  // Every path drawn; the 41 fan steps are read next.
+  assert.throws(() => monteCarloResult(job), /left/);
+  assert.equal(advanceMonteCarlo(job, 1), 1);
+  assert.equal(advanceMonteCarlo(job), 40);
+  assert.equal(advanceMonteCarlo(job), 0);
+  assert.equal(monteCarloResult(job).paths, 3);
 });

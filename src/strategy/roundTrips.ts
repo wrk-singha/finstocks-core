@@ -1,5 +1,6 @@
 // One trade from entry to exit, from a backtest row or a lot in the user's book, so both are
 // measured the same way by the journal and the Monte Carlo (web feat/chart-parity 76f1dfee).
+import {IST_OFFSET_MS} from '../market/marketHours.ts';
 import {
   calculatePNL,
   getTradeEntryPrice,
@@ -30,9 +31,6 @@ export interface RoundTrip {
   /** The strategy that placed it, when one did. */
   strategyId?: string | null;
 }
-
-/** IST is UTC+05:30 all year. */
-export const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
 const OFFSET_RE = /(Z|[+-]\d{2}:?\d{2})$/i;
 const WALL_CLOCK_RE =

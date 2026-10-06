@@ -43,11 +43,16 @@ export type {
   JournalStats,
 } from './journalStats.ts';
 export {
+  advanceMonteCarlo,
+  createMonteCarloJob,
   DEFAULT_PATHS,
   DEFAULT_SEED,
   fanSteps,
+  isMonteCarloDone,
   MIN_MONTE_CARLO_TRADES,
-  mulberry32,
+  monteCarloDraws,
+  monteCarloProgress,
+  monteCarloResult,
   ruinProbability,
   runMonteCarlo,
 } from './monteCarlo.ts';
@@ -55,6 +60,7 @@ export type {
   EdgeVerdict,
   Histogram,
   MonteCarloInput,
+  MonteCarloJob,
   MonteCarloResult,
   Percentiles,
   RuinThreshold,

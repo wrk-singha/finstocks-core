@@ -1,7 +1,8 @@
 // The journal's filters and summary figures (web feat/chart-parity 76f1dfee). Realised P&L only:
 // counting an open trade's mark would make yesterday's summary move with today's price.
 import {istDayKey} from '../format/date.ts';
-import {IST_OFFSET_MS, type RoundTrip, type TripSource} from './roundTrips.ts';
+import {IST_OFFSET_MS} from '../market/marketHours.ts';
+import type {RoundTrip, TripSource} from './roundTrips.ts';
 
 export interface JournalFilter {
   /** Upper-case symbol, or null for every symbol. */

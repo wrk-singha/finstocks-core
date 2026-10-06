@@ -63,6 +63,7 @@ export type {
   CreateBacktestRequest,
   CreateBacktestResponse,
   FnoIndexUnderlying,
+  GraphDataPage,
   GraphDataQuery,
   OrderResponse,
   PendingTradeResponse,

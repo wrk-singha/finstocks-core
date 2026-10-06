@@ -31,6 +31,9 @@ export interface ExpiryCalendar {
   ruleFrom: string | null;
 }
 
+/** Stored 1-minute F&O history starts here: anything earlier was never recorded. */
+export const FNO_HISTORY_START = '2026-01-02';
+
 /** NSE: every equity derivative expires on a Tuesday from this date (Thursday before). */
 export const NSE_TUESDAY_EXPIRY_FROM = '2025-09-01';
 const TUESDAY = 2;

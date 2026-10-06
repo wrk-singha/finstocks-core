@@ -153,12 +153,22 @@ before, width?)` (the picked width, else the middle one; both curves area-normal
   P&Ls, not compounded: the fan's percentiles at `fanSteps(n)`, final-return and max-drawdown
   percentiles and histograms, loss and ruin shares, the mean trade's middle 95% and the
   `EdgeVerdict`), `ruinProbability(result, threshold)` (re-read from the same paths),
-  `mulberry32`, `MIN_MONTE_CARLO_TRADES` (20), `DEFAULT_PATHS`, `DEFAULT_SEED`. Web's bar-replay
-  cut (`tripsAsOf`) and `tripPnlAt` are not ported: nothing here reads them. `market/expiryDays`:
+  `MIN_MONTE_CARLO_TRADES` (20), `DEFAULT_PATHS`, `DEFAULT_SEED`; and the same run a slice at a
+  time for a host with no worker: `createMonteCarloJob(input)` (`MonteCarloJob`),
+  `advanceMonteCarlo(job, maxDraws?)` (whole paths within the draw budget, then the fan's steps
+  a few sorts at a time; always at least one), `isMonteCarloDone`, `monteCarloProgress` (0–1),
+  `monteCarloDraws(job)` (paths × trades) and `monteCarloResult(job)` — the same seed gives
+  `runMonteCarlo`'s figures however it is sliced. Web's bar-replay cut (`tripsAsOf`) and
+  `tripPnlAt` are not ported: nothing here reads them. `market/sampling` holds the seeded
+  `mulberry32` and `percentileSorted` both Monte Carlos draw with (the basket backtest's band
+  now reads them there; the same stream it drew before). `market/expiryDays`:
   `expiryCalendar(catalogue, from?)` (the listed expiries, and past Tuesdays from
-  `NSE_TUESDAY_EXPIRY_FROM` worked out over the holiday table, a month outside it left out);
-  `market/marketHours` gains `hasHolidayCalendar(date, market?)`. `format` gains
-  `formatChartLongDate(ms, intraday)` ("12 Mar 2026, 10:15", IST).
+  `NSE_TUESDAY_EXPIRY_FROM` worked out over the holiday table, a month outside it left out) and
+  `FNO_HISTORY_START` (stored 1-minute F&O history starts 2 Jan 2026); `market/marketHours`
+  gains `hasHolidayCalendar(date, market?)` and `IST_OFFSET_MS`. `format` gains
+  `formatChartLongDate(ms, intraday)` ("12 Mar 2026, 10:15", IST). `GraphDataQuery` gains
+  `page` (`GraphDataPage`: `to`, Unix seconds, and `count`), sent as `to`/`count` — minute paging
+  backend-go serves on `feat/chart-parity`; a backend without it answers the plain period.
 - **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a

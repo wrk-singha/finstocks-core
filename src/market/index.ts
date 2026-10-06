@@ -528,6 +528,7 @@ export {
   isManualPagePath,
   MANUAL_PAGE_PREFIX,
   manualPageSlug,
+  manualPageSlugOfUrl,
   manualPageTitle,
   manualPageUrl,
 } from './manualPages.ts';

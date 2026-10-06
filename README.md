@@ -104,7 +104,9 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   a host that knows only the older kinds compiles and ignores it. Web dev also serves 142 field
   manual pages as static documents under `/manuals/` (bd5a93ba), which such a button points at:
   `isManualPagePath`, `manualPageSlug`, `manualPageUrl(frontendUrl, slug)` and `manualPageTitle`
-  in `@finstocks/core/market` tell one from a route and spell where it is served; a host that gates
+  in `@finstocks/core/market` tell one from a route and spell where it is served (a slug is
+  `[a-z0-9-]+`, so an encoded `..` or a nested path is no page), `manualPageSlugOfUrl(frontendUrl,
+url)` says which manual a tapped link stays on, if any; a host that gates
   the button on the page answering keys the probe with `queryKeys.manualPage(slug)`, and
   `HttpMethod` now admits `HEAD` for it.
 - **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena

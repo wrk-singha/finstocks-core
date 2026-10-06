@@ -84,10 +84,13 @@ request, compileHash)` (the same request as a replace of the version named, the 
   either host's error shape: `{kind: 'replace', message, compileHash, liveName?}` for the 409
   with `needs: "replace"` (nothing changed; `message` is the backend's confirm), `{kind:
 'refused', message}` for a 400 (the settings; QTY and RISK_PERCENT sizing; PERCENT with no
-  capital), 403, 404, a 409 asking for no replace, 412, 422, 503 and any other 4xx, in the
-  backend's words, `{kind: 'unavailable', message}` for a 500 or 502, and null for a timeout,
-  the network or anything without a status, where the request may have been carried out and a
-  host re-reads rather than resends. `strategyActionTouches()` lists what such a call changes:
+  capital), 403, 404, a 409 asking for no replace, 412, 422, any other 4xx, and the handler's own
+  503 ("Running C strategies is not enabled yet"), in the backend's words, `{kind: 'unavailable',
+message}` only for the handler's own 500 ("Could not verify your broker connection", answered
+  before anything is asked of Athena), and null for every other 5xx — the handler's 502 words any
+  Athena failure, a reply lost after the strategy was activated included — and for a timeout, the
+  network or anything without a status: the request may have been carried out, so a host re-reads
+  rather than resends. `strategyActionTouches()` lists what such a call changes:
   the books (`status.all()`) and every strategy's logs (`['strategyLogs']`).
 - **v0.8.3** — an IST date-and-time stamp keeps its clock on iOS. Hermes on iOS formats a format
   that asks for both a date and a clock as "7 Oct at 11:05 AM" and types the hour, minute and AM/PM

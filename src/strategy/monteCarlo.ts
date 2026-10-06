@@ -193,7 +193,9 @@ export function createMonteCarloJob(input: MonteCarloInput): MonteCarloJob {
   const started = now();
   const pnls = input.pnls.filter(v => Number.isFinite(v));
   const n = pnls.length;
-  const paths = Math.max(1, Math.floor(input.paths ?? DEFAULT_PATHS));
+  // A count that is no number would leave a sliced run never done: it takes the default.
+  const asked = Math.floor(input.paths ?? DEFAULT_PATHS);
+  const paths = Number.isFinite(asked) ? Math.max(1, asked) : DEFAULT_PATHS;
   const capital =
     input.capital != null && input.capital > 0 ? input.capital : null;
   const steps = fanSteps(n);

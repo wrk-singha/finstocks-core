@@ -193,3 +193,19 @@ test('a slice always does a path or a step, and a run is read only once it is do
   assert.equal(advanceMonteCarlo(job), 0);
   assert.equal(monteCarloResult(job).paths, 3);
 });
+
+test('a path count that is no number takes the default, so a sliced run always ends', () => {
+  const job = createMonteCarloJob({
+    pnls,
+    capital: null,
+    paths: Number.NaN,
+    ruin: {kind: 'amount', value: 1},
+  });
+  assert.equal(job.paths, 1000);
+  let slices = 0;
+  while (!isMonteCarloDone(job) && slices < 1000) {
+    advanceMonteCarlo(job, 20_000);
+    slices += 1;
+  }
+  assert.equal(isMonteCarloDone(job), true);
+});

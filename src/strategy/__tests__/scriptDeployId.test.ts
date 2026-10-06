@@ -47,31 +47,40 @@ test('a version 5 UUID matches the RFC’s example', () => {
 });
 
 const card: ScriptDeployIdentity = {
-  chatId: 'chat-1',
-  messageId: 'msg-1',
-  cardKey: 'strategies',
+  messageId: '0f9a1c2e-4b5d-4e6f-8a7b-9c0d1e2f3a4b',
+  cardKey: 'plan-0',
   kind: 'live',
-  scriptHash: 'abc123',
 };
 
-test('a card’s deploy id is a UUID, the same every time, and differs by card, kind and code', () => {
+test('a card’s deploy id is a UUID, the same every time, and differs by message, place and kind', () => {
   const id = scriptDeployId(card);
   assert.match(
     id,
     /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
   );
+  // The formula, pinned: a change would orphan every row named before it.
+  assert.equal(
+    id,
+    uuidV5(
+      ['c-card', card.messageId, 'plan-0', 'live'].join('\u0000'),
+      '3f0e6a52-9c1d-4b7e-8a25-6d4c1b9e7f30',
+    ),
+  );
   assert.equal(scriptDeployId({...card}), id);
   const others = [
     {...card, kind: 'forward' as const},
-    {...card, cardKey: 'strategies-1'},
-    {...card, messageId: 'msg-2'},
-    {...card, chatId: 'chat-2'},
-    {...card, scriptHash: 'abc124'},
+    {...card, cardKey: 'plan-1'},
+    {...card, messageId: '0f9a1c2e-4b5d-4e6f-8a7b-9c0d1e2f3a4c'},
   ].map(scriptDeployId);
-  assert.equal(new Set([id, ...others]).size, 6);
+  assert.equal(new Set([id, ...others]).size, 4);
   // The parts are joined so that no two different cards read as the same name.
   assert.notEqual(
-    scriptDeployId({...card, chatId: 'a', messageId: 'bc'}),
-    scriptDeployId({...card, chatId: 'ab', messageId: 'c'}),
+    scriptDeployId({...card, messageId: 'a', cardKey: 'bc'}),
+    scriptDeployId({...card, messageId: 'ab', cardKey: 'c'}),
   );
+});
+
+test('neither the chat nor the code names the row: a card whose code changes deploys to the same one', () => {
+  // The identity takes neither; an edit of the code in place meets the replace prompt there.
+  assert.deepEqual(Object.keys(card).sort(), ['cardKey', 'kind', 'messageId']);
 });

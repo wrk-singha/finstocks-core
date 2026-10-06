@@ -97,11 +97,14 @@ message}` only for the handler's own 500 ("Could not verify your broker connecti
   timed out (`ATHENA_CALL_TIMEOUT_MS`, the backend's default `ATHENA_TIMEOUT_SECONDS` of 15, times
   one call for a deploy or a replace and three for a backtest, plus 15 s): 30 s, or 60 s for a
   backtest; a book read begun that long after the send that still lacks the row says the request
-  did not go through. `strategy/scriptDeployId` names the row a card's deploy goes to when the card
-  names none: `scriptDeployId({chatId, messageId, cardKey, kind, scriptHash})` is a UUID version 5
-  (`uuidV5`, a pure SHA-1, in `SCRIPT_DEPLOY_NAMESPACE`) — the same for every attempt of that card
-  and kind, on any device and after a relaunch, so a resend can only activate that row again (the
-  backend activates the id it is sent, an upsert; sent none, it makes a new row every time).
+  did not go through. `strategy/scriptDeployId` names the row a card's deploy goes to when the card names none:
+  `scriptDeployId({messageId, cardKey, kind})` is a UUID version 5 (`uuidV5`, a pure SHA-1, in
+  `SCRIPT_DEPLOY_NAMESPACE`) — the same for every attempt of that card and kind, on any device and
+  after a relaunch, so a resend can only activate that row again (the backend activates the id it
+  is sent, an upsert; sent none, it makes a new row every time). `cardKey` is the card's place among
+  the message's plan cards (backtest and strategies), which the backend's link never reorders. The
+  chat and the code are not part of it: the message id is a UUID, and a card whose code changes in
+  place deploys to its own row, where a different live version meets the replace prompt.
 - **v0.8.3** — an IST date-and-time stamp keeps its clock on iOS. Hermes on iOS formats a format
   that asks for both a date and a clock as "7 Oct at 11:05 AM" and types the hour, minute and AM/PM
   as plain literals, so `istDateTimeParts` (and with it `formatShortDateTime`,

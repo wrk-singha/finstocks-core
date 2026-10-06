@@ -3,10 +3,43 @@ import {test} from 'node:test';
 
 import {
   extractSetupConfig,
+  isScriptCard,
   normalizeSetupKey,
+  scriptRunOf,
   setupConfig,
   termsToConfig,
 } from '../strategySetupConfig.ts';
+
+const without = <T extends object>(terms: T, key: keyof T): Partial<T> =>
+  Object.fromEntries(
+    Object.entries(terms).filter(([name]) => name !== key),
+  ) as Partial<T>;
+
+test('a C strategy card is its code, its hash and the rows it was saved as; nothing else is one', () => {
+  const terms = {
+    tickers: 'HDFCBANK',
+    script_entry: 'evaluate_v2',
+    script: 'def evaluate_v2(ctx): ...',
+    script_hash: 'abc123',
+    strategy_id: '6f1c2a7e-0d4b-4c3e-9a1f-2b3c4d5e6f70',
+  };
+  assert.deepEqual(scriptRunOf(terms), {
+    script: terms.script,
+    scriptHash: 'abc123',
+    strategyId: terms.strategy_id,
+    backtestId: undefined,
+  });
+  assert.equal(isScriptCard({terms}), true);
+  // A composed "script_preview" carries a script as its receipt, not as an entry point: it still
+  // runs through create-backtest from its FSM.
+  assert.equal(scriptRunOf(without(terms, 'script_entry')), null);
+  assert.equal(scriptRunOf({...terms, script_entry: 'evaluate'}), null);
+  // Without the code or its hash there is nothing strategy-action could run or check.
+  assert.equal(scriptRunOf({...terms, script: ''}), null);
+  assert.equal(scriptRunOf(without(terms, 'script_hash')), null);
+  assert.equal(scriptRunOf(undefined), null);
+  assert.equal(isScriptCard({}), false);
+});
 
 test('extractSetupConfig reads the confirm table rows back into a request', () => {
   const config = extractSetupConfig([

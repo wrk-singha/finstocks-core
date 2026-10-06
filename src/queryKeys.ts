@@ -512,3 +512,15 @@ export const queryKeys = {
    *  first; the chat card and the chart picker's Custom tab read the same list. */
   customIndicators: () => ['custom-indicators'],
 };
+
+/**
+ * What a `tradingApi.strategyAction` call changes on the read side, whichever way it ended: the
+ * books (is-alive in both modes — a deploy or a replace writes a row, and a call that got no
+ * answer may have) and every strategy's logs (a backtest queued, a live version replaced). A
+ * host that got no answer re-reads these rather than sending again. The chat that carries the
+ * card is the host's own key (`chat.detail`) and is not listed here.
+ */
+export const strategyActionTouches = () => [
+  queryKeys.status.all(),
+  ['strategyLogs'],
+];

@@ -95,6 +95,14 @@ export interface StrategyRunSnapshot<T = Strategy> {
 
 export type RunOptionKind = 'backtest' | 'forward' | 'live';
 
+/** A C strategy card's code and the rows it was saved as (`scriptRunOf`). */
+export interface ScriptRun {
+  script: string;
+  scriptHash: string;
+  strategyId?: string | undefined;
+  backtestId?: string | undefined;
+}
+
 /**
  * Tone of the plan's one-line status pill. "running"/"warning" cover a backtest that is still
  * replaying or never finished.

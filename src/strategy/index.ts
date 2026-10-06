@@ -122,11 +122,21 @@ export type {
 } from './strategyRunOptions.ts';
 export {
   extractSetupConfig,
+  isScriptCard,
   normalizeSetupKey,
+  SCRIPT_ENTRY_C,
+  scriptRunOf,
   setupConfig,
   termsToConfig,
 } from './strategySetupConfig.ts';
 export type {SetupConfig, SetupTerms} from './strategySetupConfig.ts';
+export {
+  replaceAction,
+  scriptAction,
+  STRATEGY_ACTION_BY_KIND,
+  strategyActionRefusal,
+} from './strategyAction.ts';
+export type {StrategyActionRefusal} from './strategyAction.ts';
 export {
   BACKTEST_STATUSES,
   findBacktestPayloadLog,

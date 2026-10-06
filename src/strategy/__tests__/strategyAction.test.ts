@@ -130,26 +130,50 @@ test('the statuses the backend answers before anything runs are refusals, in its
   );
 });
 
-test('a 500 or 502 is the backend saying it could not, with its words', () => {
+test('the handler’s own 500 before anything ran is unavailable; its own 503 is refused', () => {
+  const brokerCheck = 'Could not verify your broker connection';
   assert.deepEqual(
     strategyActionRefusal(
-      mobileError(500, {error: 'broker check'}, 'broker check'),
+      mobileError(500, {error: brokerCheck}, brokerCheck),
       'x',
     ),
-    {kind: 'unavailable', message: 'broker check'},
+    {kind: 'unavailable', message: brokerCheck},
   );
+  const notEnabled = 'Running C strategies is not enabled yet';
   assert.deepEqual(
-    strategyActionRefusal(axiosError(502, {error: 'Could not start'}), 'x'),
-    {kind: 'unavailable', message: 'Could not start'},
+    strategyActionRefusal(axiosError(503, {error: notEnabled}), 'x'),
+    {kind: 'refused', message: notEnabled},
   );
-  // Words it did not send fall to the host's fallback.
-  assert.deepEqual(strategyActionRefusal(mobileError(502, null, ''), 'fb'), {
-    kind: 'unavailable',
-    message: 'fb',
-  });
 });
 
-test('a timeout, the network, a gateway giving up or anything without a status is no answer at all', () => {
+test('any other 5xx is no answer: a 502 can be a reply lost after Athena activated the strategy', () => {
+  // The handler words every Athena failure, lost replies included, as this 502.
+  assert.equal(
+    strategyActionRefusal(
+      axiosError(502, {
+        error: 'Could not start this strategy right now. Please try again.',
+      }),
+      'x',
+    ),
+    null,
+  );
+  assert.equal(strategyActionRefusal(mobileError(502, null, ''), 'fb'), null);
+  // A 500 or 503 in other words is a gateway or a crash, not the handler's own refusal.
+  assert.equal(
+    strategyActionRefusal(
+      mobileError(500, {error: 'internal'}, 'internal'),
+      'x',
+    ),
+    null,
+  );
+  assert.equal(
+    strategyActionRefusal(axiosError(503, {error: 'Service Unavailable'}), 'x'),
+    null,
+  );
+  assert.equal(strategyActionRefusal(axiosError(500, null), 'x'), null);
+});
+
+test('a timeout, the network, a gateway or anything without a status is no answer at all', () => {
   assert.equal(
     strategyActionRefusal(mobileError(0, null, 'timed out'), 'x'),
     null,

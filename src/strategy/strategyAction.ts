@@ -57,11 +57,17 @@ export const replaceAction = (
  * - `refused`: the backend said no before anything ran, in its own words — 400 (the settings,
  *   QTY or RISK_PERCENT sizing, PERCENT with no capital), 403, 404 (build it again), a 409 that
  *   asks for no replace (the live version moved since the prompt), 412 (connect a broker),
- *   422 (could not be prepared), 503 (not enabled yet), and any other 4xx.
- * - `unavailable`: the backend could not do it — 500 (its broker check failed, before anything
- *   was written) or 502 (Athena could not start it), with its words.
+ *   422 (could not be prepared), any other 4xx, and the handler's own 503 ("Running C
+ *   strategies is not enabled yet"), which it answers before anything is asked of Athena.
+ * - `unavailable`: the handler's own 500, "Could not verify your broker connection", which it
+ *   answers before anything is asked of Athena (`requireBroker`). Nothing was written.
  *
- * A 504 is a gateway giving up on a request the backend may still be carrying out: no answer.
+ * Every other 5xx is NO answer (null). The handler's `failureFor` turns any Athena failure into a
+ * 502 "Could not start this strategy right now. Please try again." — including a reply lost
+ * AFTER Athena activated the strategy — and a 500, 503 or 504 with other words comes from a
+ * gateway or a crash around a request that may have been carried out. A host that read those as
+ * a clean no freed the tile, and the next swipe on a card with no `strategy_id` started a second
+ * real-money strategy.
  */
 export type StrategyActionRefusal =
   | {
@@ -72,6 +78,12 @@ export type StrategyActionRefusal =
     }
   | {kind: 'refused'; message: string}
   | {kind: 'unavailable'; message: string};
+
+// The two 5xx bodies the handler itself writes before anything is asked of Athena
+// (`errBrokerCheck`, `errScriptsOff` in backend-go `handlers/trading/strategyaction.go`). Any
+// other 5xx body, or none, is read as no answer.
+const BROKER_CHECK_FAILED = 'Could not verify your broker connection';
+const SCRIPTS_NOT_ENABLED = 'Running C strategies is not enabled yet';
 
 const failureOf = (error: unknown): Partial<StrategyActionFailure> => {
   if (typeof error !== 'object' || error === null) return {};
@@ -97,9 +109,16 @@ export function strategyActionRefusal(
   fallback: string,
 ): StrategyActionRefusal | null {
   const status = statusOf(error);
-  if (status === undefined || status <= 0 || status === 504) return null;
+  if (status === undefined || status <= 0) return null;
   const message = getApiErrorMessage(error, fallback);
   const failure = failureOf(error);
+  if (status >= 500) {
+    if (status === 500 && failure.error === BROKER_CHECK_FAILED)
+      return {kind: 'unavailable', message};
+    if (status === 503 && failure.error === SCRIPTS_NOT_ENABLED)
+      return {kind: 'refused', message};
+    return null;
+  }
   if (
     status === 409 &&
     failure.needs === 'replace' &&
@@ -113,6 +132,5 @@ export function strategyActionRefusal(
       liveName: failure.live_name,
     };
   }
-  if (status >= 500 && status !== 503) return {kind: 'unavailable', message};
   return {kind: 'refused', message};
 }

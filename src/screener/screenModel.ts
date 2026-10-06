@@ -771,8 +771,13 @@ const isKnownUniverse = (id: string, {universes, watchlists}: KnownIds) =>
     ? !watchlists || watchlists.has(id)
     : universes.has(id);
 
+/** A sort the catalogue can order by: the name, or a field it serves. */
+const isKnownSort = (index: CatalogIndex, sort: ScreenState['sort']): boolean =>
+  !sort || sort.key === 'name' || isKnownField(index, sort.key);
+
 /** The screen without the ids the catalogue, the watchlists or the industry
- *  tree do not know. The same object comes back when nothing was dropped, so a
+ *  tree do not know; a sort on a field it does not know falls back to the
+ *  default order. The same object comes back when nothing was dropped, so a
  *  caller can tell a checked screen by reference. */
 export function pruneScreen(
   state: ScreenState,
@@ -788,8 +793,35 @@ export function pruneScreen(
     filters: state.filters.filter(f => isKnownFilter(index, f)),
     columns: state.columns.filter(key => isKnownField(index, key)),
   };
-  const unchanged = (Object.keys(pruned) as (keyof typeof pruned)[]).every(
-    key => pruned[key].length === state[key].length,
+  const sortKnown = isKnownSort(index, state.sort);
+  const unchanged =
+    sortKnown &&
+    (Object.keys(pruned) as (keyof typeof pruned)[]).every(
+      key => pruned[key].length === state[key].length,
+    );
+  if (unchanged) return state;
+  return {
+    ...state,
+    ...pruned,
+    sort: sortKnown ? state.sort : EMPTY_SCREEN.sort,
+  };
+}
+
+/**
+ * Whether the catalogue knows every field a screen filters on or shows. A prebuilt screen on
+ * fields this server does not compute (the ESF and options-regime screens, until their backend
+ * ships) is not offered at all: `pruneScreen` would drop its every filter and open it on the whole
+ * market presented as matches.
+ */
+export function hasKnownFields(
+  index: CatalogIndex,
+  screen: {
+    filters: readonly ScreenFilter[];
+    columns?: readonly string[] | undefined;
+  },
+): boolean {
+  return (
+    screen.filters.every(filter => isKnownFilter(index, filter)) &&
+    (screen.columns ?? []).every(key => isKnownField(index, key))
   );
-  return unchanged ? state : {...state, ...pruned};
 }

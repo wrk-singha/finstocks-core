@@ -63,6 +63,22 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.3** — the screener's ESF prebuilt screens; additive only. `PrebuiltScreen` gains an
+  optional `sort` (`{key, dir}`), and `PREBUILT_SCREENS` opens with web's seven FinStocks Score
+  screens (`esf-leaders`, `esf-growth-leaders`, `esf-big-money`, `esf-ready-to-rise`,
+  `esf-fair-price`, `esf-graham`, `esf-strong-health`), each a single `esf_*` flag filter with the
+  score columns and a sort — by `esf_score` descending, by `esf_volume_score` for the accumulation
+  screen, and by `esf_peg` ascending for the PEG screen. A host opens a preset with
+  `sort: screen.sort ?? EMPTY_SCREEN.sort`, as web's ScreenerBody does. New `hasKnownFields(index,
+{filters, columns})` says whether a catalogue knows every field a screen filters on or shows;
+  the `esf_*` fields exist only on the backend's `dev` catalogue, and a host that lists presets
+  should hide the ones its loaded catalogue cannot answer (web does not yet; `pruneScreen` would
+  otherwise drop every filter and open the whole market as matches). The row closes with web
+  dev's three options-regime screens (`regime-leaning-up`, `regime-leaning-down`,
+  `regime-rangebound-melting`, RegimePulse 48a081d5) on the `regime_*` fields, which likewise exist
+  only on the backend's `dev` catalogue; they carry no sort. `pruneScreen` now also checks the
+  sort: a key the catalogue does not serve (other than `name`) falls back to `EMPTY_SCREEN.sort`,
+  so a link from a richer catalogue cannot leave a dead sort behind.
 - **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena
   script ("C") strategies (backend feat/athena-integration), whose `budget_config` is the engine's
   `{val, type, allocate}` with no `mode`, and which carry no `fsm`; `deriveStrategyCards` threw on

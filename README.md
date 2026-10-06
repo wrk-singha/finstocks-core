@@ -151,6 +151,17 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   c338cfa2; level with spot it keeps its own name) and `nearestWall`/`nearestWallText`
   ("put −0.4%"). `format/date` gains web's `formatExpiryDate` ("8 Oct 26", en-IN in IST, empty
   when unreadable).
+  The options regime scanner (web dev 2226a1e1, `RegimeScanner.tsx` and the shared
+  `ScannerTable`, 0b090599): `marketApi.getRegimeDates()` (`GET /market/regimepulse/dates`, the
+  stored trading days newest first, as backend-go `handlers/regimepulse/live.go` on dev serves
+  them) with `RegimeDates` and `queryKeys.regimePulse.dates()`. `market/regimeScanner` holds what
+  web works out around the table: `filterRegimeRows` (web's search — symbol, regime id, label or
+  short label, trimmed and case-blind — under the multi-select regime filter),
+  `REGIME_SORT_KEYS`/`RegimeSortKey` (the table's sortable columns), `REGIME_DEFAULT_SORT`
+  (`zBias`), `regimeSortStartsDescending` (figures high-first, text A–Z) and `sortRegimeRows`
+  (ties by symbol either way, a missing figure last; a code-point tie-break where web calls
+  `localeCompare`), and `regimeScannerStatus` (`replay` / `live` with the engine's cycle /
+  `lastSession` at the newest reading / `closed`), for each app to word.
 - **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
   backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,

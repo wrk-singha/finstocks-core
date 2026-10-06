@@ -539,6 +539,8 @@ test('the options regime reads: a missing date asks for the newest day', async (
   await api.getRegimeSnapshot();
   await api.getRegimeSnapshot('2026-10-06');
   await api.getRegimeSentiment();
+  await api.getRegimeSentiment('2026-10-01');
+  await api.getRegimeDates();
   await api.getRegimeDetail('NIFTY');
   await api.getRegimeDetail('M&M', '2026-10-06');
   await api.getRegimeMe();
@@ -549,6 +551,8 @@ test('the options regime reads: a missing date asks for the newest day', async (
       '/market/regimepulse/snapshot',
       '/market/regimepulse/snapshot?date=2026-10-06',
       '/market/regimepulse/sentiment',
+      '/market/regimepulse/sentiment?date=2026-10-01',
+      '/market/regimepulse/dates',
       '/market/regimepulse/detail?symbol=NIFTY',
       '/market/regimepulse/detail?symbol=M%26M&date=2026-10-06',
       '/market/regimepulse/me',

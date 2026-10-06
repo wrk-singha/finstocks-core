@@ -422,6 +422,8 @@ export const queryKeys = {
       symbol,
       date ?? 'latest',
     ],
+    /** ["regimepulse", "dates"] — the stored trading days a scanner replays */
+    dates: () => ['regimepulse', 'dates'],
     /** ["regimepulse", "me"] */
     me: () => ['regimepulse', 'me'],
     /** ["regimepulse", "symbols"] */

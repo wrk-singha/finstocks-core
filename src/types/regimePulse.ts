@@ -88,6 +88,11 @@ export interface RegimeSentiment {
   rows: RegimeSentimentRow[];
 }
 
+/** The trading days the engine has stored, newest first; `[]` before it has stored any. */
+export interface RegimeDates {
+  dates: string[];
+}
+
 export interface RegimeDetailMeta {
   symbol: string;
   date: string;

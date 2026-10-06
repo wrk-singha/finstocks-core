@@ -73,6 +73,8 @@ import type {
 } from '../types/relatedParty.ts';
 import type {
   ExpiryRank,
+  FlyoneDetail,
+  FlyoneDetailParams,
   FlyoneScreen,
   FlyoneScreenParams,
   FlyoneSnapshot,
@@ -729,6 +731,16 @@ export const marketApi = (http: HttpClient) => ({
             ? undefined
             : symbols.join(','),
       })}`,
+    ),
+
+  /**
+   * One chain's reading in full (backend `dev`, handlers/flyone/live.go): the latest row, the
+   * session's minutes, each wing width's vote and the curves the detail charts draw. `expiry` is
+   * `near`, `next` or an exact expiry; the latest stored day answers without a `date`.
+   */
+  getFlyoneDetail: (symbol: string, {expiry, date}: FlyoneDetailParams = {}) =>
+    http.request<FlyoneDetail>(
+      `/market/flyone/detail${query({symbol, expiry, date})}`,
     ),
 
   getScreenerStocks: (filters?: ScreenerStocksQuery) =>

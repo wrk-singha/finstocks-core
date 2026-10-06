@@ -88,3 +88,27 @@ test('the option levels key by expiry rank and screen request as web does', () =
     params,
   ]);
 });
+
+test('an options direction detail keys by symbol, expiry as asked and day, as web does', () => {
+  assert.deepEqual(queryKeys.flyone.detail('NIFTY'), [
+    'flyone',
+    'detail',
+    'NIFTY',
+    'near',
+    'latest',
+  ]);
+  assert.deepEqual(queryKeys.flyone.detail('NIFTY', '2026-10-13'), [
+    'flyone',
+    'detail',
+    'NIFTY',
+    '2026-10-13',
+    'latest',
+  ]);
+  assert.deepEqual(queryKeys.flyone.detail('RELIANCE', 'next', '2026-10-06'), [
+    'flyone',
+    'detail',
+    'RELIANCE',
+    'next',
+    '2026-10-06',
+  ]);
+});

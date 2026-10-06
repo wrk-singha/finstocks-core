@@ -56,3 +56,76 @@ test('the baskets are read as cards, one basket by its slug, and a backtest by i
     ],
   );
 });
+
+test('a subscription is one POST to the basket by its slug, with the mode, the capital and the live consent as given', async () => {
+  const {http, calls} = fakeHttp([{id: 7, mode: 'live'}]);
+  const api = esfApi(http);
+  assert.deepEqual(
+    await api.subscribe('trending value/2026', {
+      mode: 'live',
+      capital: 500000,
+      confirm_live: true,
+    }),
+    {id: 7, mode: 'live'},
+  );
+  assert.deepEqual(
+    calls.map(call => [call.path, call.init]),
+    [
+      [
+        '/esf/baskets/trending%20value%2F2026/subscriptions',
+        {
+          method: 'POST',
+          body: {mode: 'live', capital: 500000, confirm_live: true},
+        },
+      ],
+    ],
+  );
+});
+
+test('a paper subscription carries confirm_live false, as the caller set it, and nothing else', async () => {
+  const {http, last} = fakeHttp([{}]);
+  await esfApi(http).subscribe('momentum', {
+    mode: 'mock',
+    capital: 70000,
+    confirm_live: false,
+  });
+  assert.deepEqual(last().init?.body, {
+    mode: 'mock',
+    capital: 70000,
+    confirm_live: false,
+  });
+});
+
+test('pause, resume and cancel are each one PATCH to the subscription by id with the status alone', async () => {
+  const {http, calls} = fakeHttp([{}, {}, {}]);
+  const api = esfApi(http);
+  await api.setSubscriptionStatus(7, 'paused');
+  await api.setSubscriptionStatus(7, 'active');
+  await api.setSubscriptionStatus(7, 'cancelled');
+  assert.deepEqual(
+    calls.map(call => [call.path, call.init]),
+    [
+      ['/esf/subscriptions/7', {method: 'PATCH', body: {status: 'paused'}}],
+      ['/esf/subscriptions/7', {method: 'PATCH', body: {status: 'active'}}],
+      ['/esf/subscriptions/7', {method: 'PATCH', body: {status: 'cancelled'}}],
+    ],
+  );
+});
+
+test('a refused subscribe is rethrown as it came, so the caller can read its status and text', async () => {
+  const refused = Object.assign(
+    new Error('You already subscribe to this basket'),
+    {
+      status: 409,
+    },
+  );
+  const api = esfApi({request: () => Promise.reject(refused)});
+  await assert.rejects(
+    api.subscribe('momentum', {
+      mode: 'mock',
+      capital: 70000,
+      confirm_live: false,
+    }),
+    refused,
+  );
+});

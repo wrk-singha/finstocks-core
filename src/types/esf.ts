@@ -150,10 +150,11 @@ export type EsfMode = 'mock' | 'live';
 export type EsfSubscriptionStatus = 'active' | 'paused' | 'cancelled';
 
 /**
- * The caller's investment in a basket, as the detail route returns it. Read-only here: the
- * subscribe and status routes are not in this package yet.
+ * A subscription as the ledger holds it: what `PATCH /esf/subscriptions/{id}` answers with, and the
+ * part of the detail view that is not worked out from prices. `live_trading_enabled` lives on the
+ * basket, not here.
  */
-export interface EsfSubscription {
+export interface EsfSubscriptionRecord {
   id: number;
   mode: EsfMode;
   capital: number;
@@ -161,6 +162,15 @@ export interface EsfSubscription {
   status: EsfSubscriptionStatus;
   rebalance_id: number | null;
   created_at: string;
+}
+
+/**
+ * The caller's investment in a basket, as `GET /esf/baskets/{slug}` and the subscribe route return
+ * it: the record plus what it is worth now and what it has done. Once it exists the backend trades
+ * it at every review without asking again; pausing or cancelling (`EsfSubscriptionStatus`) is the
+ * only way to stop that from a client.
+ */
+export interface EsfSubscription extends EsfSubscriptionRecord {
   invested: number;
   market_value: number;
   cash: number;
@@ -229,4 +239,21 @@ export interface EsfBasketDetail extends EsfBasketBase {
 
 export interface EsfBasketsResponse {
   baskets: EsfBasketCard[];
+}
+
+/**
+ * `POST /esf/baskets/{slug}/subscriptions`. One subscription per user per basket across both
+ * modes: a second answers 409. `confirm_live` is the user's consent to real orders with no further
+ * prompt, and the backend refuses a live subscription without it (400); a client sets it only from
+ * the gesture that confirmed a live subscription, never from a default.
+ */
+export interface EsfSubscribeRequest {
+  mode: EsfMode;
+  capital: number;
+  confirm_live: boolean;
+}
+
+/** `PATCH /esf/subscriptions/{id}`: `paused` holds new orders, `active` resumes, `cancelled` ends it. */
+export interface EsfSubscriptionStatusRequest {
+  status: EsfSubscriptionStatus;
 }

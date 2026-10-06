@@ -170,6 +170,11 @@ export type {
 } from './basketBacktest.ts';
 export {basketCharges} from './basketCharges.ts';
 export type {BasketCharges} from './basketCharges.ts';
+export {esfSubscribeRefusal} from './basketSubscribe.ts';
+export type {
+  EsfSubscribeRefusal,
+  EsfSubscribeRefusalKind,
+} from './basketSubscribe.ts';
 export {
   awaitingFirstOrders,
   basketHeadline,

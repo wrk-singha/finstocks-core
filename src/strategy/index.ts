@@ -130,7 +130,11 @@ export {
   termsToConfig,
 } from './strategySetupConfig.ts';
 export type {SetupConfig, SetupTerms} from './strategySetupConfig.ts';
-export {sourceLogTimeline, strategyCardSource} from './sourceStrategies.ts';
+export {
+  sourceLogTimeline,
+  splitSharedIds,
+  strategyCardSource,
+} from './sourceStrategies.ts';
 export type {StrategySnapshot} from './sourceStrategies.ts';
 export {buildBacktestAgainQuery, buildDeployQuery} from './strategyQuery.ts';
 export {

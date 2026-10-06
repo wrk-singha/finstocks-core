@@ -67,6 +67,12 @@ export interface BacktestSetupTerms {
   script?: string;
   script_hash?: string;
   /**
+   * llm's signature of a C card's code for this user, sent with the code as the card carries it:
+   * Athena may refuse code without one ("this code was not built for this user"). Never made or
+   * checked here.
+   */
+  script_sig?: string;
+  /**
    * "evaluate_v2" marks a C strategy card: its rules ARE its code, and it runs only through
    * `strategy-action`, never through create-backtest (which would deploy a different rule, or
    * nothing).

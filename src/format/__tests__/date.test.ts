@@ -28,6 +28,7 @@ import {
   parseApiDate,
   parseTimestamp,
 } from '../date.ts';
+import {formatTradeTime} from '../../portfolio/portfolio.ts';
 
 // 9 Aug 2026 09:05 IST is 03:35 UTC. Every instant below is built in UTC so the assertions hold
 // under any machine timezone.
@@ -111,6 +112,39 @@ test('istDateTimeParts splits an IST stamp and blanks midnight', () => {
   assert.equal(istDateTimeParts(''), null);
   assert.equal(istDateTimeParts('garbage'), null);
   assert.equal(istDateTimeParts(undefined), null);
+});
+
+// Hermes on iOS formats "7 Oct at 11:05 AM" for a format that asks for both a date and a clock,
+// and types the hour, minute and AM/PM as plain literals. Emulated here on V8, whose own parts
+// are labelled, so a stamp read from one combined format would lose its time.
+test('a date-and-time stamp keeps its clock where the engine leaves a combined clock unlabelled', () => {
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- only ever called with .call(this), and put back below.
+  const original = Intl.DateTimeFormat.prototype.formatToParts;
+  Intl.DateTimeFormat.prototype.formatToParts = function (
+    this: Intl.DateTimeFormat,
+    date?: Date | number,
+  ) {
+    const parts = original.call(this, date);
+    const options = this.resolvedOptions();
+    if (options.month === undefined || options.hour === undefined) return parts;
+    return parts.map(part =>
+      part.type === 'hour' ||
+      part.type === 'minute' ||
+      part.type === 'dayPeriod'
+        ? {type: 'literal' as const, value: part.value}
+        : part,
+    );
+  };
+  try {
+    assert.deepEqual(istDateTimeParts('2026-08-09T03:35:00Z'), {
+      date: 'Aug 9',
+      time: '9:05 AM',
+    });
+    assert.equal(formatShortDateTime('2026-08-09T03:35:00Z'), 'Aug 9 9:05 AM');
+    assert.equal(formatTradeTime('2026-08-31T04:30:00Z'), 'Aug 31 10:00 AM');
+  } finally {
+    Intl.DateTimeFormat.prototype.formatToParts = original;
+  }
 });
 
 test('formatShortDateTime is the IST freshness stamp without a fabricated midnight', () => {

@@ -105,14 +105,14 @@ const shortDateTimeLocalFormatter = new Intl.DateTimeFormat('en-US', {
   minute: '2-digit',
 });
 
-const istDateTime = cachedBy(
+// The date only: Hermes on iOS types a combined date-and-time format's clock as plain literals
+// ("7 Oct at 11:05 AM" gives no hour, minute or dayPeriod part), so the clock is read from
+// istClockFormatter on its own, which every engine labels.
+const istMonthDay = cachedBy(
   (padDay: boolean) =>
     new Intl.DateTimeFormat('en-IN', {
       month: 'short',
       day: padDay ? '2-digit' : 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
       timeZone: IST,
     }),
 );
@@ -279,13 +279,14 @@ export function istDateTimeParts(
       ? new Date(dateString > 1_000_000_000 ? dateString * 1000 : dateString)
       : parseTimestamp(dateString);
   if (!d || Number.isNaN(d.getTime())) return null;
-  const get = partsOf(istDateTime(padDay), d);
-  const hour = get('hour');
-  const minute = get('minute');
-  const meridiem = get('dayPeriod').toUpperCase();
+  const date = partsOf(istMonthDay(padDay), d);
+  const clock = partsOf(istClockFormatter, d);
+  const hour = clock('hour');
+  const minute = clock('minute');
+  const meridiem = clock('dayPeriod').toUpperCase();
   const isMidnight = hour === '12' && minute === '00' && meridiem === 'AM';
   return {
-    date: `${get('month')} ${get('day')}`,
+    date: `${date('month')} ${date('day')}`,
     time: isMidnight ? '' : `${hour}:${minute} ${meridiem}`,
   };
 }

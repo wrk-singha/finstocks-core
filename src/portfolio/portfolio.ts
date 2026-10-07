@@ -316,23 +316,29 @@ export const getPnlBasisLabel = (hasSold: boolean): string =>
 
 // Hoisted: these run per trade row, and each `new Intl.*` rebuilds an ICU formatter (a JNI hop
 // into ICU4J on Android). `padDay` flips one option, so key the cache on it.
-const istDateTimeFormatters = new Map<boolean, Intl.DateTimeFormat>();
+const istMonthDayFormatters = new Map<boolean, Intl.DateTimeFormat>();
 
-function istDateTime(padDay: boolean): Intl.DateTimeFormat {
-  let formatter = istDateTimeFormatters.get(padDay);
+// The date and the clock come from two formatters: Hermes on iOS types a combined
+// date-and-time format's clock as plain literals, so its hour, minute and AM/PM read empty.
+function istMonthDay(padDay: boolean): Intl.DateTimeFormat {
+  let formatter = istMonthDayFormatters.get(padDay);
   if (!formatter) {
     formatter = new Intl.DateTimeFormat('en-IN', {
       month: 'short',
       day: padDay ? '2-digit' : 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
       timeZone: IST,
     });
-    istDateTimeFormatters.set(padDay, formatter);
+    istMonthDayFormatters.set(padDay, formatter);
   }
   return formatter;
 }
+
+const istClock = new Intl.DateTimeFormat('en-IN', {
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+  timeZone: IST,
+});
 
 // IST "MMM D h:mm AM/PM" for a trade leg. Unlike the freshness stamps in the apps' general
 // formatter, midnight is printed rather than blanked: a trade leg always carries a real
@@ -345,9 +351,10 @@ function istDateTimeParts(
   if (!dateString) return null;
   const d = parseApiDate(dateString);
   if (!d) return null;
-  const parts = istDateTime(padDay).formatToParts(d);
+  const dateParts = istMonthDay(padDay).formatToParts(d);
+  const clockParts = istClock.formatToParts(d);
   const get = (type: string): string =>
-    parts.find(p => p.type === type)?.value ?? '';
+    [...dateParts, ...clockParts].find(p => p.type === type)?.value ?? '';
   return {
     date: `${get('month')} ${get('day')}`,
     time: `${get('hour')}:${get('minute')} ${get('dayPeriod').toUpperCase()}`,

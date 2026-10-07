@@ -63,6 +63,12 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.3** — an IST date-and-time stamp keeps its clock on iOS. Hermes on iOS formats a format
+  that asks for both a date and a clock as "7 Oct at 11:05 AM" and types the hour, minute and AM/PM
+  as plain literals, so `istDateTimeParts` (and with it `formatShortDateTime`,
+  `formatTradeTimeShort` and the strategy log stamps) and portfolio's `formatTradeTime` read an
+  empty clock and printed "Oct 7 :". Both now read the date and the clock from two formatters,
+  which every engine labels. Output on V8 and Android is unchanged.
 - **v0.8.2** — strategy rows without a sizing mode; additive. is-alive now also lists Athena
   script ("C") strategies (backend feat/athena-integration), whose `budget_config` is the engine's
   `{val, type, allocate}` with no `mode`, and which carry no `fsm`; `deriveStrategyCards` threw on

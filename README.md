@@ -63,6 +63,26 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **Unreleased** — main's v0.8.5 (tagged on main), less the screener moves this branch already has
+  (`bff22bc`): the 401s that keep a session, dividends keyed without an id, and a VWAP of 0 as
+  N/A. One breaking type change: `GetDividendsResponse` drops `id`, `fetched_at` and `created_at`.
+  `RequestInit` gains `ownUnauthorized`, the words of a 401 the route answers itself:
+  `userApi.updatePassword` sends `OLD_PASSWORD_INCORRECT` ("Old password is incorrect", backend-go
+  `handlers/user/updatepassword.go`), so a wrong old password is the form's error rather than a
+  sign-out (main 132eed7c revokes tokens on a password change). `RequestInit` also gains
+  `forwardsUnauthorized`, for a route that answers with another service's status:
+  `tradingApi.buyStock` and `sellStock` (the trade manager's, `forwardTrade`) and
+  `chatApi.startVoiceSession` (the voice service's). On such a route only a 401 in the auth
+  middleware's words (`SESSION_UNAUTHORIZED`, `internal/middleware/auth.go`) ends the session.
+  `endsSession(message, init)` is the rule a host applies; a route that declares neither field
+  fails closed, any 401 ending the session. Neither backend sends a dividend id: main's
+  `dividendEventsQuery` (`internal/repository/news/queries.go`, since f388c12) selects no `id`,
+  `fetched_at` or `created_at`, and dev's Doom `DividendEvent` has none either, so every row keyed by
+  its id read `div-undefined-…` in production. `GetDividendsResponse` drops the three fields, and
+  `market/dividendKey(row)` keys a dividend by its stock, ex-date (the announcement date before one
+  is set), type and amount, as web 66d641c3 does; `buildCorporateActions` keys its dividend rows by
+  it. The VWAP row of `data/indicatorsConfig` reads 0 as N/A: backend-go `dev` does not ask Doom for
+  VWAP on 1d or 1w and answers the missing figure as 0.
 - **Unreleased** — the C strategy cards' run (web `feat/athena-integration` 0bc7e131); additive
   only. A chat plan card whose `terms.script_entry` is `"evaluate_v2"` with a `script` and
   `script_hash` is a C strategy card: its rules are its code, and it runs only through the

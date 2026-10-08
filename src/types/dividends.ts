@@ -7,7 +7,8 @@ export interface GetDividendsParams {
 }
 
 export interface GetDividendsResponse {
-  id: number;
+  /** Backend-go main sends it; dev's Doom feed does not. Key rows with `dividendKey`, never this. */
+  id?: number;
   stock_symbol: string;
   stock_name: string | null;
   dividend_type: string | null;
@@ -20,6 +21,7 @@ export interface GetDividendsResponse {
   announcement_title: string | null;
   announcement_link: string | null;
   announcement_summary: string | null;
-  fetched_at: string;
-  created_at: string;
+  /** Main only, as `id`. */
+  fetched_at?: string;
+  created_at?: string;
 }

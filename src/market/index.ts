@@ -126,6 +126,7 @@ export {
   buildExchangeFilings,
   CAPITAL_FAMILIES,
   capitalActionsByYear,
+  dividendKey,
   eventTime,
   familyOf,
   filingKind,

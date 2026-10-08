@@ -1,4 +1,4 @@
-export {query} from './http.ts';
+export {endsSession, query, SESSION_UNAUTHORIZED} from './http.ts';
 export type {HttpClient, HttpMethod, RequestInit} from './http.ts';
 export {
   SYMBOL_BATCH_SIZE,

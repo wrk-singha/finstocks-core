@@ -22,8 +22,46 @@ export type RequestInit = {
    * it. Any other 401 from the route, such as the auth middleware's, still ends the session.
    */
   readonly ownUnauthorized?: string;
+  /**
+   * The route can answer with another service's status, a 401 included: backend-go forwards the
+   * trade manager's answer for /trading/buy and /trading/sell (`handlers/trading/manual.go`
+   * `forwardTrade`) and the voice service's status for /voice/session (`voice_session.go`). Only a
+   * 401 in the auth middleware's own words (`SESSION_UNAUTHORIZED`) ends the session; any other is
+   * that request's error.
+   */
+  readonly forwardsUnauthorized?: boolean;
   readonly signal?: AbortSignal;
 };
+
+/**
+ * The words backend-go's auth middleware refuses a token with (`internal/middleware/auth.go`
+ * `TokenRequired`), each a 401: the only answers that say the session itself is dead.
+ */
+export const SESSION_UNAUTHORIZED: readonly string[] = [
+  'Token is missing!',
+  'Invalid token signature',
+  'Invalid token',
+  'User not found',
+  'Session expired, please log in again',
+];
+
+/**
+ * Whether a token-bearing 401 whose error body reads `message` ends the session, by the rule its
+ * route declares. A route that declares none fails closed: every 401 ends the session.
+ */
+export function endsSession(
+  message: string,
+  init?: {
+    readonly ownUnauthorized?: string | undefined;
+    readonly forwardsUnauthorized?: boolean | undefined;
+  },
+): boolean {
+  if (init?.ownUnauthorized !== undefined && message === init.ownUnauthorized)
+    return false;
+  if (init?.forwardsUnauthorized === true)
+    return SESSION_UNAUTHORIZED.includes(message);
+  return true;
+}
 
 export type HttpClient = {
   request<T>(path: string, init?: RequestInit): Promise<T>;

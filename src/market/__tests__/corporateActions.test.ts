@@ -27,10 +27,8 @@ import {
 const REG_30 = 'Announcement under Regulation 30 (LODR)-';
 
 const dividend = (
-  id: number,
   fields: Partial<GetDividendsResponse> = {},
 ): GetDividendsResponse => ({
-  id,
   stock_symbol: 'RELIANCE',
   stock_name: null,
   dividend_type: 'Final',
@@ -43,8 +41,6 @@ const dividend = (
   announcement_title: null,
   announcement_link: null,
   announcement_summary: null,
-  fetched_at: '',
-  created_at: '',
   ...fields,
 });
 
@@ -165,7 +161,7 @@ test('two dividends on one ex-date both survive, and each stage is a row', () =>
   const actions = buildCorporateActions({
     symbols: ['RELIANCE'],
     dividends: [
-      dividend(2, {
+      dividend({
         dividend_type: 'Interim',
         dividend_amount: 5.5,
         ex_date: '2026-01-16',
@@ -175,7 +171,7 @@ test('two dividends on one ex-date both survive, and each stage is a row', () =>
         announcement_summary: 'Interim dividend of ₹5.50 per share',
         announcement_link: 'https://example.com/interim',
       }),
-      dividend(3, {
+      dividend({
         dividend_type: 'Special',
         dividend_amount: 3,
         ex_date: '2026-01-16',
@@ -206,9 +202,9 @@ test('two dividends on one ex-date both survive, and each stage is a row', () =>
   });
 });
 
-test("a dividend row is keyed by what it is, with backend main's id or without it", () => {
-  // Backend-go dev's Doom feed (marketdata/dividends.go DividendEvent) sends no id, fetched_at or
-  // created_at; main's still does. Web 66d641c3 keys the rows by stock, ex-date, type and amount.
+test('a dividend row is keyed by what it is, as neither backend sends it an id', () => {
+  // Backend-go main's dividendEventsQuery and dev's Doom DividendEvent both leave out id,
+  // fetched_at and created_at. Web 66d641c3 keys the rows by stock, ex-date, type and amount.
   const fromDoom: GetDividendsResponse = {
     stock_symbol: 'tcs',
     stock_name: null,
@@ -231,7 +227,9 @@ test("a dividend row is keyed by what it is, with backend main's id or without i
     'div-TCS-2026-07-17-Interim-11-pay',
     'div-TCS-2026-07-17-Interim-11-ex',
   ]);
-  assert.deepEqual(keys([{...fromDoom, id: 7}]), keys([fromDoom]));
+  // @ts-expect-error -- the wire carries no id, so neither does the type.
+  const withId: GetDividendsResponse = {...fromDoom, id: 7};
+  assert.deepEqual(keys([withId]), keys([fromDoom]));
   assert.equal(dividendKey(fromDoom), 'div-TCS-2026-07-17-Interim-11');
   // Before an ex-date is set, the announcement dates the row.
   assert.equal(
@@ -291,7 +289,7 @@ test('the richest feed wins a day, and the archive names the stage it dates', ()
   ];
   const actions = buildCorporateActions({
     symbols: ['reliance'],
-    dividends: [dividend(1, {ex_date: '2026-08-14'})],
+    dividends: [dividend({ex_date: '2026-08-14'})],
     events: [
       event('bonus', '2024-10-28', {label: 'Bonus', ratio1: 1, ratio2: 1}),
     ],
@@ -396,8 +394,8 @@ test('a list of several stocks reads only the feeds that name them, each row lab
   const actions = buildCorporateActions({
     symbols: ['RELIANCE', 'TCS'],
     dividends: [
-      dividend(1, {ex_date: '2026-08-14'}),
-      dividend(2, {stock_symbol: 'INFY', ex_date: '2026-08-15'}),
+      dividend({ex_date: '2026-08-14'}),
+      dividend({stock_symbol: 'INFY', ex_date: '2026-08-15'}),
     ],
     events: [
       event('results', '2026-07-09', {symbol: 'TCS', label: 'Results'}),
@@ -438,7 +436,7 @@ test('a day and kind the feed repeats keeps each row under its own key', () => {
 test('rows are ordered newest first across the feeds, whatever shape their dates take', () => {
   const actions = buildCorporateActions({
     symbols: ['RELIANCE'],
-    dividends: [dividend(1, {ex_date: '2026-08-14'})],
+    dividends: [dividend({ex_date: '2026-08-14'})],
     events: [event('results', '2026-08-14 18:00:00', {label: 'Results'})],
     history: [{corp_action: 'AGM', sdate: '2026-08-29'}],
     filings: [
@@ -491,7 +489,7 @@ test('the filing archive leaves out what the calendar already holds', () => {
   const actions = buildCorporateActions({
     symbols: ['RELIANCE'],
     dividends: [
-      dividend(1, {
+      dividend({
         ex_date: '2026-08-14',
         announcement_date: '2026-07-20',
         announcement_title: 'Board recommends final dividend',
@@ -562,7 +560,7 @@ test('the filing archive leaves out what the calendar already holds', () => {
 test('each year of share capital names the capital actions filed inside it', () => {
   const actions = buildCorporateActions({
     symbols: ['RELIANCE'],
-    dividends: [dividend(1, {ex_date: '2024-08-14'})],
+    dividends: [dividend({ex_date: '2024-08-14'})],
     events: [
       event('bonus', '2024-10-28', {label: 'Bonus', ratio1: 1, ratio2: 1}),
       event('results', '2024-10-14', {label: 'Results'}),

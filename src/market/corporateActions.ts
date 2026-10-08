@@ -217,9 +217,9 @@ const entryOf = ({
 
 /**
  * A dividend row's identity: its stock, ex-date (the announcement date before one is set), type and
- * amount, as web keys it (66d641c3). Backend-go dev's Doom feed sends no `id`
- * (`marketdata/dividends.go` `DividendEvent`) where main's does, so a key built from the id read
- * "undefined" for every row on dev; this one is the same on both.
+ * amount, as web keys it (66d641c3). Neither backend sends a dividend id (main's
+ * `dividendEventsQuery`, dev's Doom `DividendEvent`), so a key built from one read "undefined" for
+ * every row.
  */
 export const dividendKey = (dividend: GetDividendsResponse): string =>
   [

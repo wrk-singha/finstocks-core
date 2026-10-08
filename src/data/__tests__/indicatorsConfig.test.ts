@@ -124,3 +124,18 @@ test('the rule picker and the screener catalog pick them up without a second lis
     ],
   );
 });
+
+test('a VWAP of 0 reads N/A, never ₹0.00', () => {
+  const vwap = indicatorSections
+    .flatMap(s => s.fields)
+    .find(field => field.key === 'vwap');
+  // Backend-go answers a missing figure as 0, and VWAP is a session's figure that Doom is not asked
+  // for on 1d or 1w (indicators/doom.go intradayOnly), so a daily row carries "vwap": 0.
+  assert.equal(vwap?.getValue({stock_symbol: 'TCS', vwap: 0}), 'N/A');
+  assert.equal(vwap?.getValue({stock_symbol: 'TCS', vwap: null}), 'N/A');
+  assert.equal(vwap?.getValue({stock_symbol: 'TCS'}), 'N/A');
+  assert.equal(
+    vwap?.getValue({stock_symbol: 'TCS', vwap: 2451.5}),
+    '₹2,451.50',
+  );
+});

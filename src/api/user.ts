@@ -9,6 +9,13 @@ import type {HttpClient} from './http.ts';
 
 export type PushPlatform = 'ios' | 'android';
 
+/**
+ * update-password's own 401 (backend-go `handlers/user/updatepassword.go`): the old password sent is
+ * wrong, a form error rather than a dead session. A success revokes every token minted before it
+ * (backend-go 132eed7c binds a token to the password hash), this device's included.
+ */
+export const OLD_PASSWORD_INCORRECT = 'Old password is incorrect';
+
 export const userApi = (http: HttpClient) => ({
   getUserProfile: () => http.request<UserProfileResponse>('/user-profile'),
 
@@ -16,6 +23,7 @@ export const userApi = (http: HttpClient) => ({
     http.request<{success: boolean}>('/update-password', {
       method: 'POST',
       body: data,
+      ownUnauthorized: OLD_PASSWORD_INCORRECT,
     }),
 
   setService: (data: setServiceRequest) =>

@@ -16,6 +16,12 @@ export type RequestInit = {
   readonly idempotencyKey?: string;
   /** Never attach the bearer (pre-login endpoints such as login and waitlist). */
   readonly anonymous?: boolean;
+  /**
+   * The words of a 401 the route answers itself, as its error body's `error` reads them: a refusal
+   * of what was sent (a wrong old password), not a dead session, so the host keeps the session for
+   * it. Any other 401 from the route, such as the auth middleware's, still ends the session.
+   */
+  readonly ownUnauthorized?: string;
   readonly signal?: AbortSignal;
 };
 

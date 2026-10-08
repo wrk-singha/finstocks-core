@@ -315,7 +315,10 @@ const coreIndicatorSections: IndicatorSection[] = [
       {
         label: 'VWAP',
         key: 'vwap',
-        getValue: data => price(data.vwap),
+        // A session's figure: backend-go does not ask Doom for it on 1d or 1w and answers the
+        // missing value as 0 (indicators/doom.go intradayOnly, news/gettechnicals.go). No traded
+        // stock has a VWAP of 0, so 0 is read as missing.
+        getValue: data => price(data.vwap === 0 ? null : data.vwap),
         description: 'Volume Weighted Average Price',
       },
     ],

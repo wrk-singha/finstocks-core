@@ -225,7 +225,8 @@ before, width?)` (the picked width, else the middle one; both curves area-normal
   `buildBacktestAgainQuery(strategy)` ("Run again": `Backtest this exact strategy:
 <original_query>`, then the symbol, timeframe or intraday, take profit, stop loss and prose
   exits the row carries, and no size).
-- **v0.8.5** — the depth reading; additive only. `MarketDepth` gains what the backend's
+- **Unreleased** (was planned here as v0.8.5; main's v0.8.5 is another release) — the depth
+  reading; additive only. `MarketDepth` gains what the backend's
   `handlers/market/depth.go` (dev) serves beside the ladder: `interpretation` (the quant's Depth
   IEP reading, `DepthInterpretation`, field names the script's own), `interpretationError` (why a
   book was refused one), `session` (`MarketSession`: `preopen` / `open` / `closed`, which part of
@@ -342,7 +343,8 @@ before, width?)` (the picked width, else the middle one; both curves area-normal
   `DIRECTION_DEFAULT_SORT` (`score`), `directionSortStartsDescending` and `sortDirectionRows`, and
   `directionScannerStatus` (the regime scanner's four states, the last session carrying its day
   as web's direction status prints it).
-- **v0.8.4** — the rule-based baskets, read-only; additive only. `esfApi.getBaskets()`
+- **Unreleased** (was planned here as v0.8.4; main's v0.8.4 is another release) — the rule-based
+  baskets, read-only; additive only. `esfApi.getBaskets()`
   (`GET /esf/baskets`), `getBasket(slug)` and `getBacktest(slug, id)` with the wire types as the
   backend's `handlers/esf/baskets.go` serves them (`EsfBasketCard`, `EsfBasketDetail`,
   `EsfBacktestDetail` and their parts, nullable where the Go struct is a pointer), and
@@ -385,7 +387,8 @@ before, width?)` (the picked width, else the middle one; both curves area-normal
   `confirm_live`) with the backend's text, 401/403/404/429 `refused`; null for a timeout, the
   network or a 5xx, where the subscription may exist. `esfSubscriptionTouches(slug)` lists what
   such a write invalidates, as web does: the basket's detail and the cards.
-- **v0.8.3** — the screener's ESF prebuilt screens; additive only. `PrebuiltScreen` gains an
+- **Unreleased** (was planned here as v0.8.3; main's v0.8.3, below, is another release) — the
+  screener's ESF prebuilt screens; additive only. `PrebuiltScreen` gains an
   optional `sort` (`{key, dir}`), and `PREBUILT_SCREENS` opens with web's seven FinStocks Score
   screens (`esf-leaders`, `esf-growth-leaders`, `esf-big-money`, `esf-ready-to-rise`,
   `esf-fair-price`, `esf-graham`, `esf-strong-health`), each a single `esf_*` flag filter with the

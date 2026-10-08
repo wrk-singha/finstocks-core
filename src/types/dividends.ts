@@ -6,9 +6,13 @@ export interface GetDividendsParams {
   upcoming?: boolean;
 }
 
+/**
+ * One dividend as both backends send it: main's `dividendEventsQuery`
+ * (`internal/repository/news/queries.go`) and dev's Doom `DividendEvent`
+ * (`marketdata/dividends.go`). Neither sends an `id`, `fetched_at` or `created_at`; key a row with
+ * `dividendKey`.
+ */
 export interface GetDividendsResponse {
-  /** Backend-go main sends it; dev's Doom feed does not. Key rows with `dividendKey`, never this. */
-  id?: number;
   stock_symbol: string;
   stock_name: string | null;
   dividend_type: string | null;
@@ -21,7 +25,4 @@ export interface GetDividendsResponse {
   announcement_title: string | null;
   announcement_link: string | null;
   announcement_summary: string | null;
-  /** Main only, as `id`. */
-  fetched_at?: string;
-  created_at?: string;
 }

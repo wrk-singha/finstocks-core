@@ -109,7 +109,7 @@ export type {
 export {brokersApi} from './brokers.ts';
 export type {BrokersApi} from './brokers.ts';
 
-export {userApi} from './user.ts';
+export {OLD_PASSWORD_INCORRECT, userApi} from './user.ts';
 export type {PushPlatform, UserApi} from './user.ts';
 
 export {templatesApi} from './templates.ts';

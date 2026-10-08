@@ -15,6 +15,7 @@ import {
   buildCorporateActions,
   buildExchangeFilings,
   capitalActionsByYear,
+  dividendKey,
   eventTime,
   familyOf,
   filingKind,
@@ -185,16 +186,16 @@ test('two dividends on one ex-date both survive, and each stage is a row', () =>
   assert.deepEqual(
     actions.map(action => [action.key, action.title, action.subtitle]),
     [
-      ['div-2-pay', 'Interim', 'paymentDate'],
-      ['div-3-pay', 'Special', 'paymentDate'],
-      ['div-2-ex', 'Interim', 'exDate'],
-      ['div-3-ex', 'Special', 'exDate'],
-      ['div-2-ann', 'Interim', 'announced'],
+      ['div-RELIANCE-2026-01-16-Interim-5.5-pay', 'Interim', 'paymentDate'],
+      ['div-RELIANCE-2026-01-16-Special-3-pay', 'Special', 'paymentDate'],
+      ['div-RELIANCE-2026-01-16-Interim-5.5-ex', 'Interim', 'exDate'],
+      ['div-RELIANCE-2026-01-16-Special-3-ex', 'Special', 'exDate'],
+      ['div-RELIANCE-2026-01-16-Interim-5.5-ann', 'Interim', 'announced'],
     ],
   );
   assert.deepEqual(actions[0]?.value, {kind: 'perShare', amount: 5.5});
   assert.deepEqual(actions.at(-1), {
-    key: 'div-2-ann',
+    key: 'div-RELIANCE-2026-01-16-Interim-5.5-ann',
     date: '2026-01-05',
     family: 'dividend',
     title: 'Interim',
@@ -203,6 +204,53 @@ test('two dividends on one ex-date both survive, and each stage is a row', () =>
     value: {kind: 'perShare', amount: 5.5},
     href: 'https://example.com/interim',
   });
+});
+
+test("a dividend row is keyed by what it is, with backend main's id or without it", () => {
+  // Backend-go dev's Doom feed (marketdata/dividends.go DividendEvent) sends no id, fetched_at or
+  // created_at; main's still does. Web 66d641c3 keys the rows by stock, ex-date, type and amount.
+  const fromDoom: GetDividendsResponse = {
+    stock_symbol: 'tcs',
+    stock_name: null,
+    dividend_type: 'Interim',
+    dividend_amount: 11,
+    dividend_percentage: null,
+    record_date: null,
+    ex_date: '2026-07-17',
+    payment_date: '2026-08-05',
+    announcement_date: null,
+    announcement_title: null,
+    announcement_link: null,
+    announcement_summary: null,
+  };
+  const keys = (rows: readonly GetDividendsResponse[]) =>
+    buildCorporateActions({symbols: ['TCS'], dividends: rows}).map(
+      action => action.key,
+    );
+  assert.deepEqual(keys([fromDoom]), [
+    'div-TCS-2026-07-17-Interim-11-pay',
+    'div-TCS-2026-07-17-Interim-11-ex',
+  ]);
+  assert.deepEqual(keys([{...fromDoom, id: 7}]), keys([fromDoom]));
+  assert.equal(dividendKey(fromDoom), 'div-TCS-2026-07-17-Interim-11');
+  // Before an ex-date is set, the announcement dates the row.
+  assert.equal(
+    dividendKey({...fromDoom, ex_date: null, announcement_date: '2026-07-01'}),
+    'div-TCS-2026-07-01-Interim-11',
+  );
+  // Two id-less rows of one stock are told apart by what differs between them.
+  assert.deepEqual(
+    keys([
+      fromDoom,
+      {...fromDoom, dividend_type: 'Special', dividend_amount: 66},
+    ]),
+    [
+      'div-TCS-2026-07-17-Interim-11-pay',
+      'div-TCS-2026-07-17-Special-66-pay',
+      'div-TCS-2026-07-17-Interim-11-ex',
+      'div-TCS-2026-07-17-Special-66-ex',
+    ],
+  );
 });
 
 test('the richest feed wins a day, and the archive names the stage it dates', () => {
@@ -252,7 +300,7 @@ test('the richest feed wins a day, and the archive names the stage it dates', ()
   assert.deepEqual(
     actions.map(action => [action.key, action.title, action.subtitle]),
     [
-      ['div-1-ex', 'Final', 'exDate'],
+      ['div-RELIANCE-2026-08-14-Final-10-ex', 'Final', 'exDate'],
       ['corp-RELIANCE-bonus-2024-10-28', 'Bonus', 'bonus'],
       ['hist-3-2020-05-14', 'Rights Issue', 'rights'],
       ['hist-5-2018-06-01', 'Record Date', 'recordDate'],

@@ -215,6 +215,21 @@ const entryOf = ({
   ...(href == null ? {} : {href}),
 });
 
+/**
+ * A dividend row's identity: its stock, ex-date (the announcement date before one is set), type and
+ * amount, as web keys it (66d641c3). Backend-go dev's Doom feed sends no `id`
+ * (`marketdata/dividends.go` `DividendEvent`) where main's does, so a key built from the id read
+ * "undefined" for every row on dev; this one is the same on both.
+ */
+export const dividendKey = (dividend: GetDividendsResponse): string =>
+  [
+    'div',
+    (dividend.stock_symbol ?? '').toUpperCase(),
+    String(dividend.ex_date ?? dividend.announcement_date),
+    String(dividend.dividend_type),
+    String(dividend.dividend_amount),
+  ].join('-');
+
 export interface CorporateActionFeeds {
   symbols: readonly string[];
   dividends?: readonly GetDividendsResponse[] | null | undefined;
@@ -281,7 +296,7 @@ export function buildCorporateActions({
       const amount = dividend.dividend_amount;
       const value: ActionValue | undefined =
         amount == null ? undefined : {kind: 'perShare', amount};
-      const id = String(dividend.id);
+      const base = dividendKey(dividend);
 
       if (
         isValidDate(dividend.ex_date) &&
@@ -290,7 +305,7 @@ export function buildCorporateActions({
         push(
           symbol,
           entryOf({
-            key: `div-${id}-ex`,
+            key: `${base}-ex`,
             date: dividend.ex_date,
             family: 'dividend',
             title,
@@ -308,7 +323,7 @@ export function buildCorporateActions({
         push(
           symbol,
           entryOf({
-            key: `div-${id}-ann`,
+            key: `${base}-ann`,
             date: dividend.announcement_date,
             family: 'dividend',
             title,
@@ -326,7 +341,7 @@ export function buildCorporateActions({
         push(
           symbol,
           entryOf({
-            key: `div-${id}-pay`,
+            key: `${base}-pay`,
             date: dividend.payment_date,
             family: 'dividend',
             title,

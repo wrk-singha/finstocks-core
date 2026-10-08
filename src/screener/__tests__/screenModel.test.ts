@@ -325,6 +325,14 @@ test('a cell reads a missing figure as a dash, never 0, and each unit in its own
   assert.deepEqual(fieldValueParts(undefined, undefined), {kind: 'missing'});
 });
 
+test('a move reads to two decimals, any other percentage to one, and 100 or more to none', () => {
+  assert.equal(formatFieldValue(0.42, byId('return_1y')), '0.42%');
+  assert.equal(formatFieldValue(-3.456, byId('return_1y')), '-3.46%');
+  assert.equal(formatFieldValue(123.4, byId('return_1y')), '123%');
+  // Not a move: one decimal, as before.
+  assert.equal(formatFieldValue(-12.34, byId('roe')), '-12.3%');
+});
+
 test('headers carry the unit unless every cell already does, and moves carry a tone', () => {
   assert.equal(headerUnit(byId('market_cap')), '₹ Cr');
   assert.equal(headerUnit(byId('roe')), '');

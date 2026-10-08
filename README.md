@@ -63,8 +63,14 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
-- **Unreleased** — the C strategy cards' run (web `feat/athena-integration` 0bc7e131); additive
-  only. A chat plan card whose `terms.script_entry` is `"evaluate_v2"` with a `script` and
+- **v0.8.4** — Athena's strategy-action: the C strategy cards' run, their code signature and a
+  forked chat's shared strategies; additive only. Backend-go `main` merged Athena on 8 Oct
+  (`8f0cb404`): `POST /trading/strategy-action` is now the one way a strategy, a backtest or an
+  alert is made, and create-backtest, create-backtest-batch and update-fsm are gone. These are the
+  reviewed integration units (`2bcaeb3`, `504fcde`, `d397d98`), brought to the release line as
+  they are; nothing else from the integration branch comes with them.
+  The C strategy cards' run (web `feat/athena-integration` 0bc7e131, web `main` f28a12d4). A chat
+  plan card whose `terms.script_entry` is `"evaluate_v2"` with a `script` and
   `script_hash` is a C strategy card: its rules are its code, and it runs only through the
   backend's `POST /trading/strategy-action`, never create-backtest (which has no FSM to send for
   it, or an FSM that is not its code). `BacktestSetupTerms` gains `script_entry`, `strategy_id`
@@ -106,15 +112,15 @@ message}` only for the handler's own 500 ("Could not verify your broker connecti
   chat and the code are not part of it: the message id is a UUID, and a card whose code changes in
   place deploys to its own row, where a different live version meets the replace prompt.
   A C card's code signature (web `feat/athena-integration` 046148aa, backend-go 5a8a6525
-  `strategyaction.go`); additive only. `BacktestSetupTerms` gains `script_sig`, llm's signature of
+  `strategyaction.go`). `BacktestSetupTerms` gains `script_sig`, llm's signature of
   the card's code for this user, which the backend passes to Athena untouched and Athena may
   require ("this code was not built for this user"). `ScriptRun` gains `scriptSig?`, set by
   `scriptRunOf` only from a non-empty string (an empty one is none, as the backend reads it);
   `StrategyActionRequest` gains `script_sig?`, which `scriptAction` sends exactly when the card
   carries one and `replaceAction` keeps, so the resend after a 409 carries the same signature as the
   request it answers. A backend without the field ignores it.
-  A forked chat's shared strategies, read-only (web `feat/athena-integration` 3eb0664b, backend-go
-  19740aa5…5a8a6525); additive only. `getChatByIdResponse` is now `ChatWithSource`: the chat with
+  A forked chat's shared strategies, read-only (web `feat/athena-integration` 3eb0664b, web `main`
+  3da1f955, backend-go 19740aa5…5a8a6525). `getChatByIdResponse` is now `ChatWithSource`: the chat with
   `source_strategies?` (`StrategyRow[]`, is-alive's summary rows, backtests only) and
   `source_strategy_logs?` (`StrategyLogRow[]`, strategy_logs rows as `models.StrategyLogs` writes
   them: `message` and `payload` left out when empty, not wrapped as timeline items). GET

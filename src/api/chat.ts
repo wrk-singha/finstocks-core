@@ -352,6 +352,7 @@ export const chatApi = (http: HttpClient) => ({
     http.request<VoiceSessionResponse>('/voice/session', {
       method: 'POST',
       body: {chat_id: chatId},
+      forwardsUnauthorized: true,
     }),
 
   /**

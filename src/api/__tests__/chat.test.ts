@@ -173,6 +173,12 @@ test('mutations use the right verb, path and body', async () => {
     ],
   );
   for (const call of calls) assert.equal(call.init?.anonymous, undefined);
+  // backend-go StartVoiceSessionHandler answers with the voice service's status (voice_session.go):
+  // a 401 from it says nothing about the session. No other route here forwards one.
+  assert.deepEqual(
+    calls.filter(c => c.init?.forwardsUnauthorized === true).map(c => c.path),
+    ['/voice/session'],
+  );
 });
 
 test('shared chat is public; stream paths are bare', async () => {

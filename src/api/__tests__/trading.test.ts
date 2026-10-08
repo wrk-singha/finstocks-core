@@ -48,6 +48,10 @@ test('orders carry the idempotency key and a normalised order_type', async () =>
     (calls[1]?.init?.body as {order_type: string}).order_type,
     'MARKET',
   );
+  // backend-go forwardTrade (handlers/trading/manual.go) answers with the trade manager's status:
+  // a 401 from it is the order's refusal, not the session's.
+  assert.equal(calls[0]?.init?.forwardsUnauthorized, true);
+  assert.equal(calls[1]?.init?.forwardsUnauthorized, true);
   assert.equal(normalizeOrderType(' limit '), 'LIMIT');
   assert.equal(normalizeOrderType('anything'), 'MARKET');
 });

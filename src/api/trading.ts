@@ -391,6 +391,7 @@ export const tradingApi = (http: HttpClient) => ({
       method: 'POST',
       body: {...payload, order_type: normalizeOrderType(payload.order_type)},
       idempotencyKey,
+      forwardsUnauthorized: true,
     }),
 
   // drift resolved 2026-09-13: the mobile required `quantity`, the web left it optional;
@@ -400,6 +401,7 @@ export const tradingApi = (http: HttpClient) => ({
       method: 'POST',
       body: {...payload, order_type: normalizeOrderType(payload.order_type)},
       idempotencyKey,
+      forwardsUnauthorized: true,
     }),
 
   createBacktest: (config: CreateBacktestRequest, idempotencyKey: string) =>

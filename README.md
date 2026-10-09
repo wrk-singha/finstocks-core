@@ -71,9 +71,10 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `handlers/user/updatepassword.go`), so a wrong old password is the form's error rather than a
   sign-out (main 132eed7c revokes tokens on a password change). `RequestInit` also gains
   `forwardsUnauthorized`, for a route that answers with another service's status:
-  `tradingApi.buyStock` and `sellStock` (the trade manager's, `forwardTrade`) and
-  `chatApi.startVoiceSession` (the voice service's). On such a route only a 401 in the auth
-  middleware's words (`SESSION_UNAUTHORIZED`, `internal/middleware/auth.go`) ends the session.
+  `tradingApi.buyStock` and `sellStock` (the trade manager's, `forwardTrade`),
+  `chatApi.startVoiceSession` (the voice service's), and `tradingApi.getPortfolioAnalysis` and
+  `getBacktestAnalysis` (the LLM service's, as "LLM error: …"). On such a route only a 401 in the
+  auth middleware's words (`SESSION_UNAUTHORIZED`, `internal/middleware/auth.go`) ends the session.
   `endsSession(message, init)` is the rule a host applies; a route that declares neither field
   fails closed, any 401 ending the session. Neither backend sends a dividend id: main's
   `dividendEventsQuery` (`internal/repository/news/queries.go`, since f388c12) selects no `id`,

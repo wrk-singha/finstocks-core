@@ -63,6 +63,46 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.5** — web main's two-decimal screener moves, the 401s that do not end a session, dividends
+  keyed without an id, and a VWAP of 0 as N/A. One breaking type change: `GetDividendsResponse`
+  loses `id`, `fetched_at` and `created_at`, which no backend sends. Two visible changes: a
+  screener move's decimals, and a dividend row's key. The rest is additive.
+  The screener's percentage cells follow web main 6414e7a6 (the integration's `bff22bc`, brought to
+  the release line): a move (`isSignedField`: returns, 1D %, gap, distance from the 52-week high and
+  low) reads to two decimals, any other percentage to one, and a figure of 100 or more to none.
+  `formatFigure` takes the field rather than its unit, so it can tell a move.
+  401s that do not end a session (backend-go `main` 132eed7c binds every token to the password
+  hash, so a token-bearing 401 now ends a session far more often, and an untrue one costs a
+  sign-in). `RequestInit` gains `ownUnauthorized`, the words of a 401 the route answers itself, read
+  as the route's refusal of what was sent: `userApi.updatePassword` sends `OLD_PASSWORD_INCORRECT`
+  ("Old password is incorrect", `handlers/user/updatepassword.go`), so a wrong old password is the
+  form's error rather than a sign-out. `RequestInit` also gains `forwardsUnauthorized`, for a route
+  that answers with another service's status: `tradingApi.buyStock` and `sellStock` (the trade
+  manager's, `handlers/trading/manual.go` `forwardTrade`), `chatApi.startVoiceSession` (the voice
+  service's, `voice_session.go`), and `tradingApi.getPortfolioAnalysis` and `getBacktestAnalysis`
+  (the LLM service's, `portfolio_analysis.go` and `backtest_analysis.go`, as "LLM error: …"; the
+  portfolio analysis is warmed seconds after sign-in, so its 401 would sign every user out). These
+  are every route backend-go `main` and `dev` answer with an upstream status. On such a route only
+  a 401 in the auth middleware's own words ends the session. `SESSION_UNAUTHORIZED` lists those words (`internal/middleware/auth.go`
+  `TokenRequired`), and `endsSession(message, init)` is the rule a host applies to a token-bearing
+  401: a route's own refusal keeps the session, a forwarding route keeps it unless the
+  middleware's words come back, and any other route fails closed. A host that ignores both fields
+  signs out on every 401, as before. A forwarded 401 on an order is still an unknown outcome
+  (`outcomeOfError`), so the order is re-read, never assumed refused.
+  Dividends keyed without an id (web 66d641c3). Neither backend sends a dividend id: main's
+  `dividendEventsQuery` (`internal/repository/news/queries.go`, since f388c12) selects no `id`,
+  `fetched_at` or `created_at`, and `dev`'s Doom `DividendEvent` (`marketdata/dividends.go`) has none
+  either. So this fixes production today: every dividend row keyed by its id read
+  `div-undefined-…`, and the chat carousel keyed every slot `"undefined"`. `GetDividendsResponse`
+  drops the three fields (**breaking** for a host that read them; neither app does).
+  `market/dividendKey(row)` keys a dividend by its stock, ex-date (the announcement date before one
+  is set), type and amount, as web does, and `buildCorporateActions` keys its dividend rows by it:
+  `div-RELIANCE-2026-01-16-Interim-5.5-ex` where it was `div-undefined-ex`. A host that kept a
+  row's key has a new one.
+  A VWAP of 0 reads N/A (`data/indicatorsConfig`'s VWAP row). VWAP is a session's figure:
+  backend-go `dev` does not ask Doom for it on 1d or 1w (`indicators/doom.go` `intradayOnly`) and
+  answers a missing figure as 0 (`news/gettechnicals.go`), so a daily row read "₹0.00". No traded
+  stock has a VWAP of 0, so the row reads 0 as missing on any interval.
 - **v0.8.4** — Athena's strategy-action: the C strategy cards' run, their code signature and a
   forked chat's shared strategies; additive only. Backend-go `main` merged Athena on 8 Oct
   (`8f0cb404`): `POST /trading/strategy-action` is now the one way a strategy, a backtest or an

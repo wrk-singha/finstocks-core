@@ -463,6 +463,8 @@ export const tradingApi = (http: HttpClient) => ({
         force_refresh: forceRefresh,
         segment,
       })}`,
+      // An LLM failure comes back with the service's own status (portfolio_analysis.go).
+      {forwardsUnauthorized: true},
     ),
 
   /**
@@ -476,6 +478,8 @@ export const tradingApi = (http: HttpClient) => ({
         strategy_id: strategyId,
         peer_ids: peerIds?.length ? peerIds.join(',') : undefined,
       })}`,
+      // An LLM failure comes back with the service's own status (backtest_analysis.go).
+      {forwardsUnauthorized: true},
     ),
 
   createSharePortfolio: () =>

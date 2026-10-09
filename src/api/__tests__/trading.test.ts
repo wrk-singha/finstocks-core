@@ -316,3 +316,19 @@ test('isAlive hands back rows with the fields the backend dropped filled in', as
   assert.equal(row?.is_backtest, false);
   assert.equal(row?.budget_config, null);
 });
+
+test("the two analysis routes say they forward the LLM service's 401", async () => {
+  // backend-go portfolio_analysis.go and backtest_analysis.go answer an LLM failure with the
+  // service's own status, as "LLM error: …": a 401 from it says nothing about the session.
+  const {http, calls} = fakeHttp();
+  const api = tradingApi(http);
+  await api.getPortfolioAnalysis(true);
+  await api.getBacktestAnalysis('s1', ['s2']);
+  assert.deepEqual(
+    calls.map(c => [c.path.split('?')[0], c.init?.forwardsUnauthorized]),
+    [
+      ['/trading/portfolio-analysis', true],
+      ['/trading/backtest-analysis', true],
+    ],
+  );
+});

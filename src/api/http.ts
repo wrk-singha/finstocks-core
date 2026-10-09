@@ -25,9 +25,11 @@ export type RequestInit = {
   /**
    * The route can answer with another service's status, a 401 included: backend-go forwards the
    * trade manager's answer for /trading/buy and /trading/sell (`handlers/trading/manual.go`
-   * `forwardTrade`) and the voice service's status for /voice/session (`voice_session.go`). Only a
-   * 401 in the auth middleware's own words (`SESSION_UNAUTHORIZED`) ends the session; any other is
-   * that request's error.
+   * `forwardTrade`), the voice service's status for /voice/session (`voice_session.go`), and the
+   * LLM service's for /trading/portfolio-analysis and /trading/backtest-analysis
+   * (`portfolio_analysis.go`, `backtest_analysis.go`, as "LLM error: …"). Only a 401 in the auth
+   * middleware's own words (`SESSION_UNAUTHORIZED`) ends the session; any other is that request's
+   * error.
    */
   readonly forwardsUnauthorized?: boolean;
   readonly signal?: AbortSignal;

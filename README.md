@@ -63,6 +63,23 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **Unreleased** — main's v0.8.6 (tagged on main), less what this branch already has (the
+  dev-era library `97e4a5f`, the baskets' backtest maths `362658a`, `7bd6b76`): the black-box
+  strategy library in backend-go `main`'s shapes, which production serves, and web main's reading
+  of them. A strategy gains `slug`, `has_backtest` and the server's `backtest_summary`
+  (`annual_return`, `max_drawdown`, fractions); the detail's `backtest` is the published one
+  (`label`, `window_start`, `window_end`, `benchmark`, `daily`, `trades` with an optional
+  `side: "short"`) or null, where dev's was always null; `getStrategyLibraryActivity(key)` reads
+  `GET /templates/strategy-library/{key}/activity`, `{activity: {date, live, buys, sells} | null}`.
+  The detail and activity take a slug or an id. `/source` (LLM key) and the service refresh are not
+  bound. `queryKeys.strategyLibraryActivity(key)`. The page's reading, as on main:
+  `publishedLibrary`, `hasFnoStrategy`, `libraryBacktestLead`, `libraryWinPeriods`, `liveThrough`,
+  `positionKey`, `tradesBothWays`, `sideLabel`, `tradesWithLiveSession`, `libraryTradeLog`,
+  `tradeRowKey`, `activitySession`, `isTodaysSession` and `DEFAULT_LIBRARY_CAPITAL`.
+  `market/basketBacktest`'s `summarize` counts any periods by their net return (a basket's months
+  still fit), the curves take a read-only day list, and `annualisedReturn` is exported. Main's
+  `basketBacktest` is the same maths over a structural day, without `picksByReview`; a merge of
+  v0.8.6 keeps this branch's.
 - **Unreleased** — main's v0.8.5 (tagged on main), less the screener moves this branch already has
   (`bff22bc`): the 401s that keep a session, dividends keyed without an id, and a VWAP of 0 as
   N/A. One breaking type change: `GetDividendsResponse` drops `id`, `fetched_at` and `created_at`.

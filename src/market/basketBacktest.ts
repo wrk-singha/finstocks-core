@@ -55,7 +55,7 @@ export const TRADING_DAYS_PER_YEAR = 252;
 const DAYS_PER_YEAR = 365.25;
 const MS_PER_DAY = 86_400_000;
 
-export function equityCurve(daily: EsfBacktestDay[]): CurvePoint[] {
+export function equityCurve(daily: readonly EsfBacktestDay[]): CurvePoint[] {
   let peak = 0;
   return daily.map(d => {
     peak = Math.max(peak, d.nav);
@@ -68,7 +68,7 @@ export function equityCurve(daily: EsfBacktestDay[]): CurvePoint[] {
   });
 }
 
-export const dailyReturns = (daily: EsfBacktestDay[]): number[] =>
+export const dailyReturns = (daily: readonly EsfBacktestDay[]): number[] =>
   daily.slice(1).map((d, i) => d.nav / (daily[i]?.nav ?? d.nav) - 1);
 
 export function picksByReview(
@@ -88,7 +88,7 @@ export const yearsBetween = (from: string, to: string): number =>
   DAYS_PER_YEAR;
 
 function returnsByPeriod(
-  daily: EsfBacktestDay[],
+  daily: readonly EsfBacktestDay[],
   key: (date: string) => string,
 ): [string, number][] {
   const closing = new Map<string, number>();
@@ -101,18 +101,26 @@ function returnsByPeriod(
   });
 }
 
-export const yearlyReturns = (daily: EsfBacktestDay[]): PeriodReturn[] =>
+export const yearlyReturns = (
+  daily: readonly EsfBacktestDay[],
+): PeriodReturn[] =>
   returnsByPeriod(daily, date => date.slice(0, 4)).map(([label, basket]) => ({
     label,
     basket,
   }));
 
-export const monthlyReturns = (daily: EsfBacktestDay[]): MonthCell[] =>
+export const monthlyReturns = (daily: readonly EsfBacktestDay[]): MonthCell[] =>
   returnsByPeriod(daily, date => date.slice(0, 7)).map(([ym, basket]) => ({
     year: Number(ym.slice(0, 4)),
     month: Number(ym.slice(5, 7)),
     basket,
   }));
+
+/** The yearly rate a multiple compounds at over `years`; null under a year, where it would overstate. */
+export const annualisedReturn = (
+  multiple: number,
+  years: number,
+): number | null => (years >= 1 ? multiple ** (1 / years) - 1 : null);
 
 /** Annualised, at a 0% risk-free rate; null with under two returns or no variance. */
 function sharpeRatio(returns: number[], years: number): number | null {
@@ -125,8 +133,9 @@ function sharpeRatio(returns: number[], years: number): number | null {
 }
 
 export function summarize(
-  daily: EsfBacktestDay[],
-  periods: EsfBacktestMonth[],
+  daily: readonly EsfBacktestDay[],
+  /** The periods the win rate counts, each by its net return: positive is a win. */
+  periods: readonly Pick<EsfBacktestMonth, 'net'>[],
 ): BacktestSummary | null {
   const first = daily[0];
   const last = daily[daily.length - 1];
@@ -143,7 +152,7 @@ export function summarize(
   const years = yearsBetween(first.date, last.date);
   return {
     finalMultiple,
-    annualReturn: years >= 1 ? finalMultiple ** (1 / years) - 1 : null,
+    annualReturn: annualisedReturn(finalMultiple, years),
     maxDrawdown: trough.drawdown,
     maxDrawdownDate: trough.date,
     sharpe: sharpeRatio(dailyReturns(daily), years),

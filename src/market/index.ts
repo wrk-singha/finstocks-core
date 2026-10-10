@@ -154,6 +154,7 @@ export {
 } from './customIndicators.ts';
 
 export {
+  annualisedReturn,
   dailyReturns,
   equityCurve,
   monteCarlo,

@@ -8,6 +8,7 @@ import type {
   EsfBacktestPick,
 } from '../../types/esf.ts';
 import {
+  annualisedReturn,
   dailyReturns,
   equityCurve,
   monteCarlo,
@@ -137,6 +138,17 @@ test('the Monte Carlo band is seeded, so the same returns give the same percenti
   assert.equal(((unit[20]?.p50 ?? 0) * 100000).toFixed(6), end.p50.toFixed(6));
   assert.deepEqual(monteCarlo([], 10, 100), []);
   assert.deepEqual(monteCarlo(returns, 0, 100), []);
+});
+
+test('a multiple annualises over a year or more, and never under one', () => {
+  assert.equal(annualisedReturn(1.21, 2)?.toFixed(4), '0.1000');
+  assert.equal(annualisedReturn(1.1, 1)?.toFixed(4), '0.1000');
+  assert.equal(annualisedReturn(1.5, 0.99), null);
+  // The win rate counts any period by its net return alone, the library's months included.
+  assert.equal(
+    summarize(daily, [{net: 3}, {net: -1}, {net: 2}])?.winRate.toFixed(4),
+    '0.6667',
+  );
 });
 
 const pick = (

@@ -79,7 +79,10 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   `market/basketBacktest`'s `summarize` counts any periods by their net return (a basket's months
   still fit), the curves take a read-only day list, and `annualisedReturn` is exported. Main's
   `basketBacktest` is the same maths over a structural day, without `picksByReview`; a merge of
-  v0.8.6 keeps this branch's.
+  v0.8.6 keeps this branch's, and drops main's `type BacktestDay` export from `market/index.ts`.
+  `MONTH_SHORT_NAMES` spells September "Sept", as web's `Intl` en-IN months do (dates elsewhere
+  keep "Sep"). Main's `deriveChatTitle` keeps a hidden `[<…>]` marker, as web main's does; this
+  branch keeps stripping it, as web `dev`'s does, so a merge of v0.8.6 must keep this branch's.
 - **Unreleased** — main's v0.8.5 (tagged on main), less the screener moves this branch already has
   (`bff22bc`): the 401s that keep a session, dividends keyed without an id, and a VWAP of 0 as
   N/A. One breaking type change: `GetDividendsResponse` drops `id`, `fetched_at` and `created_at`.

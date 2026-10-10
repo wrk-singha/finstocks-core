@@ -221,8 +221,13 @@ const MONTHS_SHORT = [
   'Dec',
 ];
 
-/** January to December, three letters each, as web's `MONTH_SHORT_NAMES` (en-IN). */
-export const MONTH_SHORT_NAMES: readonly string[] = MONTHS_SHORT;
+/**
+ * January to December as web's `MONTH_SHORT_NAMES` prints them: `Intl` short months in en-IN, where
+ * CLDR spells September "Sept". The heatmap's headers read them; dates elsewhere keep `Sep`.
+ */
+export const MONTH_SHORT_NAMES: readonly string[] = MONTHS_SHORT.map(month =>
+  month === 'Sep' ? 'Sept' : month,
+);
 
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 

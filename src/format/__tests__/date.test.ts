@@ -27,6 +27,7 @@ import {
   getChatDateGroup,
   istDateTimeParts,
   istDayKey,
+  MONTH_SHORT_NAMES,
   parseApiDate,
   parseTimestamp,
 } from '../date.ts';
@@ -333,4 +334,16 @@ test("the chart's long stamp is the IST day, with its clock for an intraday cand
     formatChartLongDate(Date.parse('2026-03-12T19:00:00Z'), false),
     '13 Mar 2026',
   );
+});
+
+test("the heatmap's month names are web's: Intl's en-IN short months, September as Sept", () => {
+  const web = Array.from({length: 12}, (_, i) =>
+    new Intl.DateTimeFormat('en-IN', {month: 'short', timeZone: 'UTC'}).format(
+      new Date(Date.UTC(2000, i, 1)),
+    ),
+  );
+  assert.deepEqual([...MONTH_SHORT_NAMES], web);
+  assert.equal(MONTH_SHORT_NAMES[8], 'Sept');
+  // Dates elsewhere keep three letters.
+  assert.equal(formatSessionDay('2026-09-11'), 'Fri, 11 Sep');
 });

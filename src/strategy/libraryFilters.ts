@@ -7,7 +7,7 @@ import type {
   LibraryStyle,
 } from '../types/strategyLibrary.ts';
 
-// Filtering and sorting for the black-box strategy library, client-side as web `dev` has it
+// Filtering and sorting for the black-box strategy library, client-side as web main has it
 // (src/utils/strategy/libraryFilters.ts). The count label is `strategyCount` in `screener/`.
 
 /** Panel filter state for the strategy library (client-side only). Empty = any. */

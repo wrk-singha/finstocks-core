@@ -151,6 +151,26 @@ export {
   upsertCustomIndicator,
 } from './customIndicators.ts';
 
+export {
+  annualisedReturn,
+  dailyReturns,
+  equityCurve,
+  monteCarlo,
+  monthlyReturns,
+  summarize,
+  TRADING_DAYS_PER_YEAR,
+  yearlyReturns,
+  yearsBetween,
+} from './basketBacktest.ts';
+export type {
+  BacktestDay,
+  BacktestSummary,
+  CurvePoint,
+  MonteCarloBand,
+  MonthCell as BasketMonthCell,
+  PeriodReturn,
+} from './basketBacktest.ts';
+
 export {blackScholesGreeks, impliedForward, yearsToExpiry} from './greeks.ts';
 export type {OptionGreeks} from './greeks.ts';
 
@@ -370,6 +390,7 @@ export type {AlertDraftConfig} from './savedAlerts.ts';
 
 export {mapSector, SECTOR_CHIPS} from './sectors.ts';
 export type {CoarseSector} from './sectors.ts';
+export {mulberry32, percentileSorted} from './sampling.ts';
 
 export {mapStockScore} from './stockScore.ts';
 

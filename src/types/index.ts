@@ -41,6 +41,7 @@ export type * from './screenerFilters.ts';
 export type * from './segments.ts';
 export type * from './stockEvents.ts';
 export type * from './stockWatchlist.ts';
+export type * from './strategyLibrary.ts';
 export type * from './strategyLogs.ts';
 export type * from './strategyRun.ts';
 export type * from './terminal.ts';

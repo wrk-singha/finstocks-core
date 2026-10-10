@@ -32,12 +32,12 @@ test('deriveChatTitle collapses whitespace and slices without an ellipsis', () =
   assert.equal(deriveChatTitle('short'), 'short');
 });
 
-test('deriveChatTitle strips hidden [<…>] markers from the title', () => {
+test('deriveChatTitle keeps a hidden [<…>] marker, sliced like any text, as web main does', () => {
   assert.equal(
     deriveChatTitle(
       'Tell me about the Expiry Iron Condor strategy. [<Library Strategy: ID: krishna, Name: Expiry Iron Condor>]',
     ),
-    'Tell me about the Expiry Iron Condor strategy.',
+    'Tell me about the Expiry Iron Condor strategy. [<Library Strategy: ID: krishna,',
   );
 });
 

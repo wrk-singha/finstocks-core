@@ -25,6 +25,7 @@ import {
   getChatDateGroup,
   istDateTimeParts,
   istDayKey,
+  MONTH_SHORT_NAMES,
   parseApiDate,
   parseTimestamp,
 } from '../date.ts';
@@ -312,4 +313,16 @@ test('getChatDateGroup buckets by IST recency', () => {
   assert.equal(getChatDateGroup('2025-06-10T03:00:00Z', NOW), 'June 2025');
   assert.equal(getChatDateGroup(null, NOW), 'Older');
   assert.equal(getChatDateGroup('bad', NOW), 'Older');
+});
+
+test("the heatmap's month names are web's: Intl's en-IN short months, September as Sept", () => {
+  const web = Array.from({length: 12}, (_, i) =>
+    new Intl.DateTimeFormat('en-IN', {month: 'short', timeZone: 'UTC'}).format(
+      new Date(Date.UTC(2000, i, 1)),
+    ),
+  );
+  assert.deepEqual([...MONTH_SHORT_NAMES], web);
+  assert.equal(MONTH_SHORT_NAMES[8], 'Sept');
+  // Dates elsewhere keep three letters.
+  assert.equal(formatSessionDay('2026-09-11'), 'Fri, 11 Sep');
 });

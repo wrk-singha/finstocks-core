@@ -63,6 +63,42 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.8.6** — the black-box strategy library as backend-go `main` serves it (production answers
+  unsigned GETs with 401, so the routes are live), and web main's reading of it (18762240,
+  0d48b657, 1f36fdaf, 17f2d766, 4aa45cd1, 69addf02, 0aa7b4dd); additive, with one visible change:
+  `deriveChatTitle` strips hidden `[<…>]` markers, so a chat launched with one is titled by its
+  visible sentence (a no-op for every message without one). The integration's dev-era library
+  (`97e4a5f`) comes to the release line with it: `types/strategyLibrary` (the Go `Strategy` field
+  for field), `templatesApi.getStrategyLibrary` and `getStrategyLibraryDetail`, the labels, the
+  six-step risk scale, the risk drivers, the performance-slot preview, the chat hand-off
+  (`libraryChatMessage`: "Tell me about the X strategy." or "Backtest the X strategy for me.", then
+  `[<Library Strategy: ID: id, Name: X>]`) and the client-side filters and sorts. Then main's
+  shapes (`handlers/templates/strategylibrary.go`, `internal/strategylibrary/library.go`,
+  `internal/services/librarylive/activity.go`): a strategy gains `slug`, `has_backtest` and the
+  server's `backtest_summary` (`annual_return`, `max_drawdown`, fractions); the detail's `backtest`
+  is the published one (`label`, `window_start`, `window_end`, `benchmark`, `daily` of
+  `{date, nav, benchmark}`, `trades` with an optional `side: "short"`, an open trade's `exit_date`
+  empty) or null; `getStrategyLibraryActivity(key)` reads
+  `GET /templates/strategy-library/{key}/activity`, `{activity: {date, live, buys, sells} | null}`,
+  each fill `{symbol, side?, price, last?, return_pct}`. The detail and activity take a slug or an
+  id. The LLM-key `/source` and the
+  service-only `POST /service/strategy-library/refresh` are not bound: no app calls them.
+  `queryKeys.strategyLibraryActivity(key)` is `['strategy-library', key, 'activity']`, as web keys
+  it. The page's reading: `publishedLibrary` (only strategies with a published backtest are
+  listed), `hasFnoStrategy` (the Stocks / F&O tabs show only while one is F&O),
+  `libraryBacktestLead`, `libraryWinPeriods`, `liveThrough`, `positionKey`, `tradesBothWays`,
+  `sideLabel`, `tradesWithLiveSession` (a live session's fills applied to the log, a position opened
+  and closed in the session included), `libraryTradeLog` (open first, then the latest exits, with
+  the in-profit count), `tradeRowKey` (two trades in one stock on one day keep separate keys),
+  `activitySession`, `isTodaysSession` (the app's own: a live session dated earlier than today is
+  the latest trades, not today's) and `DEFAULT_LIBRARY_CAPITAL` (₹5,00,000, web's starting
+  capital). `market/basketBacktest` is web's backtest maths, as the integration has it (`362658a`,
+  `7bd6b76`) over a structural day: `equityCurve`, `dailyReturns`, `yearlyReturns`,
+  `monthlyReturns`, `yearsBetween`, `annualisedReturn`, `summarize` (its win-rate periods as their
+  net returns), the seeded `monteCarlo` and `TRADING_DAYS_PER_YEAR`; `market/sampling` is the
+  integration's `mulberry32` and `percentileSorted`. `format` gains `signedFractionPct` and
+  `MONTH_SHORT_NAMES`. A later merge into the integration meets its own `basketBacktest`, which also
+  keeps the baskets' `picksByReview`.
 - **v0.8.5** — web main's two-decimal screener moves, the 401s that do not end a session, dividends
   keyed without an id, and a VWAP of 0 as N/A. One breaking type change: `GetDividendsResponse`
   loses `id`, `fetched_at` and `created_at`, which no backend sends. Two visible changes: a

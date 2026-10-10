@@ -19,6 +19,11 @@ test('the library keys as web does', () => {
     'strategy-library',
     'krishna',
   ]);
+  assert.deepEqual(queryKeys.strategyLibraryActivity('kangto'), [
+    'strategy-library',
+    'kangto',
+    'activity',
+  ]);
 });
 
 test('the sector matrix and its pair key as web does', () => {

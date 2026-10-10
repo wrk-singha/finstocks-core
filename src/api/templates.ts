@@ -3,6 +3,7 @@ import type {
   ScreenerStrategyDetailResponse,
 } from '../types/screener.ts';
 import type {
+  StrategyLibraryActivityResponse,
   StrategyLibraryDetailResponse,
   StrategyLibraryResponse,
 } from '../types/strategyLibrary.ts';
@@ -44,14 +45,27 @@ export const templatesApi = (http: HttpClient) => ({
       `/templates/screener-strategies/${id}${query({timeframe, year})}`,
     ),
 
-  /** The black-box strategy library, whole, in one response (backend `dev`). */
+  /** The black-box strategy library, whole, in one response. */
   getStrategyLibrary: () =>
     http.request<StrategyLibraryResponse>('/templates/strategy-library'),
 
-  /** One library strategy; `backtest` is null until results exist. 404 for an unknown id. */
-  getStrategyLibraryDetail: (id: string) =>
+  /**
+   * One library strategy, by its slug or its id, with its published backtest (null without one).
+   * 404 for an unknown key.
+   */
+  getStrategyLibraryDetail: (key: string) =>
     http.request<StrategyLibraryDetailResponse>(
-      `/templates/strategy-library/${encodeURIComponent(id)}`,
+      `/templates/strategy-library/${encodeURIComponent(key)}`,
+    ),
+
+  /**
+   * What a live strategy's simulation bought and sold on its latest session, by slug or id;
+   * `activity` is null for a strategy without a live run. Its `/source` sibling is the LLM
+   * service's and is never called from an app.
+   */
+  getStrategyLibraryActivity: (key: string) =>
+    http.request<StrategyLibraryActivityResponse>(
+      `/templates/strategy-library/${encodeURIComponent(key)}/activity`,
     ),
 });
 

@@ -251,9 +251,13 @@ export type {
   LibrarySort,
 } from './libraryFilters.ts';
 export {
+  activitySession,
   backtestPreview,
   clampRisk,
+  DEFAULT_LIBRARY_CAPITAL,
+  hasFnoStrategy,
   isReference,
+  isTodaysSession,
   LIBRARY_COMPLEXITIES,
   LIBRARY_COMPLEXITY_LABEL,
   LIBRARY_DIRECTION_LABEL,
@@ -262,12 +266,22 @@ export {
   LIBRARY_HORIZONS,
   LIBRARY_SEGMENT_LABEL,
   LIBRARY_STYLE_LABEL,
+  libraryBacktestLead,
   libraryChatContext,
   libraryChatMessage,
+  libraryTradeLog,
+  libraryWinPeriods,
+  liveThrough,
+  positionKey,
+  publishedLibrary,
   RISK_LEVELS,
   riskDrivers,
   riskLabel,
   riskShort,
   riskTone,
+  sideLabel,
+  tradeRowKey,
+  tradesBothWays,
+  tradesWithLiveSession,
 } from './strategyLibrary.ts';
-export type {LibraryChatIntent} from './strategyLibrary.ts';
+export type {LibraryChatIntent, LibraryTradeRow} from './strategyLibrary.ts';

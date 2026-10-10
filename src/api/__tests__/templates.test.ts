@@ -29,18 +29,27 @@ test('screener strategy list and detail', async () => {
   );
 });
 
-test('the strategy library list and detail, the id escaped', async () => {
+test('the strategy library list, detail and activity, by slug or id, the key escaped', async () => {
   const {http, calls} = fakeHttp();
   const api = templatesApi(http);
   await api.getStrategyLibrary();
   await api.getStrategyLibraryDetail('krishna');
+  await api.getStrategyLibraryDetail('leader-breakout-swing');
   await api.getStrategyLibraryDetail('a b');
+  await api.getStrategyLibraryActivity('kangto');
+  await api.getStrategyLibraryActivity('a/b');
   assert.deepEqual(
-    calls.map(c => c.path),
+    calls.map(c => [c.path, c.init?.method ?? 'GET']),
     [
-      '/templates/strategy-library',
-      '/templates/strategy-library/krishna',
-      '/templates/strategy-library/a%20b',
+      ['/templates/strategy-library', 'GET'],
+      ['/templates/strategy-library/krishna', 'GET'],
+      ['/templates/strategy-library/leader-breakout-swing', 'GET'],
+      ['/templates/strategy-library/a%20b', 'GET'],
+      ['/templates/strategy-library/kangto/activity', 'GET'],
+      ['/templates/strategy-library/a%2Fb/activity', 'GET'],
     ],
   );
+  // The refresh is the service's and the source the LLM service's: no app ever calls either.
+  assert.equal('refreshStrategyLibrary' in api, false);
+  assert.equal('getStrategyLibrarySource' in api, false);
 });

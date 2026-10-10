@@ -14,4 +14,9 @@ test('the library keys as web does', () => {
     'strategy-library',
     'krishna',
   ]);
+  assert.deepEqual(queryKeys.strategyLibraryActivity('kangto'), [
+    'strategy-library',
+    'kangto',
+    'activity',
+  ]);
 });

@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import type {LibraryStrategy} from '../../types/strategyLibrary.ts';
+import type {
+  LibraryActivity,
+  LibraryBacktest,
+  LibraryBacktestTrade,
+  LibraryStrategy,
+} from '../../types/strategyLibrary.ts';
 import {
   applyLibraryFilters,
   countActiveLibraryFilters,
@@ -13,14 +18,27 @@ import {
   viewLibrary,
 } from '../libraryFilters.ts';
 import {
+  activitySession,
   backtestPreview,
+  hasFnoStrategy,
   isReference,
+  isTodaysSession,
+  libraryBacktestLead,
   libraryChatContext,
   libraryChatMessage,
+  libraryTradeLog,
+  libraryWinPeriods,
+  liveThrough,
+  positionKey,
+  publishedLibrary,
   riskDrivers,
   riskLabel,
   riskShort,
   riskTone,
+  sideLabel,
+  tradeRowKey,
+  tradesBothWays,
+  tradesWithLiveSession,
 } from '../strategyLibrary.ts';
 
 const strategy = (
@@ -28,6 +46,7 @@ const strategy = (
   fields: Partial<LibraryStrategy> = {},
 ): LibraryStrategy => ({
   id,
+  slug: id,
   name: id,
   tagline: `${id} tagline`,
   summary: '',
@@ -55,6 +74,8 @@ const strategy = (
   availability_note: null,
   exchange_category: 'alpha_seeking',
   version: 1,
+  has_backtest: false,
+  backtest_summary: null,
   ...fields,
 });
 
@@ -258,4 +279,211 @@ test('the whole view: scope, horizon, filters, sort', () => {
     }).map(s => s.id),
     ['godavari'],
   );
+});
+
+test('the page lists the published strategies only, and offers F&O only when one is published', () => {
+  const published = strategy('annapurna', {
+    has_backtest: true,
+    backtest_summary: {annual_return: 0.214, max_drawdown: -0.18},
+  });
+  const fno = strategy('kangto', {is_fno: true, has_backtest: true});
+  assert.deepEqual(
+    publishedLibrary([condor, published, scalper, fno]).map(s => s.id),
+    ['annapurna', 'kangto'],
+  );
+  assert.equal(hasFnoStrategy(publishedLibrary([condor, published])), false);
+  assert.equal(hasFnoStrategy(publishedLibrary([published, fno])), true);
+  assert.equal(hasFnoStrategy([]), false);
+});
+
+const trade = (
+  symbol: string,
+  entry: string,
+  exit: string,
+  returnPct: number,
+  fields: Partial<LibraryBacktestTrade> = {},
+): LibraryBacktestTrade => ({
+  symbol,
+  entry_date: entry,
+  exit_date: exit,
+  entry_price: 100,
+  exit_price: 100 * (1 + returnPct / 100),
+  return_pct: returnPct,
+  ...fields,
+});
+
+const backtest: LibraryBacktest = {
+  label: 'Hypothetical backtest',
+  window_start: '2023-10-10',
+  window_end: '2026-10-09',
+  benchmark: 'NIFTY 50',
+  daily: [
+    {date: '2023-10-10', nav: 1, benchmark: 1},
+    {date: '2024-10-10', nav: 1.1, benchmark: 1.05},
+    {date: '2025-10-10', nav: 1.21, benchmark: 1.1025},
+  ],
+  trades: [
+    trade('ABREL', '2023-10-11', '2023-10-23', -7.3),
+    trade('ITI', '2026-09-01', '', 4.2),
+    trade('BSE', '2026-09-20', '2026-10-01', 12.5),
+    trade('TCS', '2026-10-01', '', -1.1, {side: 'short'}),
+  ],
+};
+
+test('the lead is the annualised return and its benchmark, in percent', () => {
+  const lead = libraryBacktestLead(backtest);
+  assert.ok(lead);
+  // Two calendar years of 365.25 days: 1.21 compounds at just under 10% a year.
+  assert.equal(lead.value.toFixed(1), '10.0');
+  assert.equal(lead.benchmark?.toFixed(1), '5.0');
+  // Under a year there is no annual figure to claim.
+  assert.equal(libraryBacktestLead({daily: backtest.daily.slice(0, 1)}), null);
+  assert.equal(
+    libraryBacktestLead({
+      daily: [
+        {date: '2026-01-01', nav: 1, benchmark: 1},
+        {date: '2026-06-01', nav: 1.3, benchmark: 1},
+      ],
+    }),
+    null,
+  );
+  // A curve with no benchmark leaves the comparison out rather than inventing one.
+  assert.equal(
+    libraryBacktestLead({
+      daily: [
+        {date: '2023-10-10', nav: 1, benchmark: 0},
+        {date: '2025-10-10', nav: 1.21, benchmark: 0},
+      ],
+    })?.benchmark,
+    null,
+  );
+  assert.deepEqual(
+    libraryWinPeriods(backtest.daily).map(p => Number(p.net.toFixed(4))),
+    [0, 0.1, 0.1],
+  );
+});
+
+const live = (fields: Partial<LibraryActivity> = {}): LibraryActivity => ({
+  date: '2026-10-12',
+  live: true,
+  buys: [],
+  sells: [],
+  ...fields,
+});
+
+test('a live session runs the log past the backtest, and a finished one does not', () => {
+  assert.equal(liveThrough(backtest, null), '2026-10-09');
+  assert.equal(liveThrough(backtest, live()), '2026-10-12');
+  assert.equal(
+    liveThrough(backtest, live({live: false, date: '2026-10-09'})),
+    '2026-10-09',
+  );
+  assert.equal(activitySession(null), '');
+  assert.equal(activitySession(live()), '2026-10-12:true');
+  // Today's trades only while the session is live and dated today in India.
+  assert.equal(isTodaysSession(live(), '2026-10-12'), true);
+  assert.equal(isTodaysSession(live(), '2026-10-13'), false);
+  assert.equal(isTodaysSession(live({live: false}), '2026-10-12'), false);
+});
+
+test('a position is keyed by its stock and side, and a long-short strategy names the side', () => {
+  assert.equal(positionKey({symbol: 'TCS'}), 'TCS-long');
+  assert.equal(positionKey({symbol: 'TCS', side: 'short'}), 'TCS-short');
+  assert.equal(sideLabel(), 'Long');
+  assert.equal(sideLabel('short'), 'Short');
+  assert.equal(tradesBothWays(strategy('x', {direction: 'both'})), true);
+  assert.equal(tradesBothWays(strategy('x', {direction: 'long'})), false);
+});
+
+test('a live session closes what it sold and opens what it bought, the same day included', () => {
+  const session = live({
+    buys: [
+      {symbol: 'INFY', price: 1500, last: 1530, return_pct: 2},
+      {symbol: 'HAL', price: 4000, return_pct: 0},
+    ],
+    sells: [
+      {symbol: 'ITI', price: 260, return_pct: 5.1},
+      {symbol: 'INFY', price: 1520, return_pct: 1.3},
+      // A short TCS is held, so a long TCS sale closes nothing.
+      {symbol: 'TCS', price: 3000, return_pct: 0.4},
+    ],
+  });
+  const applied = tradesWithLiveSession(backtest.trades, session);
+  const bySymbol = new Map(
+    applied.map(t => [`${t.symbol}-${t.entry_date}`, t]),
+  );
+  assert.deepEqual(bySymbol.get('ITI-2026-09-01'), {
+    ...trade('ITI', '2026-09-01', '', 4.2),
+    exit_date: '2026-10-12',
+    exit_price: 260,
+    return_pct: 5.1,
+  });
+  // Opened and closed in the one session (web 69addf02).
+  assert.deepEqual(bySymbol.get('INFY-2026-10-12'), {
+    symbol: 'INFY',
+    entry_date: '2026-10-12',
+    exit_date: '2026-10-12',
+    entry_price: 1500,
+    exit_price: 1520,
+    return_pct: 1.3,
+  });
+  // A buy without a latest price is valued at its fill.
+  assert.equal(bySymbol.get('HAL-2026-10-12')?.exit_price, 4000);
+  assert.equal(bySymbol.get('HAL-2026-10-12')?.exit_date, '');
+  assert.equal(bySymbol.get('TCS-2026-10-01')?.exit_date, '');
+  assert.equal(applied.length, 6);
+  // A finished session is already in the backtest, and changes nothing.
+  assert.deepEqual(
+    tradesWithLiveSession(
+      backtest.trades,
+      live({live: false, sells: session.sells}),
+    ),
+    backtest.trades,
+  );
+  assert.deepEqual(
+    tradesWithLiveSession(backtest.trades, null),
+    backtest.trades,
+  );
+});
+
+test('the log lists open positions first, then the latest exits, and counts those in profit', () => {
+  const log = libraryTradeLog(backtest, null);
+  assert.equal(log.through, '2026-10-09');
+  assert.deepEqual(
+    log.rows.map(r => [r.symbol, r.open]),
+    [
+      ['TCS', true],
+      ['ITI', true],
+      ['BSE', false],
+      ['ABREL', false],
+    ],
+  );
+  assert.equal(log.inProfit, 2);
+  const withSession = libraryTradeLog(
+    backtest,
+    live({sells: [{symbol: 'ITI', price: 260, return_pct: 5.1}]}),
+  );
+  assert.equal(withSession.through, '2026-10-12');
+  assert.deepEqual(
+    withSession.rows.map(r => [r.symbol, r.open, r.exit_date]),
+    [
+      ['TCS', true, ''],
+      ['ITI', false, '2026-10-12'],
+      ['BSE', false, '2026-10-01'],
+      ['ABREL', false, '2023-10-23'],
+    ],
+  );
+  // The backtest's own array is left as it was.
+  assert.equal(backtest.trades[0]?.symbol, 'ABREL');
+});
+
+test('two trades in one stock on one day keep separate row keys', () => {
+  const first = trade('UPL', '2024-10-08', '2024-10-08', -0.9, {
+    entry_price: 580.05,
+  });
+  const second = trade('UPL', '2024-10-08', '2024-10-08', 0.4, {
+    entry_price: 575.4,
+  });
+  assert.notEqual(tradeRowKey(first), tradeRowKey(second));
+  assert.equal(tradeRowKey(first), 'UPL-long-2024-10-08-2024-10-08-580.05');
 });

@@ -336,14 +336,26 @@ test("the chart's long stamp is the IST day, with its clock for an intraday cand
   );
 });
 
-test("the heatmap's month names are web's: Intl's en-IN short months, September as Sept", () => {
-  const web = Array.from({length: 12}, (_, i) =>
-    new Intl.DateTimeFormat('en-IN', {month: 'short', timeZone: 'UTC'}).format(
-      new Date(Date.UTC(2000, i, 1)),
-    ),
+test("the heatmap's month names are web's: en-IN's short months, September as Sept", () => {
+  // What web's Intl.DateTimeFormat('en-IN', {month: 'short'}) prints under CLDR 38 and later,
+  // written out so the test does not depend on the ICU of the Node running it.
+  assert.deepEqual(
+    [...MONTH_SHORT_NAMES],
+    [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sept',
+      'Oct',
+      'Nov',
+      'Dec',
+    ],
   );
-  assert.deepEqual([...MONTH_SHORT_NAMES], web);
-  assert.equal(MONTH_SHORT_NAMES[8], 'Sept');
   // Dates elsewhere keep three letters.
   assert.equal(formatSessionDay('2026-09-11'), 'Fri, 11 Sep');
 });

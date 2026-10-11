@@ -63,6 +63,16 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.9.0** — a minor for one breaking type change, with one additive helper, both for web
+  parity. `ChatWithMessages.messages` and `SharedChat.messages` are optional: backend-go tags
+  `Chat.Messages` `omitempty` (on `main` and `dev` since 12 Sep), so `GET /chats/{id}` and the
+  shared-chat read of a chat with nothing saved yet (just created, or its first turn still being
+  written) carry no key at all; a host that read the list unguarded must treat absent as nothing
+  saved yet, as web does (`chat?.messages ?? []`). `market/marketHours` gains `hasHolidayCalendar`
+  (web's) and `marketMoment(now)` with `MarketMoment` (`preOpen`, `live`, `closed`, `weekend`,
+  `holiday`, `unknown`): web's `useChatGreeting` moment, in IST, weekend first, a year the holiday
+  table does not cover `unknown`, 09:15 and 15:30 live. `preOpen` is the whole morning before
+  09:15, not the 09:00-09:15 pre-open auction.
 - **v0.8.6** — the black-box strategy library as backend-go `main` serves it (production answers
   unsigned GETs with 401, so the routes are live), and web main's reading of it (18762240,
   0d48b657, 1f36fdaf, 9217049e as superseded by 4aa45cd1, 17f2d766, 69addf02, 0aa7b4dd); additive,

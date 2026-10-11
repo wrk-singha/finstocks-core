@@ -63,6 +63,13 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **Unreleased** — two web-parity changes, released on main as v0.9.0. One breaking type change:
+  `ChatWithMessages.messages` and `SharedChat.messages` are optional, because backend-go tags
+  `Chat.Messages` `omitempty` and a chat with nothing saved yet (just created, or its first turn
+  still being written) arrives without the key; a host that read the list unguarded must treat
+  absent as nothing saved yet. Additive: `marketMoment(now)` and `MarketMoment` (`preOpen`, `live`,
+  `closed`, `weekend`, `holiday`, `unknown`) in `market/marketHours`, web's moment for the chat
+  greeting, in IST; `preOpen` is the whole morning before 09:15, not the pre-open auction.
 - **Unreleased** — main's v0.8.6 (tagged on main), less what this branch already has (the
   dev-era library `97e4a5f`, the baskets' backtest maths `362658a`, `7bd6b76`): the black-box
   strategy library in backend-go `main`'s shapes, which production serves, and web main's reading

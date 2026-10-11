@@ -148,7 +148,10 @@ export function isMarketOpen(market = 'IN', now: Date = new Date()): boolean {
   return minutes >= SESSION_OPEN && minutes <= SESSION_CLOSE;
 }
 
-/** Where an instant falls in the NSE week, in IST: what the chat greeting is chosen by. */
+/**
+ * Where an instant falls in the NSE week, in IST: what the chat greeting is chosen by. `preOpen`
+ * is the whole morning before 09:15, not the 09:00-09:15 pre-open auction.
+ */
 export type MarketMoment =
   'preOpen' | 'live' | 'closed' | 'weekend' | 'holiday' | 'unknown';
 

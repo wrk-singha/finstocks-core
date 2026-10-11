@@ -11,6 +11,7 @@ import {
   marketDateString,
   marketDaysUntil,
   marketMinutesNow,
+  marketMoment,
   marketSession,
   marketToday,
   nextTradingDay,
@@ -114,4 +115,25 @@ test('the next trading day counts today only while its session is ahead', () => 
   assert.equal(nextTradingDay('IN', fridayOpen), '2026-09-11');
   assert.equal(nextTradingDay('IN', fridayEvening), '2026-09-15');
   assert.equal(nextTradingDay('IN', saturday), '2026-09-15');
+});
+
+test('the market moment reads the IST session, weekend and holiday table', () => {
+  assert.equal(marketMoment(fridayPreOpen), 'preOpen');
+  // 00:00 IST Friday is still Thursday in UTC.
+  assert.equal(marketMoment(new Date('2026-09-10T18:30:00Z')), 'preOpen');
+  assert.equal(marketMoment(new Date('2026-09-11T03:44:00Z')), 'preOpen');
+  assert.equal(marketMoment(new Date('2026-09-11T03:45:00Z')), 'live');
+  assert.equal(marketMoment(fridayOpen), 'live');
+  assert.equal(marketMoment(new Date('2026-09-11T10:00:00Z')), 'live');
+  assert.equal(marketMoment(new Date('2026-09-11T10:01:00Z')), 'closed');
+  assert.equal(marketMoment(fridayEvening), 'closed');
+  assert.equal(marketMoment(saturday), 'weekend');
+  // 05:00 IST Saturday, Friday evening in UTC.
+  assert.equal(marketMoment(new Date('2026-09-11T23:30:00Z')), 'weekend');
+  assert.equal(marketMoment(new Date('2026-09-14T05:00:00Z')), 'holiday');
+});
+
+test('a weekday past the holiday table is unknown, a weekend there still a weekend', () => {
+  assert.equal(marketMoment(new Date('2099-01-05T05:00:00Z')), 'unknown');
+  assert.equal(marketMoment(new Date('2099-01-03T05:00:00Z')), 'weekend');
 });

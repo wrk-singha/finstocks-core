@@ -329,6 +329,7 @@ export {
   marketDateString,
   marketDaysUntil,
   marketMinutesNow,
+  marketMoment,
   marketSession,
   marketToday,
   nextTradingDay,
@@ -336,6 +337,7 @@ export {
   SESSION_CLOSE,
   SESSION_OPEN,
 } from './marketHours.ts';
+export type {MarketMoment} from './marketHours.ts';
 
 export {mulberry32, percentileSorted} from './sampling.ts';
 

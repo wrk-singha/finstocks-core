@@ -169,3 +169,23 @@ export function marketSession(
     ? 'open'
     : 'closed';
 }
+
+/** Where an instant falls in the NSE week, in IST: what the chat greeting is chosen by. */
+export type MarketMoment =
+  'preOpen' | 'live' | 'closed' | 'weekend' | 'holiday' | 'unknown';
+
+/**
+ * The NSE moment at `now`, in IST. A weekday in a year the holiday table does
+ * not cover is `unknown` rather than a session day: it may be a holiday nobody
+ * has listed yet, so nothing says the market opens.
+ */
+export function marketMoment(now: Date): MarketMoment {
+  const today = marketToday(now);
+  const weekday = today.getUTCDay();
+  if (weekday === 0 || weekday === 6) return 'weekend';
+  if (!hasHolidayCalendar(today)) return 'unknown';
+  if (!isTradingDay(today)) return 'holiday';
+  const minutes = marketMinutesNow(now);
+  if (minutes < SESSION_OPEN) return 'preOpen';
+  return minutes <= SESSION_CLOSE ? 'live' : 'closed';
+}

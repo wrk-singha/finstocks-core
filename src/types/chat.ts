@@ -60,8 +60,9 @@ export interface Chat {
 
 export interface ChatWithMessages extends Chat {
   /**
-   * The backend tags this `omitempty`, so a chat with no messages yet (one just created and opened
-   * before its first send) arrives without the key at all. Absent means an empty thread.
+   * The backend tags this `omitempty`, so a chat with nothing saved yet arrives without the key at
+   * all: one just created, or one whose first turn is still being written. Absent means nothing is
+   * saved yet, not that nothing is happening.
    */
   messages?: ChatMessage[];
 }

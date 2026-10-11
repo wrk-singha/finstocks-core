@@ -217,6 +217,7 @@ export {livePriceFor, priceSymbolFor} from './livePrice.ts';
 
 export {
   addMarketDays,
+  hasHolidayCalendar,
   isMarketOpen,
   isTradingDay,
   lastSessionOpen,
@@ -224,11 +225,13 @@ export {
   marketDateString,
   marketDaysUntil,
   marketMinutesNow,
+  marketMoment,
   marketToday,
   nextTradingDay,
   SESSION_CLOSE,
   SESSION_OPEN,
 } from './marketHours.ts';
+export type {MarketMoment} from './marketHours.ts';
 
 export {
   buildFuturesSymbol,

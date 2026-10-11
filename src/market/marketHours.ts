@@ -77,6 +77,11 @@ export function marketMinutesNow(now: Date = new Date()): number {
   return (Number(get('hour')) % 24) * 60 + Number(get('minute'));
 }
 
+/** Whether the holiday table covers this UTC-midnight date's year: outside it a session day is a guess. */
+export function hasHolidayCalendar(date: Date, market = 'IN'): boolean {
+  return HOLIDAYS[market]?.[String(date.getUTCFullYear())] !== undefined;
+}
+
 /** Whether a UTC-midnight market date is a session day at all (not a weekend or holiday). */
 export function isTradingDay(date: Date, market = 'IN'): boolean {
   const weekday = date.getUTCDay();
@@ -141,4 +146,24 @@ export function isMarketOpen(market = 'IN', now: Date = new Date()): boolean {
   if (!isTradingDay(marketToday(now), market)) return false;
   const minutes = marketMinutesNow(now);
   return minutes >= SESSION_OPEN && minutes <= SESSION_CLOSE;
+}
+
+/** Where an instant falls in the NSE week, in IST: what the chat greeting is chosen by. */
+export type MarketMoment =
+  'preOpen' | 'live' | 'closed' | 'weekend' | 'holiday' | 'unknown';
+
+/**
+ * The NSE moment at `now`, in IST. A weekday in a year the holiday table does
+ * not cover is `unknown` rather than a session day: it may be a holiday nobody
+ * has listed yet, so nothing says the market opens.
+ */
+export function marketMoment(now: Date): MarketMoment {
+  const today = marketToday(now);
+  const weekday = today.getUTCDay();
+  if (weekday === 0 || weekday === 6) return 'weekend';
+  if (!hasHolidayCalendar(today)) return 'unknown';
+  if (!isTradingDay(today)) return 'holiday';
+  const minutes = marketMinutesNow(now);
+  if (minutes < SESSION_OPEN) return 'preOpen';
+  return minutes <= SESSION_CLOSE ? 'live' : 'closed';
 }

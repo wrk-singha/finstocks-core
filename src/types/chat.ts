@@ -59,7 +59,11 @@ export interface Chat {
 }
 
 export interface ChatWithMessages extends Chat {
-  messages: ChatMessage[];
+  /**
+   * The backend tags this `omitempty`, so a chat with no messages yet (one just created and opened
+   * before its first send) arrives without the key at all. Absent means an empty thread.
+   */
+  messages?: ChatMessage[];
 }
 
 export interface SendMessageRequest {
@@ -206,7 +210,11 @@ export interface SharedChat {
    */
   surface?: string;
   symbol?: string;
-  messages: SharedChatMessage[];
+  /**
+   * Same `omitempty` field as `ChatWithMessages.messages`: a chat shared before its first message
+   * (the share keeps only messages up to its creation) arrives without the key. Absent means none.
+   */
+  messages?: SharedChatMessage[];
 }
 
 /**

@@ -170,7 +170,10 @@ export function marketSession(
     : 'closed';
 }
 
-/** Where an instant falls in the NSE week, in IST: what the chat greeting is chosen by. */
+/**
+ * Where an instant falls in the NSE week, in IST: what the chat greeting is chosen by. `preOpen`
+ * is the whole morning before 09:15, not the 09:00-09:15 pre-open auction.
+ */
 export type MarketMoment =
   'preOpen' | 'live' | 'closed' | 'weekend' | 'holiday' | 'unknown';
 

@@ -253,7 +253,22 @@ const TICKER_VERDICTS: readonly (readonly [string, TickersHold | null])[] = [
   ['NaN', 'noSymbol'],
   ['nil', 'noSymbol'],
   ['xxx', 'noSymbol'],
+  ['XXXX', 'noSymbol'],
+  ['TBC', 'noSymbol'],
+  ['symbol', 'noSymbol'],
+  ['Ticker', 'noSymbol'],
+  ['unknown', 'noSymbol'],
   // Other spellings of an index, which isFnOSymbol reads as equities: by root, alias or underlying.
+  ['MIDCAPNIFTY', 'indexOrBasket'],
+  ['NSEBANK', 'indexOrBasket'],
+  ['NSEI', 'indexOrBasket'],
+  ['BSESN', 'indexOrBasket'],
+  ['BSE30', 'indexOrBasket'],
+  // An index's name anywhere in a clean, unlisted spelling: a fund on the index, or the index.
+  ['NIFTYIETF', 'indexOrBasket'],
+  ['SENSEXIETF', 'indexOrBasket'],
+  ['SETFNIFTY', 'indexOrBasket'],
+  ['MOBANKEX', 'indexOrBasket'],
   ['NIFTY50', 'indexOrBasket'],
   ['NIFTYBANK', 'indexOrBasket'],
   ['NIFTYFIN', 'indexOrBasket'],
@@ -265,11 +280,13 @@ const TICKER_VERDICTS: readonly (readonly [string, TickersHold | null])[] = [
   ['NIFTYINFRA', 'indexOrBasket'],
   ['NIFTYPSU', 'indexOrBasket'],
   ['NIFTYCONSUMPTION', 'indexOrBasket'],
-  // ETFs named from an index root: core lists none, so they cannot be told from an index, and are
-  // held. One named otherwise is a symbol like any other.
+  // ETFs named from an index's name: core lists none, so they cannot be told from an index, and are
+  // held. One named otherwise ("SETFNIF50" is SBI's Nifty 50 fund) is a security like any other: it
+  // trades in delivery, which no segment switch covers, as an equity does.
   ['NIFTYBEES', 'indexOrBasket'],
   ['NIFTY1', 'indexOrBasket'],
   ['BANKBEES', null],
+  ['SETFNIF50', null],
   // BSE Ltd, the one equity core lists that starts with an index's letters.
   ['BSE', null],
   // A contract on an index is F&O, as isFnOSymbol reads it.
@@ -280,11 +297,14 @@ const TICKER_VERDICTS: readonly (readonly [string, TickersHold | null])[] = [
   ['TCSINFY', null],
   // Length alone is capped at MAX_SYMBOL_LENGTH, no tighter.
   ['A'.repeat(28), null],
-  // A list is "several stocks" only when at least two of its parts are symbols.
+  // A list says what it names: several stocks when two or more are symbols and none an index; an
+  // index when it names one beside another name; and cannot be read beside fewer than two names.
   ['HDFCBANK, ICICIBANK, -', 'severalSymbols'],
   ['NA, TBD', 'unreadableSymbols'],
   ['RELIANCE, -', 'unreadableSymbols'],
-  ['NIFTY100, SENSEX', 'unreadableSymbols'],
+  ['NIFTY100, SENSEX', 'indexOrBasket'],
+  ['RELIANCE, NIFTY50', 'indexOrBasket'],
+  ['NIFTY, BANKNIFTY', 'severalSymbols'],
 ];
 
 test('tickers are exactly one clean symbol, or held for why: each spelling, its verdict and reason', () => {
@@ -312,7 +332,15 @@ test('every index-like spelling that can start reads as F&O, or is held', () => 
     'NIFTYBANK',
     'NIFTYFIN',
     'NIFTYNEXT50',
+    'MIDCAPNIFTY',
     'BSESENSEX',
+    'NSEBANK',
+    'NSEI',
+    'BSESN',
+    'BSE30',
+    'NIFTYIETF',
+    'SENSEXIETF',
+    'SETFNIFTY',
   ]);
   for (const index of [...NSE_INDICES, ...BSE_INDICES]) {
     spellings.add(index.symbol);
@@ -356,8 +384,9 @@ test('every index-like spelling that can start reads as F&O, or is held', () => 
   }
 });
 
-test('a symbol can be charted when it is one named part, and not a placeholder or a basket', () => {
-  // An index has bars, a non-tradable one included, and a suffixed spelling is still one name.
+test('a symbol can be charted when it is one name spelled as a symbol, and not a placeholder or a basket', () => {
+  // An index has bars, a non-tradable one included, and a listed equity with NSE's "-EQ" series
+  // suffix is still that equity.
   for (const symbol of [
     'HDFCBANK',
     'SENSEX',
@@ -365,12 +394,18 @@ test('a symbol can be charted when it is one named part, and not a placeholder o
     'NIFTY100',
     'INDIAVIX',
     'RELIANCE-EQ',
+    'M&M',
     'NIFTY 50',
   ]) {
     assert.equal(isChartSymbol(symbol), true, symbol);
   }
+  // A join is no one name, however it is spelled.
   for (const symbol of [
     'HDFCBANK, ICICIBANK',
+    'HDFCBANK ICICIBANK',
+    'HDFCBANK/ICICIBANK',
+    'HDFCBANK&ICICIBANK',
+    'TCS.INFY',
     'HDFCBANK,',
     'NSE500',
     'FNO',

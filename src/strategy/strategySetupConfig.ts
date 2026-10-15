@@ -109,6 +109,11 @@ const PLACEHOLDERS: ReadonlySet<string> = new Set([
   'NAN',
   'NIL',
   'XXX',
+  'XXXX',
+  'TBC',
+  'SYMBOL',
+  'TICKER',
+  'UNKNOWN',
 ]);
 
 /**
@@ -150,24 +155,34 @@ const LISTED_EQUITIES: ReadonlySet<string> = new Set([
  */
 const INDEX_ROOT = /^(NIFTY|BANKNIFTY|FINNIFTY|MIDCPNIFTY|SENSEX|BANKEX|CNX)/;
 
-/** Spellings of an index that neither core's index lists nor INDEX_ROOT reach. */
+/** Spellings of an index that neither core's index lists nor the index-name rule reach. */
 const INDEX_ALIASES: ReadonlySet<string> = new Set([
   'NIFTYBANK',
   'NIFTYFIN',
   'NIFTYNEXT50',
+  'MIDCAPNIFTY',
   'BSESENSEX',
+  'NSEBANK',
+  'NSEI',
+  'BSESN',
+  'BSE30',
 ]);
+
+/** An index's name anywhere in a spelling ("NIFTYIETF"); no equity core lists has one. */
+const INDEX_NAME_INSIDE = /NIFTY|SENSEX|BANKEX/;
 
 const isContract = (symbol: string): boolean =>
   parseOptionSymbol(symbol) !== null || parseFuturesSymbol(symbol) !== null;
 
 /**
- * A cleanly spelled symbol that is still an index: one that is not a contract and starts with an
- * index root ("NIFTY50", "NIFTYINFRA", "SENSEX30", "CNXIT"), or whose underlying is a tradable
- * index it is not. `isFnOSymbol` reads each of these as an equity, so a delivery card on one read
- * no segment's kill switch. A tradable index itself is not one, nor is an equity core lists, nor
- * a contract, which `isFnOSymbol` reads as F&O. Exchange-traded funds named from an index root
- * (NIFTYBEES, NIFTY1) are held with them: core lists none, so none can be told apart.
+ * A cleanly spelled symbol that is still an index, or a fund on one: one that is not a contract and
+ * starts with an index root ("NIFTY50", "NIFTYINFRA", "SENSEX30", "CNXIT"), carries an index's name
+ * anywhere ("NIFTYIETF", "SENSEXIETF"), or whose underlying is a tradable index it is not.
+ * `isFnOSymbol` reads each of these as an equity, so a delivery card on one read no segment's kill
+ * switch. A tradable index itself is not one, nor is an equity core lists (BSE, BANKBEES are
+ * spelled from no index name), nor a contract, which `isFnOSymbol` reads as F&O. Exchange-traded
+ * funds on an index (NIFTYBEES, NIFTY1) are held with them: core lists none, so none can be told
+ * apart.
  */
 const isIndexSpelling = (symbol: string): boolean => {
   if (
@@ -180,6 +195,7 @@ const isIndexSpelling = (symbol: string): boolean => {
   }
   return (
     INDEX_ROOT.test(symbol) ||
+    INDEX_NAME_INSIDE.test(symbol) ||
     TRADABLE_INDICES.includes(extractUnderlyingSymbol(symbol))
   );
 };
@@ -206,12 +222,13 @@ const isCleanSymbol = (symbol: string): boolean => {
  * Why `tickers` is not exactly one clean symbol, or null when it is:
  * - `noSymbol`: no part with anything in it (nothing, spaces, bare commas, not a string), or a
  *   placeholder ("-", "NA", "TBD", "null").
- * - `severalSymbols`: more than one part, at least two of them clean symbols.
+ * - `severalSymbols`: more than one part, at least two of them clean symbols and none an index.
  * - `unreadableSymbols`: a list that cannot be read: a stray comma beside one part (",HDFCBANK",
- *   "HDFCBANK,"), or several parts fewer than two of which are clean symbols ("NA, TBD",
+ *   "HDFCBANK,"), or several parts fewer than two of which name a symbol or an index ("NA, TBD",
  *   "RELIANCE, -").
- * - `indexOrBasket`: an index that is not one of the tradable ones, or a basket (`isIndexOrBasket`:
- *   "NIFTY100", "SENSEX", "NIFTY50", "CNXIT", "NSE500").
+ * - `indexOrBasket`: an index that is not one of the tradable ones, a fund on one, or a basket
+ *   (`isIndexSpelling`: "NIFTY100", "SENSEX", "NIFTY50", "CNXIT", "NIFTYBEES", "NSE500"); or a list
+ *   of at least two names one of which is ("RELIANCE, NIFTY50", "NIFTY100, SENSEX").
  * - `unreadableSymbol`: one part that is not one clean symbol (`isCleanSymbol`): separated some
  *   other way ("HDFCBANK ICICIBANK", "HDFCBANK;ICICIBANK", a newline), joined
  *   ("HDFCBANK&ICICIBANK", "TCS.INFY"), suffixed ("RELIANCE-EQ"), or too long. Each would go out
@@ -246,11 +263,15 @@ export function tickersHold(tickers: unknown): TickersHold | null {
   const parts = tickersOf(tickers);
   const named = parts.filter(part => part !== '');
   if (named.length === 0) return 'noSymbol';
-  // "Several stocks" only of a list that names at least two: placeholders or junk beside one, or
-  // none, are a list that cannot be read.
+  // A list says what it names: two or more symbols are several stocks, unless one is an index; and
+  // placeholders or junk beside fewer than two names are a list that cannot be read.
   if (named.length > 1) {
-    const clean = named.filter(part => partHold(part) === null);
-    return clean.length >= 2 ? 'severalSymbols' : 'unreadableSymbols';
+    const holds = named.map(partHold);
+    const names = holds.filter(
+      hold => hold === null || hold === 'indexOrBasket',
+    );
+    if (names.length < 2) return 'unreadableSymbols';
+    return names.includes('indexOrBasket') ? 'indexOrBasket' : 'severalSymbols';
   }
   const hold = partHold(named[0] ?? '');
   if (hold === 'noSymbol') return 'noSymbol';
@@ -258,18 +279,28 @@ export function tickersHold(tickers: unknown): TickersHold | null {
 }
 
 /**
- * Whether `symbol` can be charted: exactly one named part, and not a placeholder or a basket. Not
- * the rule a strategy starts by (`tickersHold`): an index, a non-tradable one included, has bars,
- * and a plan without code is only looked at.
+ * Whether `symbol` can be charted: exactly one named part, not a placeholder or a basket, spelled
+ * as one symbol (`isCleanSymbol`, a tradable index's spaced name included) or an equity core lists,
+ * itself or with NSE's "-EQ" series suffix ("RELIANCE-EQ", which `extractUnderlyingSymbol` reads as
+ * RELIANCE). Never a join ("HDFCBANK ICICIBANK", "HDFCBANK/ICICIBANK", "HDFCBANK&ICICIBANK",
+ * "TCS.INFY"). Not the rule a strategy starts by (`tickersHold`): an index, a non-tradable one
+ * included, has bars, and a plan without code is only looked at.
  */
 export function isChartSymbol(symbol: unknown): boolean {
   const parts = tickersOf(symbol);
   const only = (parts[0] ?? '').toUpperCase();
+  if (
+    parts.length !== 1 ||
+    only === '' ||
+    PLACEHOLDERS.has(only) ||
+    BASKETS.has(only)
+  ) {
+    return false;
+  }
   return (
-    parts.length === 1 &&
-    only !== '' &&
-    !PLACEHOLDERS.has(only) &&
-    !BASKETS.has(only)
+    isCleanSymbol(only) ||
+    LISTED_EQUITIES.has(only) ||
+    (only.endsWith('-EQ') && LISTED_EQUITIES.has(only.slice(0, -3)))
   );
 }
 

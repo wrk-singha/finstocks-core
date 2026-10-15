@@ -63,6 +63,20 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.9.4** — one clean symbol is one a strategy can trade; a narrowing of `tickersHold` (so of
+  `scriptRunOf`) and two new reasons. Any run of letters, digits and `& . _ -` passed, so
+  non-tradable indices ("NIFTY100", "SENSEX"), core's own baskets ("NSE500", "FNO", "ALL"),
+  placeholders ("-", "NA") and joins ("HDFCBANK&ICICIBANK", "TCS.INFY", "RELIANCE.NS") started as
+  one symbol, most reading no segment's kill switch. Now one symbol has a letter, letters and
+  digits only, an `&` or `-` only where an equity core lists carries one (`NIFTY100_SYMBOLS`, the
+  2058 NSE equities the app resolves, and `FNO_STOCK_UNDERLYINGS`; itself or as a contract's
+  underlying), a `.` only in an option's strike, and at most `MAX_SYMBOL_LENGTH` (28: the ISO
+  option spelling on a 10-letter underlying with a 6-digit, one-decimal strike, measured; core's
+  longest tested spelling is 25). Placeholders ("-", ".", "NA", "N/A", "NONE", "TBD") are
+  `noSymbol`; every NSE or BSE index outside `TRADABLE_INDICES`, by symbol or name, and every
+  `BASKETS` name is the new `indexOrBasket`; one part that is not a symbol is the new
+  `unreadableSymbol`, and `unreadableSymbols` is left to stray commas. `strategyConflicts`
+  exports `BASKETS`.
 - **v0.9.3** — a C strategy card starts only on exactly one clean symbol; one more narrowing of
   `scriptRunOf`, otherwise additive. Only a comma separated symbols, so "HDFCBANK ICICIBANK",
   "HDFCBANK;ICICIBANK", "HDFCBANK/ICICIBANK" or a newline read as one symbol, started, and went

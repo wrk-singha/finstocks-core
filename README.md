@@ -63,6 +63,16 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.9.1** — a C strategy card is `script_entry` `"evaluate_v2"` or `"evaluate_v3"`, as web main
+  reads it (5b02f608: v2 runs one symbol, v3 every symbol of the row in one call); additive. Before
+  it a v3 card read as a plan without code, so a host showed it retired with nothing to start.
+  `strategy/strategySetupConfig` gains `SCRIPT_ENTRIES_C` and `isScriptEntry(entry)`, an exact
+  match of that set; `scriptRunOf` and `isScriptCard` read through it. Web matches
+  `/^evaluate(_v\d+)?$/`; the set keeps an entry not shipped yet (`evaluate_v4`, a bare
+  `evaluate`) a card that cannot be started. `SCRIPT_ENTRY_C` is still exported and still v2 alone.
+  Requests are unchanged: no strategy-action body names an entry, as backend-go main's
+  `StrategyActionRequest` has no such field and passes Athena only `code`, `script_hash` and
+  `script_sig`, and web sends none; a v3 card's requests carry its own code, hash and signature.
 - **v0.9.0** — a minor for one breaking type change, with one additive helper, both for web
   parity. `ChatWithMessages.messages` and `SharedChat.messages` are optional: backend-go tags
   `Chat.Messages` `omitempty` (on `main` and `dev` since 12 Sep), so `GET /chats/{id}` and the

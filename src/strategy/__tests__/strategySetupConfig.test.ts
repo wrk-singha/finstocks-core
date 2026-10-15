@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
+import {BSE_INDICES, NSE_INDICES} from '../../data/stocksData.ts';
+import {isFnOSymbol} from '../../market/symbols.ts';
+
 import {
   extractSetupConfig,
+  isChartSymbol,
   isOneSymbol,
   isScriptCard,
   isScriptEntry,
@@ -243,6 +247,44 @@ const TICKER_VERDICTS: readonly (readonly [string, TickersHold | null])[] = [
   ['N/A', 'noSymbol'],
   ['none', 'noSymbol'],
   ['TBD', 'noSymbol'],
+  ['TBA', 'noSymbol'],
+  ['null', 'noSymbol'],
+  ['undefined', 'noSymbol'],
+  ['NaN', 'noSymbol'],
+  ['nil', 'noSymbol'],
+  ['xxx', 'noSymbol'],
+  // Other spellings of an index, which isFnOSymbol reads as equities: by root, alias or underlying.
+  ['NIFTY50', 'indexOrBasket'],
+  ['NIFTYBANK', 'indexOrBasket'],
+  ['NIFTYFIN', 'indexOrBasket'],
+  ['NIFTYNEXT50', 'indexOrBasket'],
+  ['SENSEX30', 'indexOrBasket'],
+  ['BSESENSEX', 'indexOrBasket'],
+  ['CNXIT', 'indexOrBasket'],
+  // NSE indices core's list does not carry.
+  ['NIFTYINFRA', 'indexOrBasket'],
+  ['NIFTYPSU', 'indexOrBasket'],
+  ['NIFTYCONSUMPTION', 'indexOrBasket'],
+  // ETFs named from an index root: core lists none, so they cannot be told from an index, and are
+  // held. One named otherwise is a symbol like any other.
+  ['NIFTYBEES', 'indexOrBasket'],
+  ['NIFTY1', 'indexOrBasket'],
+  ['BANKBEES', null],
+  // BSE Ltd, the one equity core lists that starts with an index's letters.
+  ['BSE', null],
+  // A contract on an index is F&O, as isFnOSymbol reads it.
+  ['BANKNIFTY24OCT52000CE', null],
+  ['SENSEX24OCTFUT', null],
+  // Two symbols joined in letters alone cannot be told from one: core's equity list is what the
+  // app resolves, not all of NSE. It starts, and trades nothing.
+  ['TCSINFY', null],
+  // Length alone is capped at MAX_SYMBOL_LENGTH, no tighter.
+  ['A'.repeat(28), null],
+  // A list is "several stocks" only when at least two of its parts are symbols.
+  ['HDFCBANK, ICICIBANK, -', 'severalSymbols'],
+  ['NA, TBD', 'unreadableSymbols'],
+  ['RELIANCE, -', 'unreadableSymbols'],
+  ['NIFTY100, SENSEX', 'unreadableSymbols'],
 ];
 
 test('tickers are exactly one clean symbol, or held for why: each spelling, its verdict and reason', () => {
@@ -260,6 +302,83 @@ test('tickers are exactly one clean symbol, or held for why: each spelling, its 
   for (const notString of [['HDFCBANK'], 7, null, undefined, {}]) {
     assert.equal(tickersHold(notString), 'noSymbol');
     assert.deepEqual(tickersOf(notString), []);
+  }
+});
+
+// The F&O switch is read by isFnOSymbol. An index-like spelling that started while it read as an
+// equity traded under no segment switch at all on a delivery card.
+test('every index-like spelling that can start reads as F&O, or is held', () => {
+  const spellings = new Set<string>([
+    'NIFTYBANK',
+    'NIFTYFIN',
+    'NIFTYNEXT50',
+    'BSESENSEX',
+  ]);
+  for (const index of [...NSE_INDICES, ...BSE_INDICES]) {
+    spellings.add(index.symbol);
+    spellings.add(index.name);
+  }
+  for (const root of [
+    'NIFTY',
+    'BANKNIFTY',
+    'FINNIFTY',
+    'MIDCPNIFTY',
+    'SENSEX',
+    'BANKEX',
+    'CNX',
+  ]) {
+    for (const tail of [
+      '',
+      '1',
+      '30',
+      '50',
+      '100',
+      'BANK',
+      'BEES',
+      'FIN',
+      'INFRA',
+      'IT',
+      'NEXT50',
+      'PSU',
+      ' 50',
+      ' BANK',
+      '24OCTFUT',
+      '24OCT24500CE',
+    ]) {
+      spellings.add(root + tail);
+    }
+  }
+  for (const symbol of spellings) {
+    assert.ok(
+      tickersHold(symbol) !== null || isFnOSymbol(symbol),
+      `${symbol} starts and reads as an equity`,
+    );
+  }
+});
+
+test('a symbol can be charted when it is one named part, and not a placeholder or a basket', () => {
+  // An index has bars, a non-tradable one included, and a suffixed spelling is still one name.
+  for (const symbol of [
+    'HDFCBANK',
+    'SENSEX',
+    'NIFTYIT',
+    'NIFTY100',
+    'INDIAVIX',
+    'RELIANCE-EQ',
+    'NIFTY 50',
+  ]) {
+    assert.equal(isChartSymbol(symbol), true, symbol);
+  }
+  for (const symbol of [
+    'HDFCBANK, ICICIBANK',
+    'HDFCBANK,',
+    'NSE500',
+    'FNO',
+    'NA',
+    '',
+    7,
+  ]) {
+    assert.equal(isChartSymbol(symbol), false, String(symbol));
   }
 });
 

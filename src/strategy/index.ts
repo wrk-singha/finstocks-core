@@ -122,6 +122,7 @@ export type {
 } from './strategyRunOptions.ts';
 export {
   extractSetupConfig,
+  isChartSymbol,
   isOneSymbol,
   isScriptCard,
   isScriptEntry,

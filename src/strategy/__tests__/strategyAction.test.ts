@@ -9,6 +9,7 @@ import {
   strategyActionRefusal,
   strategyActionSettleMs,
 } from '../strategyAction.ts';
+import {scriptRunOf} from '../strategySetupConfig.ts';
 
 const settings: RunSettings = {
   symbol: 'HDFCBANK',
@@ -74,6 +75,50 @@ test('every action carries the card’s code signature when it has one, and none
     'script_sig' in replaceAction(scriptAction('live', settings, script), 'v'),
     false,
   );
+});
+
+// The money line of a v3 card: whatever its entry, every request is built from the card's own code,
+// hash and signature, never a stored or default script. No request names an entry at all: neither
+// backend-go's strategy-action nor web's request has the field, so an entry put here would be
+// dropped unread, and a constant one would be a claim about the code that nothing checks.
+test('every request of an evaluate_v3 card carries that card’s own code, hash and signature, and no entry', () => {
+  const terms = {
+    script_entry: 'evaluate_v3',
+    script:
+      'def evaluate_v3(ctx, symbols):\n    return {s: ctx.hold() for s in symbols}',
+    script_hash: 'v3-hash',
+    script_sig: 'v3-sig',
+    strategy_id: '6f1c2a7e-0d4b-4c3e-9a1f-2b3c4d5e6f70',
+  };
+  const run = scriptRunOf(terms);
+  assert.ok(run);
+  const own = {
+    script: terms.script,
+    script_hash: 'v3-hash',
+    script_sig: 'v3-sig',
+  };
+  const requests = (['backtest', 'forward', 'live'] as const).map(kind =>
+    scriptAction(kind, settings, run),
+  );
+  const live = requests[2];
+  assert.ok(live);
+  requests.push(replaceAction(live, 'live-v2'));
+  assert.deepEqual(
+    requests.map(request => request.action),
+    ['backtest', 'deploy', 'deploy_live', 'replace'],
+  );
+  for (const request of requests) {
+    assert.deepEqual(
+      {
+        script: request.script,
+        script_hash: request.script_hash,
+        script_sig: request.script_sig,
+      },
+      own,
+    );
+    assert.equal('script_entry' in request, false);
+    assert.equal(JSON.stringify(request).includes('evaluate_v2'), false);
+  }
 });
 
 test('a replace is the same request, as a replace of the version the 409 named', () => {

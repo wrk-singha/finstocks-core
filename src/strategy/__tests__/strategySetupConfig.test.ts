@@ -4,7 +4,10 @@ import {test} from 'node:test';
 import {
   extractSetupConfig,
   isScriptCard,
+  isScriptEntry,
   normalizeSetupKey,
+  SCRIPT_ENTRIES_C,
+  SCRIPT_ENTRY_C,
   scriptRunOf,
   setupConfig,
   termsToConfig,
@@ -39,6 +42,68 @@ test('a C strategy card is its code, its hash and the rows it was saved as; noth
   assert.equal(scriptRunOf(without(terms, 'script_hash')), null);
   assert.equal(scriptRunOf(undefined), null);
   assert.equal(isScriptCard({}), false);
+});
+
+// Web 5b02f608: llm writes a C card's code against evaluate_v2 (one symbol) or evaluate_v3 (every
+// symbol of the row in one call). Without v3 here, a v3 card read as one without code: retired, its
+// Start, Backtest and Deploy locked.
+test('a C card is either known entry, evaluate_v2 or evaluate_v3, and its run is its own code', () => {
+  const v3 = {
+    tickers: 'HDFCBANK, ICICIBANK',
+    script_entry: 'evaluate_v3',
+    script: 'def evaluate_v3(ctx, symbols): ...',
+    script_hash: 'v3-hash',
+    script_sig: 'v3-sig',
+    strategy_id: '6f1c2a7e-0d4b-4c3e-9a1f-2b3c4d5e6f70',
+    backtest_id: '0b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d',
+  };
+  assert.deepEqual(SCRIPT_ENTRIES_C, ['evaluate_v2', 'evaluate_v3']);
+  for (const entry of SCRIPT_ENTRIES_C) {
+    assert.equal(isScriptEntry(entry), true);
+    assert.equal(isScriptCard({terms: {...v3, script_entry: entry}}), true);
+  }
+  // The card's own code, hash and signature, whichever entry it names: nothing is swapped in.
+  assert.deepEqual(scriptRunOf(v3), {
+    script: 'def evaluate_v3(ctx, symbols): ...',
+    scriptHash: 'v3-hash',
+    scriptSig: 'v3-sig',
+    strategyId: v3.strategy_id,
+    backtestId: v3.backtest_id,
+  });
+});
+
+// A known set, not web's /^evaluate(_v\d+)?$/: an ABI nobody has shipped stays a card that cannot
+// be started, rather than code sent to an engine that may not run it.
+test('any other entry is not a C card: not a later version, not a near miss, not empty', () => {
+  const terms = {
+    script: 'def evaluate_v4(ctx): ...',
+    script_hash: 'abc123',
+    script_sig: 'sig-1',
+  };
+  for (const entry of [
+    'evaluate_v4',
+    'evaluate_v1',
+    'evaluate_v30',
+    'evaluate',
+    '',
+    'EVALUATE_V3',
+    ' evaluate_v3',
+    'evaluate_v3 ',
+    'evaluate_v3x',
+    'evaluate_v',
+  ]) {
+    assert.equal(isScriptEntry(entry), false, entry);
+    assert.equal(scriptRunOf({...terms, script_entry: entry}), null, entry);
+  }
+  for (const entry of [undefined, null, 3, ['evaluate_v3']]) {
+    assert.equal(isScriptEntry(entry), false);
+    assert.equal(
+      scriptRunOf({...terms, script_entry: entry as unknown as string}),
+      null,
+    );
+  }
+  // The single entry v0.9.0 exported is still v2 alone, for a host that imported it.
+  assert.equal(SCRIPT_ENTRY_C, 'evaluate_v2');
 });
 
 test('a C card’s code signature is carried exactly when the card carries one', () => {

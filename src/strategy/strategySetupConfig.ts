@@ -34,22 +34,45 @@ export interface SetupConfig {
 export const normalizeSetupKey = (k: string): string =>
   k.toLowerCase().replace(/\s+/g, '_');
 
-/** The `script_entry` that marks a C strategy card. */
+/**
+ * The `script_entry` values that mark a C strategy card: the ABI the llm writes the card's code
+ * against, `evaluate_v2` (one symbol) or `evaluate_v3` (every symbol of the row in one call), as
+ * web reads them (5b02f608). A known set, where web matches `/^evaluate(_v\d+)?$/`: an entry not
+ * shipped yet (`evaluate_v4`) or a bare `evaluate` stays a card that cannot be started, rather
+ * than one whose code goes to an engine nobody has seen run it.
+ *
+ * The entry is read, never sent: backend-go's strategy-action has no such field and hands Athena
+ * only the card's code, its hash and its signature, so the code itself is what names its entry.
+ */
+export const SCRIPT_ENTRIES_C: readonly string[] = [
+  'evaluate_v2',
+  'evaluate_v3',
+];
+
+/** Whether `entry` is exactly one of `SCRIPT_ENTRIES_C`. */
+export const isScriptEntry = (entry: unknown): entry is string =>
+  typeof entry === 'string' && SCRIPT_ENTRIES_C.includes(entry);
+
+/**
+ * The v2 entry alone, as v0.9.0 and earlier exported it. Not what makes a card a C card (that is
+ * any of `SCRIPT_ENTRIES_C`, `isScriptEntry`), and never sent or put in place of a card's own.
+ */
 export const SCRIPT_ENTRY_C = 'evaluate_v2';
 
 /**
- * The card's C strategy, when it is one: `script_entry` "evaluate_v2" with its code and the
- * code's hash, and the code's signature when the card carries one (an empty one is none, as the
- * backend reads it). Such a card runs only from its own buttons and only through `strategy-action`:
- * a create-backtest sent for it has no FSM to send (refused), or an FSM that is not the card's
- * code (deployed as a different rule). Null for every other card, including a composed
- * "script_preview" whose `script` is a receipt rather than an entry point.
+ * The card's C strategy, when it is one: a `script_entry` of `SCRIPT_ENTRIES_C` with its code and
+ * the code's hash, and the code's signature when the card carries one (an empty one is none, as
+ * the backend reads it). Such a card runs only from its own buttons and only through
+ * `strategy-action`: a create-backtest sent for it has no FSM to send (refused), or an FSM that is
+ * not the card's code (deployed as a different rule). Null for every other card, including a
+ * composed "script_preview" whose `script` is a receipt rather than an entry point.
  */
 export function scriptRunOf(
   terms: BacktestSetupTerms | null | undefined,
 ): ScriptRun | null {
   if (
-    terms?.script_entry !== SCRIPT_ENTRY_C ||
+    !terms ||
+    !isScriptEntry(terms.script_entry) ||
     typeof terms.script !== 'string' ||
     terms.script === '' ||
     typeof terms.script_hash !== 'string' ||

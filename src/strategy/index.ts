@@ -123,7 +123,9 @@ export type {
 export {
   extractSetupConfig,
   isScriptCard,
+  isScriptEntry,
   normalizeSetupKey,
+  SCRIPT_ENTRIES_C,
   SCRIPT_ENTRY_C,
   scriptRunOf,
   setupConfig,

@@ -179,10 +179,11 @@ const isContract = (symbol: string): boolean =>
  * starts with an index root ("NIFTY50", "NIFTYINFRA", "SENSEX30", "CNXIT"), carries an index's name
  * anywhere ("NIFTYIETF", "SENSEXIETF"), or whose underlying is a tradable index it is not.
  * `isFnOSymbol` reads each of these as an equity, so a delivery card on one read no segment's kill
- * switch. A tradable index itself is not one, nor is an equity core lists (BSE, BANKBEES are
- * spelled from no index name), nor a contract, which `isFnOSymbol` reads as F&O. Exchange-traded
- * funds on an index (NIFTYBEES, NIFTY1) are held with them: core lists none, so none can be told
- * apart.
+ * switch. A tradable index itself is not one, nor is an equity core lists, nor a contract, which
+ * `isFnOSymbol` reads as F&O. Core lists no exchange-traded fund: one spelled from an index's name
+ * (NIFTYBEES, NIFTY1, NIFTYIETF) cannot be told from the index and is held with it; one spelled
+ * otherwise (BANKBEES, JUNIORBEES, SETFNIF50) is not caught here and starts, as a security that
+ * trades in delivery. BSE (BSE Ltd), which core lists, starts too.
  */
 const isIndexSpelling = (symbol: string): boolean => {
   if (

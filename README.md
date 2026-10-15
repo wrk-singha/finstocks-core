@@ -63,11 +63,19 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.9.7** — comments only, no change in behaviour. `isIndexSpelling`'s note now says which
+  exchange-traded funds are held (those spelled from an index's name, as core lists no fund) and
+  which start (BANKBEES, JUNIORBEES, SETFNIF50), and that BSE starts as a listed equity. The v0.9.6
+  entry below said that every spelling containing NIFTY, SENSEX or BANKEX is held; the tradable
+  indices themselves (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY) and their contracts are not, and it
+  now says so.
 - **v0.9.6** — an index's name anywhere is an index, and a list says what it names; a narrowing of
   `tickersHold` and of `isChartSymbol`. "MIDCAPNIFTY", "NSEBANK", "NSEI", "BSESN" and "BSE30" are
   named aliases, and a clean, unlisted, non-contract spelling that contains NIFTY, SENSEX or
-  BANKEX is `indexOrBasket` (index funds such as "NIFTYIETF" with them: core lists no fund); no
-  equity core lists contains one, and "BSE" and "BANKBEES" still start. Placeholders add XXXX,
+  BANKEX is `indexOrBasket` (index funds such as "NIFTYIETF" with them: core lists no fund),
+  except the tradable indices themselves (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY) and their
+  contracts, which start as before; no equity core lists contains one, and "BSE" and "BANKBEES"
+  still start. Placeholders add XXXX,
   TBC, SYMBOL, TICKER and UNKNOWN. A list of two or more names is `indexOrBasket` when one is an
   index ("RELIANCE, NIFTY50"), `severalSymbols` otherwise, and `unreadableSymbols` only beside
   fewer than two names. `isChartSymbol` charts one name spelled as a symbol, or a listed equity

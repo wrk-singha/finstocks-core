@@ -63,6 +63,18 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.9.2** — a C strategy card is started only on one symbol whose code the engine can run; one
+  narrowing of `scriptRunOf`, otherwise additive. Every run of a C card sends its `tickers` as one
+  `symbol`, which backend-go main's `cardRow` makes a single symbol ("HDFCBANK, ICICIBANK", no
+  runner trades it) while the card says Running and shows one amount for what the code may buy of
+  each; v0.9.1 made multi-symbol v3 cards startable, and v2 cards naming several always were.
+  `scriptCardHold(terms)` (`ScriptCardHold`) says why a C card is held: `notRunnable`
+  (`runnable: false`, which web ignores), `noSymbol` (its `tickers` name none) or
+  `severalSymbols`. `scriptRunOf` is null for a held card, so no request is built for one;
+  `isScriptCard` is still true for it (its rules are its code). `tickersOf(tickers)` and
+  `TICKER_SEPARATOR` are the one split rule, a comma with any spaces around it, a stray comma kept
+  as an empty part; `resolveStrategyChartSymbol` reads it, refusing what it refused.
+  `SCRIPT_ENTRIES_C` is frozen.
 - **v0.9.1** — a C strategy card is `script_entry` `"evaluate_v2"` or `"evaluate_v3"`, as web main
   reads it (5b02f608: v2 runs one symbol, v3 every symbol of the row in one call); additive. Before
   it a v3 card read as a plan without code, so a host showed it retired with nothing to start.

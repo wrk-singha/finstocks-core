@@ -63,6 +63,15 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.9.6** — an index's name anywhere is an index, and a list says what it names; a narrowing of
+  `tickersHold` and of `isChartSymbol`. "MIDCAPNIFTY", "NSEBANK", "NSEI", "BSESN" and "BSE30" are
+  named aliases, and a clean, unlisted, non-contract spelling that contains NIFTY, SENSEX or
+  BANKEX is `indexOrBasket` (index funds such as "NIFTYIETF" with them: core lists no fund); no
+  equity core lists contains one, and "BSE" and "BANKBEES" still start. Placeholders add XXXX,
+  TBC, SYMBOL, TICKER and UNKNOWN. A list of two or more names is `indexOrBasket` when one is an
+  index ("RELIANCE, NIFTY50"), `severalSymbols` otherwise, and `unreadableSymbols` only beside
+  fewer than two names. `isChartSymbol` charts one name spelled as a symbol, or a listed equity
+  itself or with "-EQ", never a join ("HDFCBANK ICICIBANK", "HDFCBANK&ICICIBANK", "TCS.INFY").
 - **v0.9.5** — any spelling of an index is an index; a narrowing of `tickersHold`, and
   `isChartSymbol`. Index aliases passed as letters and digits and `isFnOSymbol` read them as
   equities, so a delivery card on one read no segment switch: "NIFTY50", "NIFTYBANK",

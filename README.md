@@ -63,6 +63,17 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.9.3** — a C strategy card starts only on exactly one clean symbol; one more narrowing of
+  `scriptRunOf`, otherwise additive. Only a comma separated symbols, so "HDFCBANK ICICIBANK",
+  "HDFCBANK;ICICIBANK", "HDFCBANK/ICICIBANK" or a newline read as one symbol, started, and went
+  out joined all the same. `tickersHold(tickers)` (`TickersHold`) is the rule and `isOneSymbol`
+  its yes: no part with anything in it is `noSymbol`; more than one is `severalSymbols`; one,
+  beside a stray comma (",HDFCBANK", "HDFCBANK,") or not spelled as a symbol (letters, digits and
+  `& . _ -`, or a `TRADABLE_INDICES` index by its spaced `NSE_INDICES` name, "NIFTY 50", "NIFTY
+  BANK"), is the new `unreadableSymbols`. `ScriptCardHold` gains it; `scriptCardHold` reads the
+  rule after `runnable: false`. `tickers` that are not a string name no symbol: `tickersOf`,
+  `tickersHold` and `termsToConfig` no longer throw on an array or a number. `market/symbols`
+  exports `TRADABLE_INDICES`.
 - **v0.9.2** — a C strategy card is started only on one symbol whose code the engine can run; one
   narrowing of `scriptRunOf`, otherwise additive. Every run of a C card sends its `tickers` as one
   `symbol`, which backend-go main's `cardRow` makes a single symbol ("HDFCBANK, ICICIBANK", no

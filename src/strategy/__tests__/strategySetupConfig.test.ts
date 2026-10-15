@@ -6,6 +6,7 @@ import {
   isOneSymbol,
   isScriptCard,
   isScriptEntry,
+  MAX_SYMBOL_LENGTH,
   normalizeSetupKey,
   SCRIPT_ENTRIES_C,
   SCRIPT_ENTRY_C,
@@ -176,10 +177,23 @@ const TICKER_VERDICTS: readonly (readonly [string, TickersHold | null])[] = [
   ['HDFCBANK', null],
   [' HDFCBANK ', null],
   ['hdfcbank', null],
+  // An & or a - only where a listed equity carries one, itself or under a contract.
   ['M&M', null],
   ['BAJAJ-AUTO', null],
+  ['J&KBANK', null],
+  ['BAJAJ-AUTO26SEP9000CE', null],
+  ['20MICRONS', null],
   ['NIFTY24OCTFUT', null],
-  // The tradable indices by their spaced names, as NSE_INDICES spells them.
+  ['NIFTY24OCT24500CE', null],
+  // The longest F&O spelling core parses is MAX_SYMBOL_LENGTH, 28; one longer is not a symbol. A
+  // `.` only as an option strike's decimal.
+  ['NIFTYNXT502026102770000CE', null],
+  ['TATASTEEL26SEP187.5CE', null],
+  ['MIDCPNIFTY20261028123456.5CE', null],
+  ['MIDCPNIFTY20261028123456.55CE', 'unreadableSymbol'],
+  // The tradable indices, by symbol and by their spaced names, as NSE_INDICES spells them.
+  ['NIFTY', null],
+  ['BANKNIFTY', null],
   ['NIFTY 50', null],
   ['NIFTY BANK', null],
   ['nifty bank', null],
@@ -189,21 +203,51 @@ const TICKER_VERDICTS: readonly (readonly [string, TickersHold | null])[] = [
   [',HDFCBANK', 'unreadableSymbols'],
   ['HDFCBANK,', 'unreadableSymbols'],
   ['HDFCBANK, ,', 'unreadableSymbols'],
-  ['HDFCBANK ICICIBANK', 'unreadableSymbols'],
-  ['HDFCBANK;ICICIBANK', 'unreadableSymbols'],
-  ['HDFCBANK/ICICIBANK', 'unreadableSymbols'],
-  ['HDFCBANK\nICICIBANK', 'unreadableSymbols'],
-  ['NIFTY  50', 'unreadableSymbols'],
-  // An index with a space that is not one of the tradable ones is not taken on trust.
-  ['NIFTY 100', 'unreadableSymbols'],
+  ['HDFCBANK ICICIBANK', 'unreadableSymbol'],
+  ['HDFCBANK;ICICIBANK', 'unreadableSymbol'],
+  ['HDFCBANK/ICICIBANK', 'unreadableSymbol'],
+  ['HDFCBANK\nICICIBANK', 'unreadableSymbol'],
+  ['NIFTY  50', 'unreadableSymbol'],
+  // Joined, suffixed, dotted or underscored: each goes out as one symbol no runner trades.
+  ['HDFCBANK&ICICIBANK', 'unreadableSymbol'],
+  ['NIFTY&BANKNIFTY', 'unreadableSymbol'],
+  ['TCS.INFY', 'unreadableSymbol'],
+  ['RELIANCE.NS', 'unreadableSymbol'],
+  ['NIFTY_BANKNIFTY', 'unreadableSymbol'],
+  ['RELIANCE-EQ', 'unreadableSymbol'],
+  ['500325', 'unreadableSymbol'],
+  ['A'.repeat(29), 'unreadableSymbol'],
+  // Indices that are not the tradable ones, by symbol or by name, and core's basket names.
+  ['NIFTY100', 'indexOrBasket'],
+  ['NIFTY 100', 'indexOrBasket'],
+  ['NIFTY500', 'indexOrBasket'],
+  ['NIFTYIT', 'indexOrBasket'],
+  ['NIFTYNXT50', 'indexOrBasket'],
+  ['INDIAVIX', 'indexOrBasket'],
+  ['SENSEX', 'indexOrBasket'],
+  ['BANKEX', 'indexOrBasket'],
+  ['BSE SENSEX', 'indexOrBasket'],
+  ['NSE500', 'indexOrBasket'],
+  ['FNO', 'indexOrBasket'],
+  ['ALL', 'indexOrBasket'],
+  ['CUSTOM_LIST', 'indexOrBasket'],
   ['', 'noSymbol'],
   [' ', 'noSymbol'],
   [',', 'noSymbol'],
   [', ', 'noSymbol'],
   [' , , ', 'noSymbol'],
+  // What a card writes where it has none.
+  ['-', 'noSymbol'],
+  ['.', 'noSymbol'],
+  ['NA', 'noSymbol'],
+  ['N/A', 'noSymbol'],
+  ['none', 'noSymbol'],
+  ['TBD', 'noSymbol'],
 ];
 
 test('tickers are exactly one clean symbol, or held for why: each spelling, its verdict and reason', () => {
+  // The cap is the longest spelling it must admit, measured.
+  assert.equal('MIDCPNIFTY20261028123456.5CE'.length, MAX_SYMBOL_LENGTH);
   for (const [tickers, reason] of TICKER_VERDICTS) {
     assert.equal(tickersHold(tickers), reason, JSON.stringify(tickers));
     assert.equal(

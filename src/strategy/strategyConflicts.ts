@@ -7,7 +7,13 @@ import {isInProgress} from './strategyStatus.ts';
 // the single key "NIFTY" and so made an index strategy conflict with a plan on
 // an unrelated stock. The digit/space/end anchor keeps tradeable tickers that
 // merely start with an index name (NIFTYBEES) in the comparison.
-const BASKETS = new Set(['CUSTOM_LIST', 'ALL', 'FNO', 'NSE500']);
+/** Basket names a strategy's symbol can carry for a universe; none is one symbol. */
+export const BASKETS: ReadonlySet<string> = new Set([
+  'CUSTOM_LIST',
+  'ALL',
+  'FNO',
+  'NSE500',
+]);
 const INDEX_NAME =
   /^(NIFTY|BANKNIFTY|FINNIFTY|MIDCPNIFTY|SENSEX|BANKEX)(\s|\d|$)/;
 

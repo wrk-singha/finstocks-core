@@ -7,8 +7,16 @@
  * the `fsm` passthrough, the "1h" timeframe token and the WATCHLIST execution mode - the
  * mobile copy is the older row-parsing subset with none of those.
  */
-import {NSE_INDICES} from '../data/stocksData.ts';
+import {
+  BSE_INDICES,
+  FNO_STOCK_UNDERLYINGS,
+  NIFTY100_SYMBOLS,
+  NSE_INDICES,
+} from '../data/stocksData.ts';
+import {parseFuturesSymbol} from '../market/futuresSymbol.ts';
+import {parseOptionSymbol} from '../market/optionContract.ts';
 import {TRADABLE_INDICES} from '../market/symbols.ts';
+import {BASKETS} from './strategyConflicts.ts';
 import type {BacktestSetupTerms} from '../types/backtest.ts';
 import type {ConsoleSizingMode} from '../types/console.ts';
 import type {ScriptRun} from '../types/strategyRun.ts';
@@ -77,12 +85,41 @@ export const tickersOf = (tickers: unknown): string[] => {
   return all === '' ? [] : all.split(TICKER_SEPARATOR);
 };
 
-/** One ticker as a symbol is spelled: letters, digits and `& . _ -` ("M&M", "BAJAJ-AUTO"). */
-const SYMBOL_SPELLING = /^[A-Z0-9&._-]+$/i;
+/**
+ * The longest one symbol can be: core's longest F&O contract spelling. Measured, not guessed: the
+ * ISO option form (`parseOptionSymbol`, as backend-go's fnocontract.Parse) on a 10-letter
+ * underlying, the longest in FNO_STOCK_UNDERLYINGS and FNO_INDEX_UNDERLYINGS (MIDCPNIFTY,
+ * NIFTYNXT50, BAJAJ-AUTO), an 8-digit date, a 6-digit strike with one decimal (NSE's 2.5-rupee
+ * spacing) and CE/PE: 10 + 8 + 8 + 2. The longest in core's own tests is 25
+ * (NIFTYNXT502026102770000CE); every equity symbol core lists is 10 or less.
+ */
+export const MAX_SYMBOL_LENGTH = 28;
+
+/** What a card writes where it has no symbol: no symbol at all. */
+const PLACEHOLDERS: ReadonlySet<string> = new Set([
+  '-',
+  '.',
+  'NA',
+  'N/A',
+  'NONE',
+  'TBD',
+]);
 
 /**
- * The tradable indices (`TRADABLE_INDICES`) by the names with a space NSE_INDICES gives them
- * ("NIFTY 50", "NIFTY BANK"): the only spellings with a space that are one symbol.
+ * Every index (NSE_INDICES and BSE_INDICES, by symbol and by name) that is not one of the
+ * `TRADABLE_INDICES`, and core's basket names (`BASKETS`): none is one symbol a strategy trades.
+ * "NIFTY100" and "NIFTY 100" alike.
+ */
+const INDEX_OR_BASKET: ReadonlySet<string> = new Set([
+  ...BASKETS,
+  ...[...NSE_INDICES, ...BSE_INDICES]
+    .filter(index => !TRADABLE_INDICES.includes(index.symbol))
+    .flatMap(index => [index.symbol, index.name]),
+]);
+
+/**
+ * The tradable indices by the names with a space NSE_INDICES gives them ("NIFTY 50", "NIFTY
+ * BANK"): the only spellings with a space that are one symbol.
  */
 const SPACED_INDEX_NAMES: ReadonlySet<string> = new Set(
   NSE_INDICES.filter(index => TRADABLE_INDICES.includes(index.symbol)).map(
@@ -90,28 +127,65 @@ const SPACED_INDEX_NAMES: ReadonlySet<string> = new Set(
   ),
 );
 
-const isCleanSymbol = (part: string): boolean =>
-  SYMBOL_SPELLING.test(part) || SPACED_INDEX_NAMES.has(part.toUpperCase());
+/**
+ * The equity symbols core can resolve (NIFTY100_SYMBOLS, "every NSE equity symbol the app can
+ * resolve", and FNO_STOCK_UNDERLYINGS): the only ones an `&` or a `-` is trusted in (M&M,
+ * BAJAJ-AUTO, J&KBANK), since a join ("HDFCBANK&ICICIBANK") or a series suffix ("RELIANCE-EQ")
+ * is spelled the same way.
+ */
+const LISTED_EQUITIES: ReadonlySet<string> = new Set([
+  ...NIFTY100_SYMBOLS,
+  ...FNO_STOCK_UNDERLYINGS,
+]);
+
+/**
+ * One symbol, as a strategy trades one: a tradable index by its spaced name, or letters and digits
+ * (a letter among them), no longer than `MAX_SYMBOL_LENGTH`, with an `&` or a `-` only where a
+ * listed equity carries one, itself or as a contract's underlying, and a `.` only in an option's
+ * strike (TATASTEEL26SEP187.5CE). Never a `_`, a space otherwise, or any other sign ("TCS.INFY",
+ * "RELIANCE.NS", "NIFTY_BANKNIFTY").
+ */
+const isCleanSymbol = (symbol: string): boolean => {
+  if (SPACED_INDEX_NAMES.has(symbol)) return true;
+  if (symbol.length > MAX_SYMBOL_LENGTH) return false;
+  const option = parseOptionSymbol(symbol);
+  const spelling = option === null ? /^[A-Z0-9&-]+$/ : /^[A-Z0-9&.-]+$/;
+  if (!spelling.test(symbol) || !/[A-Z]/.test(symbol)) return false;
+  const base =
+    option?.underlying ?? parseFuturesSymbol(symbol)?.underlying ?? symbol;
+  return !/[&-]/.test(symbol) || LISTED_EQUITIES.has(base);
+};
 
 /**
  * Why `tickers` is not exactly one clean symbol, or null when it is:
- * - `noSymbol`: no part with anything in it (nothing, spaces, bare commas, not a string).
+ * - `noSymbol`: no part with anything in it (nothing, spaces, bare commas, not a string), or a
+ *   placeholder ("-", "NA", "TBD").
  * - `severalSymbols`: more than one part with something in it.
- * - `unreadableSymbols`: one such part, but a stray comma beside it (",HDFCBANK", "HDFCBANK,") or
- *   a part that is not one symbol: separated some other way ("HDFCBANK ICICIBANK",
- *   "HDFCBANK;ICICIBANK", "HDFCBANK/ICICIBANK", a newline), which would go out as one joined
- *   symbol all the same.
+ * - `unreadableSymbols`: one such part with a stray comma beside it (",HDFCBANK", "HDFCBANK,").
+ * - `indexOrBasket`: an index that is not one of the tradable ones, by symbol or name ("NIFTY100",
+ *   "SENSEX"), or a basket ("NSE500", "FNO", "ALL").
+ * - `unreadableSymbol`: one part that is not one clean symbol (`isCleanSymbol`): separated some
+ *   other way ("HDFCBANK ICICIBANK", "HDFCBANK;ICICIBANK", a newline), joined
+ *   ("HDFCBANK&ICICIBANK", "TCS.INFY"), suffixed ("RELIANCE-EQ"), or too long. Each would go out
+ *   as one symbol no runner trades, and read no segment's kill switch.
  */
-export type TickersHold = 'noSymbol' | 'severalSymbols' | 'unreadableSymbols';
+export type TickersHold =
+  | 'noSymbol'
+  | 'severalSymbols'
+  | 'unreadableSymbols'
+  | 'indexOrBasket'
+  | 'unreadableSymbol';
 
 export function tickersHold(tickers: unknown): TickersHold | null {
   const parts = tickersOf(tickers);
   const named = parts.filter(part => part !== '');
   if (named.length === 0) return 'noSymbol';
   if (named.length > 1) return 'severalSymbols';
-  return parts.length === 1 && isCleanSymbol(named[0] ?? '')
-    ? null
-    : 'unreadableSymbols';
+  const symbol = (named[0] ?? '').toUpperCase();
+  if (PLACEHOLDERS.has(symbol)) return 'noSymbol';
+  if (parts.length > 1) return 'unreadableSymbols';
+  if (INDEX_OR_BASKET.has(symbol)) return 'indexOrBasket';
+  return isCleanSymbol(symbol) ? null : 'unreadableSymbol';
 }
 
 /** Whether `tickers` names exactly one clean symbol (`tickersHold` is null). */
@@ -121,11 +195,11 @@ export const isOneSymbol = (tickers: unknown): boolean =>
 /**
  * Why a C card cannot be started here, though it is one (`isScriptCard`):
  * - `notRunnable`: the card says the engine cannot run its code yet (`runnable: false`).
- * - `noSymbol`, `severalSymbols`, `unreadableSymbols` (`tickersHold`): its `tickers` are not
- *   exactly one clean symbol. Every run of the card sends them as one `symbol`, which backend-go's
- *   `cardRow` makes a single symbol ("HDFCBANK, ICICIBANK") that no runner trades, and the card's
- *   one amount would be shown for what the code may buy of each; with none, a symbol read back out
- *   of its prose rows is what put unrunnable rows in the database.
+ * - any `TickersHold`: its `tickers` are not exactly one clean symbol. Every run of the card sends
+ *   them as one `symbol`, which backend-go's `cardRow` makes a single symbol ("HDFCBANK,
+ *   ICICIBANK") that no runner trades, and the card's one amount would be shown for what the code
+ *   may buy of each; with none, a symbol read back out of its prose rows is what put unrunnable
+ *   rows in the database.
  */
 export type ScriptCardHold = 'notRunnable' | TickersHold;
 

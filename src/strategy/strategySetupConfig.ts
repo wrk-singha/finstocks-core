@@ -44,10 +44,10 @@ export const normalizeSetupKey = (k: string): string =>
  * The entry is read, never sent: backend-go's strategy-action has no such field and hands Athena
  * only the card's code, its hash and its signature, so the code itself is what names its entry.
  */
-export const SCRIPT_ENTRIES_C: readonly string[] = [
+export const SCRIPT_ENTRIES_C: readonly string[] = Object.freeze([
   'evaluate_v2',
   'evaluate_v3',
-];
+]);
 
 /** Whether `entry` is exactly one of `SCRIPT_ENTRIES_C`. */
 export const isScriptEntry = (entry: unknown): entry is string =>
@@ -60,14 +60,33 @@ export const isScriptEntry = (entry: unknown): entry is string =>
 export const SCRIPT_ENTRY_C = 'evaluate_v2';
 
 /**
- * The card's C strategy, when it is one: a `script_entry` of `SCRIPT_ENTRIES_C` with its code and
- * the code's hash, and the code's signature when the card carries one (an empty one is none, as
- * the backend reads it). Such a card runs only from its own buttons and only through
- * `strategy-action`: a create-backtest sent for it has no FSM to send (refused), or an FSM that is
- * not the card's code (deployed as a different rule). Null for every other card, including a
- * composed "script_preview" whose `script` is a receipt rather than an entry point.
+ * Where a card's `tickers`, and so a run's `symbol`, goes from one symbol to the next: a comma,
+ * with any spaces around it.
  */
-export function scriptRunOf(
+export const TICKER_SEPARATOR = /\s*,\s*/;
+
+/**
+ * The symbols a card's `tickers` (or a run's `symbol`) names, in order, each trimmed. A stray comma
+ * keeps its empty part ("HDFCBANK," is two parts, not one symbol); nothing at all names none.
+ */
+export const tickersOf = (tickers: string | null | undefined): string[] => {
+  const all = (tickers ?? '').trim();
+  return all === '' ? [] : all.split(TICKER_SEPARATOR);
+};
+
+/**
+ * Why a C card cannot be started here, though it is one (`isScriptCard`):
+ * - `notRunnable`: the card says the engine cannot run its code yet (`runnable: false`).
+ * - `noSymbol`: its `tickers` name no symbol, and a symbol read back out of its prose rows is what
+ *   put unrunnable rows in the database.
+ * - `severalSymbols`: its `tickers` name more than one. Every run of the card sends them joined as
+ *   one `symbol`, which backend-go's `cardRow` makes a single symbol ("HDFCBANK, ICICIBANK") that
+ *   no runner trades, and the card's one amount would be shown for what the code may buy of each.
+ */
+export type ScriptCardHold = 'notRunnable' | 'noSymbol' | 'severalSymbols';
+
+/** The card's code, when it is a C card, whether or not it can be started. */
+function scriptCodeOf(
   terms: BacktestSetupTerms | null | undefined,
 ): ScriptRun | null {
   if (
@@ -91,10 +110,40 @@ export function scriptRunOf(
   };
 }
 
-/** Whether a plan card is a C strategy card (`scriptRunOf` on its terms). */
+/** Why a C card cannot be started (`ScriptCardHold`); null for one that can, and any other card. */
+export function scriptCardHold(
+  terms: BacktestSetupTerms | null | undefined,
+): ScriptCardHold | null {
+  if (!terms || scriptCodeOf(terms) === null) return null;
+  if (terms.runnable === false) return 'notRunnable';
+  const tickers = tickersOf(terms.tickers);
+  if (tickers.length === 0) return 'noSymbol';
+  return tickers.length > 1 ? 'severalSymbols' : null;
+}
+
+/**
+ * The card's C strategy, when it is one that can be started: a `script_entry` of
+ * `SCRIPT_ENTRIES_C` with its code and the code's hash, and the code's signature when the card
+ * carries one (an empty one is none, as the backend reads it), on a card with no
+ * `scriptCardHold`: runnable, and naming exactly one symbol. Such a card runs only from its own
+ * buttons and only through `strategy-action`: a create-backtest sent for it has no FSM to send
+ * (refused), or an FSM that is not the card's code (deployed as a different rule). Null for every
+ * other card: a held C card, and a composed "script_preview" whose `script` is a receipt rather
+ * than an entry point. No request can be built for a card without one.
+ */
+export function scriptRunOf(
+  terms: BacktestSetupTerms | null | undefined,
+): ScriptRun | null {
+  return scriptCardHold(terms) === null ? scriptCodeOf(terms) : null;
+}
+
+/**
+ * Whether a plan card is a C strategy card: its rules are its code, whether or not it can be
+ * started here (`scriptRunOf`, `scriptCardHold`).
+ */
 export const isScriptCard = (setup: {
   terms?: BacktestSetupTerms | undefined;
-}): boolean => scriptRunOf(setup.terms) !== null;
+}): boolean => scriptCodeOf(setup.terms) !== null;
 
 /** The machine terms a plan card carries, when it carries them. */
 export type SetupTerms = BacktestSetupTerms;

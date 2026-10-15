@@ -8,9 +8,12 @@ import {
   normalizeSetupKey,
   SCRIPT_ENTRIES_C,
   SCRIPT_ENTRY_C,
+  scriptCardHold,
   scriptRunOf,
   setupConfig,
   termsToConfig,
+  TICKER_SEPARATOR,
+  tickersOf,
 } from '../strategySetupConfig.ts';
 
 const without = <T extends object>(terms: T, key: keyof T): Partial<T> =>
@@ -49,7 +52,7 @@ test('a C strategy card is its code, its hash and the rows it was saved as; noth
 // Start, Backtest and Deploy locked.
 test('a C card is either known entry, evaluate_v2 or evaluate_v3, and its run is its own code', () => {
   const v3 = {
-    tickers: 'HDFCBANK, ICICIBANK',
+    tickers: 'HDFCBANK',
     script_entry: 'evaluate_v3',
     script: 'def evaluate_v3(ctx, symbols): ...',
     script_hash: 'v3-hash',
@@ -58,6 +61,8 @@ test('a C card is either known entry, evaluate_v2 or evaluate_v3, and its run is
     backtest_id: '0b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d',
   };
   assert.deepEqual(SCRIPT_ENTRIES_C, ['evaluate_v2', 'evaluate_v3']);
+  // Read-only in fact, not only in its type: no host can add an entry.
+  assert.equal(Object.isFrozen(SCRIPT_ENTRIES_C), true);
   for (const entry of SCRIPT_ENTRIES_C) {
     assert.equal(isScriptEntry(entry), true);
     assert.equal(isScriptCard({terms: {...v3, script_entry: entry}}), true);
@@ -76,6 +81,7 @@ test('a C card is either known entry, evaluate_v2 or evaluate_v3, and its run is
 // be started, rather than code sent to an engine that may not run it.
 test('any other entry is not a C card: not a later version, not a near miss, not empty', () => {
   const terms = {
+    tickers: 'HDFCBANK',
     script: 'def evaluate_v4(ctx): ...',
     script_hash: 'abc123',
     script_sig: 'sig-1',
@@ -94,6 +100,8 @@ test('any other entry is not a C card: not a later version, not a near miss, not
   ]) {
     assert.equal(isScriptEntry(entry), false, entry);
     assert.equal(scriptRunOf({...terms, script_entry: entry}), null, entry);
+    assert.equal(isScriptCard({terms: {...terms, script_entry: entry}}), false);
+    assert.equal(scriptCardHold({...terms, script_entry: entry}), null);
   }
   for (const entry of [undefined, null, 3, ['evaluate_v3']]) {
     assert.equal(isScriptEntry(entry), false);
@@ -108,10 +116,12 @@ test('any other entry is not a C card: not a later version, not a near miss, not
 
 test('a C card’s code signature is carried exactly when the card carries one', () => {
   const terms = {
+    tickers: 'HDFCBANK',
     script_entry: 'evaluate_v2',
     script: 'def evaluate_v2(ctx): ...',
     script_hash: 'abc123',
   };
+  assert.notEqual(scriptRunOf(terms), null);
   assert.equal(
     scriptRunOf({...terms, script_sig: 'sig-1'})?.scriptSig,
     'sig-1',
@@ -133,6 +143,101 @@ test('a C card’s code signature is carried exactly when the card carries one',
     scriptRunOf({...terms, script_sig: 'sig-1', script_entry: 'evaluate'}),
     null,
   );
+});
+
+test('tickers are split at a comma with any spaces around it, and a stray comma is not one symbol', () => {
+  assert.deepEqual(tickersOf('HDFCBANK'), ['HDFCBANK']);
+  assert.deepEqual(tickersOf('  HDFCBANK '), ['HDFCBANK']);
+  assert.deepEqual(tickersOf('HDFCBANK, ICICIBANK'), ['HDFCBANK', 'ICICIBANK']);
+  assert.deepEqual(tickersOf('HDFCBANK ,ICICIBANK,SBIN'), [
+    'HDFCBANK',
+    'ICICIBANK',
+    'SBIN',
+  ]);
+  // Only a comma separates: a name with a space in it is one symbol.
+  assert.deepEqual(tickersOf('NIFTY 50'), ['NIFTY 50']);
+  assert.deepEqual(tickersOf('HDFCBANK,'), ['HDFCBANK', '']);
+  assert.deepEqual(tickersOf(', '), ['', '']);
+  for (const none of ['', '   ', undefined, null]) {
+    assert.deepEqual(tickersOf(none), []);
+  }
+  assert.equal(TICKER_SEPARATOR.test('A , B'), true);
+});
+
+// Every run of a card sends its tickers as one `symbol`, which backend-go's cardRow makes ONE
+// symbol: "HDFCBANK, ICICIBANK" is a symbol no runner trades, under a card that says Running, and
+// the card's one amount is shown for what the code may buy of each. A v2 card's code is no
+// different here: both are held, and both were startable before.
+test('a C card naming several symbols, or none, is held: a C card still, with no run', () => {
+  for (const entry of SCRIPT_ENTRIES_C) {
+    const terms = {
+      tickers: 'HDFCBANK, ICICIBANK',
+      script_entry: entry,
+      script: `def ${entry}(ctx): ...`,
+      script_hash: 'abc123',
+      script_sig: 'sig-1',
+      strategy_id: '6f1c2a7e-0d4b-4c3e-9a1f-2b3c4d5e6f70',
+    };
+    for (const tickers of [
+      'HDFCBANK, ICICIBANK',
+      'HDFCBANK,ICICIBANK',
+      'NIFTY24OCTFUT, RELIANCE',
+      'HDFCBANK,',
+    ]) {
+      const held = {...terms, tickers};
+      assert.equal(
+        scriptCardHold(held),
+        'severalSymbols',
+        `${entry} ${tickers}`,
+      );
+      assert.equal(scriptRunOf(held), null);
+      assert.equal(isScriptCard({terms: held}), true);
+    }
+    for (const held of [
+      {...terms, tickers: ''},
+      {...terms, tickers: '  '},
+      without(terms, 'tickers'),
+    ]) {
+      assert.equal(
+        scriptCardHold(held),
+        'noSymbol',
+        `${entry} ${held.tickers}`,
+      );
+      assert.equal(scriptRunOf(held), null);
+      assert.equal(isScriptCard({terms: held}), true);
+    }
+    // One symbol, spaces and case as the card wrote them, is a run.
+    const single = {...terms, tickers: ' HDFCBANK '};
+    assert.equal(scriptCardHold(single), null);
+    assert.notEqual(scriptRunOf(single), null);
+  }
+});
+
+// types/backtest: `runnable: false` is a composed script the engine cannot run yet. Web starts it
+// anyway; here it is held, ahead of what its symbols say.
+test('a C card whose code the engine cannot run yet is held, whatever it names', () => {
+  const terms = {
+    tickers: 'HDFCBANK',
+    script_entry: 'evaluate_v3',
+    script: 'def evaluate_v3(ctx, symbols): ...',
+    script_hash: 'abc123',
+  };
+  assert.equal(scriptCardHold({...terms, runnable: false}), 'notRunnable');
+  assert.equal(scriptRunOf({...terms, runnable: false}), null);
+  assert.equal(isScriptCard({terms: {...terms, runnable: false}}), true);
+  assert.equal(
+    scriptCardHold({...terms, tickers: 'HDFCBANK, SBIN', runnable: false}),
+    'notRunnable',
+  );
+  // Only an explicit false holds it: true, or no word at all, is the card as it was.
+  assert.equal(scriptCardHold({...terms, runnable: true}), null);
+  assert.equal(scriptCardHold(terms), null);
+  // And none of it is said of a card that is not a C card.
+  assert.equal(
+    scriptCardHold({...terms, script_entry: 'evaluate', runnable: false}),
+    null,
+  );
+  assert.equal(scriptCardHold(undefined), null);
 });
 
 test('extractSetupConfig reads the confirm table rows back into a request', () => {

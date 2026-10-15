@@ -83,6 +83,7 @@ test('every action carries the card’s code signature when it has one, and none
 // dropped unread, and a constant one would be a claim about the code that nothing checks.
 test('every request of an evaluate_v3 card carries that card’s own code, hash and signature, and no entry', () => {
   const terms = {
+    tickers: 'HDFCBANK',
     script_entry: 'evaluate_v3',
     script:
       'def evaluate_v3(ctx, symbols):\n    return {s: ctx.hold() for s in symbols}',

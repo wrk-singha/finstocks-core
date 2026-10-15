@@ -127,11 +127,18 @@ export {
   normalizeSetupKey,
   SCRIPT_ENTRIES_C,
   SCRIPT_ENTRY_C,
+  scriptCardHold,
   scriptRunOf,
   setupConfig,
   termsToConfig,
+  TICKER_SEPARATOR,
+  tickersOf,
 } from './strategySetupConfig.ts';
-export type {SetupConfig, SetupTerms} from './strategySetupConfig.ts';
+export type {
+  ScriptCardHold,
+  SetupConfig,
+  SetupTerms,
+} from './strategySetupConfig.ts';
 export {
   sourceLogTimeline,
   splitSharedIds,

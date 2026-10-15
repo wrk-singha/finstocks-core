@@ -7,6 +7,8 @@
  * the `fsm` passthrough, the "1h" timeframe token and the WATCHLIST execution mode - the
  * mobile copy is the older row-parsing subset with none of those.
  */
+import {NSE_INDICES} from '../data/stocksData.ts';
+import {TRADABLE_INDICES} from '../market/symbols.ts';
 import type {BacktestSetupTerms} from '../types/backtest.ts';
 import type {ConsoleSizingMode} from '../types/console.ts';
 import type {ScriptRun} from '../types/strategyRun.ts';
@@ -67,23 +69,65 @@ export const TICKER_SEPARATOR = /\s*,\s*/;
 
 /**
  * The symbols a card's `tickers` (or a run's `symbol`) names, in order, each trimmed. A stray comma
- * keeps its empty part ("HDFCBANK," is two parts, not one symbol); nothing at all names none.
+ * keeps its empty part ("HDFCBANK," is two parts, not one symbol); nothing at all names none, and
+ * so does anything that is not a string (a card can carry an array or a number there).
  */
-export const tickersOf = (tickers: string | null | undefined): string[] => {
-  const all = (tickers ?? '').trim();
+export const tickersOf = (tickers: unknown): string[] => {
+  const all = typeof tickers === 'string' ? tickers.trim() : '';
   return all === '' ? [] : all.split(TICKER_SEPARATOR);
 };
+
+/** One ticker as a symbol is spelled: letters, digits and `& . _ -` ("M&M", "BAJAJ-AUTO"). */
+const SYMBOL_SPELLING = /^[A-Z0-9&._-]+$/i;
+
+/**
+ * The tradable indices (`TRADABLE_INDICES`) by the names with a space NSE_INDICES gives them
+ * ("NIFTY 50", "NIFTY BANK"): the only spellings with a space that are one symbol.
+ */
+const SPACED_INDEX_NAMES: ReadonlySet<string> = new Set(
+  NSE_INDICES.filter(index => TRADABLE_INDICES.includes(index.symbol)).map(
+    index => index.name,
+  ),
+);
+
+const isCleanSymbol = (part: string): boolean =>
+  SYMBOL_SPELLING.test(part) || SPACED_INDEX_NAMES.has(part.toUpperCase());
+
+/**
+ * Why `tickers` is not exactly one clean symbol, or null when it is:
+ * - `noSymbol`: no part with anything in it (nothing, spaces, bare commas, not a string).
+ * - `severalSymbols`: more than one part with something in it.
+ * - `unreadableSymbols`: one such part, but a stray comma beside it (",HDFCBANK", "HDFCBANK,") or
+ *   a part that is not one symbol: separated some other way ("HDFCBANK ICICIBANK",
+ *   "HDFCBANK;ICICIBANK", "HDFCBANK/ICICIBANK", a newline), which would go out as one joined
+ *   symbol all the same.
+ */
+export type TickersHold = 'noSymbol' | 'severalSymbols' | 'unreadableSymbols';
+
+export function tickersHold(tickers: unknown): TickersHold | null {
+  const parts = tickersOf(tickers);
+  const named = parts.filter(part => part !== '');
+  if (named.length === 0) return 'noSymbol';
+  if (named.length > 1) return 'severalSymbols';
+  return parts.length === 1 && isCleanSymbol(named[0] ?? '')
+    ? null
+    : 'unreadableSymbols';
+}
+
+/** Whether `tickers` names exactly one clean symbol (`tickersHold` is null). */
+export const isOneSymbol = (tickers: unknown): boolean =>
+  tickersHold(tickers) === null;
 
 /**
  * Why a C card cannot be started here, though it is one (`isScriptCard`):
  * - `notRunnable`: the card says the engine cannot run its code yet (`runnable: false`).
- * - `noSymbol`: its `tickers` name no symbol, and a symbol read back out of its prose rows is what
- *   put unrunnable rows in the database.
- * - `severalSymbols`: its `tickers` name more than one. Every run of the card sends them joined as
- *   one `symbol`, which backend-go's `cardRow` makes a single symbol ("HDFCBANK, ICICIBANK") that
- *   no runner trades, and the card's one amount would be shown for what the code may buy of each.
+ * - `noSymbol`, `severalSymbols`, `unreadableSymbols` (`tickersHold`): its `tickers` are not
+ *   exactly one clean symbol. Every run of the card sends them as one `symbol`, which backend-go's
+ *   `cardRow` makes a single symbol ("HDFCBANK, ICICIBANK") that no runner trades, and the card's
+ *   one amount would be shown for what the code may buy of each; with none, a symbol read back out
+ *   of its prose rows is what put unrunnable rows in the database.
  */
-export type ScriptCardHold = 'notRunnable' | 'noSymbol' | 'severalSymbols';
+export type ScriptCardHold = 'notRunnable' | TickersHold;
 
 /** The card's code, when it is a C card, whether or not it can be started. */
 function scriptCodeOf(
@@ -116,9 +160,7 @@ export function scriptCardHold(
 ): ScriptCardHold | null {
   if (!terms || scriptCodeOf(terms) === null) return null;
   if (terms.runnable === false) return 'notRunnable';
-  const tickers = tickersOf(terms.tickers);
-  if (tickers.length === 0) return 'noSymbol';
-  return tickers.length > 1 ? 'severalSymbols' : null;
+  return tickersHold(terms.tickers);
 }
 
 /**
@@ -192,7 +234,11 @@ export function termsToConfig(
   terms: SetupTerms | undefined,
 ): SetupConfig | null {
   if (!terms || typeof terms !== 'object') return null;
-  const symbol = (terms.tickers ?? '').trim().toUpperCase();
+  // Not a string (an array, a number) is no symbol, never a throw in a host's render.
+  const tickers: unknown = terms.tickers;
+  const symbol = (typeof tickers === 'string' ? tickers : '')
+    .trim()
+    .toUpperCase();
   if (!symbol) return null;
 
   const allocated_amount = toAmount(terms.position_sizing);

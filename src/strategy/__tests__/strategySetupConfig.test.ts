@@ -3,6 +3,7 @@ import {test} from 'node:test';
 
 import {
   extractSetupConfig,
+  isOneSymbol,
   isScriptCard,
   isScriptEntry,
   normalizeSetupKey,
@@ -13,6 +14,8 @@ import {
   setupConfig,
   termsToConfig,
   TICKER_SEPARATOR,
+  tickersHold,
+  type TickersHold,
   tickersOf,
 } from '../strategySetupConfig.ts';
 
@@ -164,52 +167,97 @@ test('tickers are split at a comma with any spaces around it, and a stray comma 
   assert.equal(TICKER_SEPARATOR.test('A , B'), true);
 });
 
+/**
+ * Every spelling a card's `tickers` has been seen in or could be, with its verdict: null is one
+ * clean symbol (the card can start), anything else the reason it is held. A comma is the only
+ * separator, so any other one leaves a single part that is no symbol: unreadable, never one symbol.
+ */
+const TICKER_VERDICTS: readonly (readonly [string, TickersHold | null])[] = [
+  ['HDFCBANK', null],
+  [' HDFCBANK ', null],
+  ['hdfcbank', null],
+  ['M&M', null],
+  ['BAJAJ-AUTO', null],
+  ['NIFTY24OCTFUT', null],
+  // The tradable indices by their spaced names, as NSE_INDICES spells them.
+  ['NIFTY 50', null],
+  ['NIFTY BANK', null],
+  ['nifty bank', null],
+  ['HDFCBANK, ICICIBANK', 'severalSymbols'],
+  ['HDFCBANK,ICICIBANK', 'severalSymbols'],
+  ['NIFTY24OCTFUT, RELIANCE', 'severalSymbols'],
+  [',HDFCBANK', 'unreadableSymbols'],
+  ['HDFCBANK,', 'unreadableSymbols'],
+  ['HDFCBANK, ,', 'unreadableSymbols'],
+  ['HDFCBANK ICICIBANK', 'unreadableSymbols'],
+  ['HDFCBANK;ICICIBANK', 'unreadableSymbols'],
+  ['HDFCBANK/ICICIBANK', 'unreadableSymbols'],
+  ['HDFCBANK\nICICIBANK', 'unreadableSymbols'],
+  ['NIFTY  50', 'unreadableSymbols'],
+  // An index with a space that is not one of the tradable ones is not taken on trust.
+  ['NIFTY 100', 'unreadableSymbols'],
+  ['', 'noSymbol'],
+  [' ', 'noSymbol'],
+  [',', 'noSymbol'],
+  [', ', 'noSymbol'],
+  [' , , ', 'noSymbol'],
+];
+
+test('tickers are exactly one clean symbol, or held for why: each spelling, its verdict and reason', () => {
+  for (const [tickers, reason] of TICKER_VERDICTS) {
+    assert.equal(tickersHold(tickers), reason, JSON.stringify(tickers));
+    assert.equal(
+      isOneSymbol(tickers),
+      reason === null,
+      JSON.stringify(tickers),
+    );
+  }
+  // Not a string is no symbol, and no throw.
+  for (const notString of [['HDFCBANK'], 7, null, undefined, {}]) {
+    assert.equal(tickersHold(notString), 'noSymbol');
+    assert.deepEqual(tickersOf(notString), []);
+  }
+});
+
 // Every run of a card sends its tickers as one `symbol`, which backend-go's cardRow makes ONE
 // symbol: "HDFCBANK, ICICIBANK" is a symbol no runner trades, under a card that says Running, and
 // the card's one amount is shown for what the code may buy of each. A v2 card's code is no
 // different here: both are held, and both were startable before.
-test('a C card naming several symbols, or none, is held: a C card still, with no run', () => {
+test('a C card is held unless its tickers are one clean symbol: v2 and v3 alike, a C card still', () => {
   for (const entry of SCRIPT_ENTRIES_C) {
     const terms = {
-      tickers: 'HDFCBANK, ICICIBANK',
+      tickers: 'HDFCBANK',
       script_entry: entry,
       script: `def ${entry}(ctx): ...`,
       script_hash: 'abc123',
       script_sig: 'sig-1',
       strategy_id: '6f1c2a7e-0d4b-4c3e-9a1f-2b3c4d5e6f70',
     };
-    for (const tickers of [
-      'HDFCBANK, ICICIBANK',
-      'HDFCBANK,ICICIBANK',
-      'NIFTY24OCTFUT, RELIANCE',
-      'HDFCBANK,',
-    ]) {
-      const held = {...terms, tickers};
-      assert.equal(
-        scriptCardHold(held),
-        'severalSymbols',
-        `${entry} ${tickers}`,
-      );
-      assert.equal(scriptRunOf(held), null);
-      assert.equal(isScriptCard({terms: held}), true);
+    for (const [tickers, reason] of TICKER_VERDICTS) {
+      const card = {...terms, tickers};
+      const label = `${entry} ${JSON.stringify(tickers)}`;
+      assert.equal(scriptCardHold(card), reason, label);
+      assert.equal(scriptRunOf(card) === null, reason !== null, label);
+      assert.equal(isScriptCard({terms: card}), true, label);
     }
     for (const held of [
-      {...terms, tickers: ''},
-      {...terms, tickers: '  '},
       without(terms, 'tickers'),
+      {...terms, tickers: ['HDFCBANK'] as unknown as string},
+      {...terms, tickers: 7 as unknown as string},
     ]) {
-      assert.equal(
-        scriptCardHold(held),
-        'noSymbol',
-        `${entry} ${held.tickers}`,
-      );
+      assert.equal(scriptCardHold(held), 'noSymbol', entry);
       assert.equal(scriptRunOf(held), null);
       assert.equal(isScriptCard({terms: held}), true);
     }
-    // One symbol, spaces and case as the card wrote them, is a run.
-    const single = {...terms, tickers: ' HDFCBANK '};
-    assert.equal(scriptCardHold(single), null);
-    assert.notEqual(scriptRunOf(single), null);
+  }
+});
+
+test('a card whose tickers are not a string reads as naming no symbol, without throwing', () => {
+  for (const tickers of [['HDFCBANK', 'SBIN'], 7]) {
+    assert.equal(
+      termsToConfig({tickers: tickers as unknown as string, timeframe: '1d'}),
+      null,
+    );
   }
 });
 

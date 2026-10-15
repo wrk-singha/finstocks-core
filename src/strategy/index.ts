@@ -122,6 +122,7 @@ export type {
 } from './strategyRunOptions.ts';
 export {
   extractSetupConfig,
+  isOneSymbol,
   isScriptCard,
   isScriptEntry,
   normalizeSetupKey,
@@ -132,12 +133,14 @@ export {
   setupConfig,
   termsToConfig,
   TICKER_SEPARATOR,
+  tickersHold,
   tickersOf,
 } from './strategySetupConfig.ts';
 export type {
   ScriptCardHold,
   SetupConfig,
   SetupTerms,
+  TickersHold,
 } from './strategySetupConfig.ts';
 export {
   sourceLogTimeline,

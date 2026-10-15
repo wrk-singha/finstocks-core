@@ -63,6 +63,18 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.9.5** — any spelling of an index is an index; a narrowing of `tickersHold`, and
+  `isChartSymbol`. Index aliases passed as letters and digits and `isFnOSymbol` read them as
+  equities, so a delivery card on one read no segment switch: "NIFTY50", "NIFTYBANK",
+  "SENSEX30", "CNXIT", and NSE indices core does not list ("NIFTYINFRA", "NIFTYPSU"). A cleanly
+  spelled symbol that is not a contract is `indexOrBasket` when it starts with an index root
+  (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY, SENSEX, BANKEX, CNX) or its underlying is a tradable
+  index it is not, unless it is a tradable index itself or an equity core lists; "NIFTYBANK",
+  "NIFTYFIN", "NIFTYNEXT50" and "BSESENSEX" are named. Core's equity list holds nothing on those
+  roots and no ETF, so "NIFTYBEES" and "NIFTY1" are held with the indices. Placeholders add TBA,
+  NULL, UNDEFINED, NAN, NIL, XXX. A list is `severalSymbols` only when two of its parts are
+  symbols, else `unreadableSymbols` ("NA, TBD", "RELIANCE, -"). `isChartSymbol(symbol)` is the
+  looser rule a chart reads: one named part, not a placeholder or a basket.
 - **v0.9.4** — one clean symbol is one a strategy can trade; a narrowing of `tickersHold` (so of
   `scriptRunOf`) and two new reasons. Any run of letters, digits and `& . _ -` passed, so
   non-tradable indices ("NIFTY100", "SENSEX"), core's own baskets ("NSE500", "FNO", "ALL"),

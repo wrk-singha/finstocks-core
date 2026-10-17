@@ -115,6 +115,23 @@ test('istDateTimeParts splits an IST stamp and blanks midnight', () => {
   assert.equal(istDateTimeParts(undefined), null);
 });
 
+test('istDateTimeParts appends the IST year on request, in the product order', () => {
+  assert.deepEqual(istDateTimeParts('2026-08-09T03:35:00Z', false, true), {
+    date: 'Aug 9, 2026',
+    time: '9:05 AM',
+  });
+  assert.deepEqual(istDateTimeParts('2026-08-09T03:35:00Z', true, true), {
+    date: 'Aug 09, 2026',
+    time: '9:05 AM',
+  });
+  // 18:30 UTC on 31 December is already the new year in IST: the year is the IST one.
+  assert.deepEqual(istDateTimeParts('2025-12-31T18:30:00Z', false, true), {
+    date: 'Jan 1, 2026',
+    time: '',
+  });
+  assert.equal(istDateTimeParts('garbage', false, true), null);
+});
+
 // Hermes on iOS formats "7 Oct at 11:05 AM" for a format that asks for both a date and a clock,
 // and types the hour, minute and AM/PM as plain literals. Emulated here on V8, whose own parts
 // are labelled, so a stamp read from one combined format would lose its time.
@@ -153,6 +170,16 @@ test('formatShortDateTime is the IST freshness stamp without a fabricated midnig
   assert.equal(formatShortDateTime('2026-08-09 15:45:00+00'), 'Aug 9 9:15 PM');
   assert.equal(formatShortDateTime('2026-08-08T18:30:00Z'), 'Aug 9');
   assert.equal(formatShortDateTime(null), '—');
+  // With the year, for a ledger that spans years; midnight still blanks the clock.
+  assert.equal(
+    formatShortDateTime('2026-08-09T03:35:00Z', true),
+    'Aug 9, 2026 9:05 AM',
+  );
+  assert.equal(
+    formatShortDateTime('2026-08-08T18:30:00Z', true),
+    'Aug 9, 2026',
+  );
+  assert.equal(formatShortDateTime(null, true), '—');
   assert.equal(formatTradeTimeShort('2026-08-09T03:35:00Z'), 'Aug 9 9:05 AM');
   assert.equal(formatTradeTimeShort(undefined), '—');
 });

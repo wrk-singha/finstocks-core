@@ -33,10 +33,11 @@ export const toConsolePosition = (p: StrategyPosition): ConsolePosition => {
 };
 
 // Closed positions show realized P&L as the primary value; % return is against the exited cost
-// basis. Newest exit first (ordering comes from the card).
+// basis. Newest exit first (ordering comes from the card). Dated with the year: a strategy's
+// ledger runs across years, and a bare "Jul 5" does not say which July it exited.
 const closedPositionSub = (p: StrategyPosition): string => {
-  const buy = `Buy ${formatCurrency(p.buyPrice, 2)} · ${formatShortDateTime(p.buyTime)}`;
-  const sell = `Sell ${p.sellPrice !== null ? formatCurrency(p.sellPrice, 2) : '—'} · ${formatShortDateTime(p.sellTime)}`;
+  const buy = `Buy ${formatCurrency(p.buyPrice, 2)} · ${formatShortDateTime(p.buyTime, true)}`;
+  const sell = `Sell ${p.sellPrice !== null ? formatCurrency(p.sellPrice, 2) : '—'} · ${formatShortDateTime(p.sellTime, true)}`;
   return `${buy}  →  ${sell}`;
 };
 
@@ -92,7 +93,7 @@ const tradeToDatedActivity = (t: TradeData): DatedActivity => {
       sidePositive: !isSell,
       sym: t.stock_symbol,
       detail: `${t.quantity} @ ${formatCurrency((isSell ? t.sell_price : t.buy_price) ?? 0, 2)}`,
-      t: formatShortDateTime(ts),
+      t: formatShortDateTime(ts, true),
     },
   };
 };

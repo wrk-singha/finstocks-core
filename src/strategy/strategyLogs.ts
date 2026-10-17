@@ -12,9 +12,9 @@ export interface LogDateTime {
 }
 
 /**
- * IST date/time for a strategy-log row, as parts or as one of them. `formatLogDateTime` rather
- * than the web's `formatDateTime`, which core's format module already uses for the plain
- * locale stamp.
+ * IST date/time for a strategy-log row, as parts or as one of them, the date with its year
+ * ("Jun 30, 2026"): a log table runs back across years. `formatLogDateTime` rather than the
+ * web's `formatDateTime`, which core's format module already uses for the plain locale stamp.
  */
 export function formatLogDateTime(
   timestamp: string | null | undefined,
@@ -27,7 +27,7 @@ export function formatLogDateTime(
   timestamp: string | null | undefined,
   format?: 'full' | 'date' | 'time',
 ): string | LogDateTime {
-  const parts = istDateTimeParts(timestamp);
+  const parts = istDateTimeParts(timestamp, false, true);
   if (!parts) {
     const fallback = '—';
     if (format) return fallback;

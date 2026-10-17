@@ -429,8 +429,9 @@ export const tradingApi = (http: HttpClient) => ({
     }),
 
   /**
-   * Runs a C strategy card (`terms.script_entry === "evaluate_v2"`) through Athena: backtests,
-   * deploys (paper or live) or replaces the live version with the card's code. 200 answers the
+   * Runs a C strategy card (`terms.script_entry` "evaluate_v2" or "evaluate_v3") through Athena:
+   * backtests, deploys (paper or live) or replaces the live version with the card's code, which is
+   * all it sends of the card's entry (the body has no `script_entry`). 200 answers the
    * row it acted on; a failure's body is `StrategyActionFailure`, read with
    * `strategyActionRefusal`. Money code: one request per press, never retried by a client.
    */

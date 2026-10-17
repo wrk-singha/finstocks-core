@@ -1,13 +1,27 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
+import {BSE_INDICES, NSE_INDICES} from '../../data/stocksData.ts';
+import {isFnOSymbol} from '../../market/symbols.ts';
+
 import {
   extractSetupConfig,
+  isChartSymbol,
+  isOneSymbol,
   isScriptCard,
+  isScriptEntry,
+  MAX_SYMBOL_LENGTH,
   normalizeSetupKey,
+  SCRIPT_ENTRIES_C,
+  SCRIPT_ENTRY_C,
+  scriptCardHold,
   scriptRunOf,
   setupConfig,
   termsToConfig,
+  TICKER_SEPARATOR,
+  tickersHold,
+  type TickersHold,
+  tickersOf,
 } from '../strategySetupConfig.ts';
 
 const without = <T extends object>(terms: T, key: keyof T): Partial<T> =>
@@ -41,12 +55,81 @@ test('a C strategy card is its code, its hash and the rows it was saved as; noth
   assert.equal(isScriptCard({}), false);
 });
 
+// Web 5b02f608: llm writes a C card's code against evaluate_v2 (one symbol) or evaluate_v3 (every
+// symbol of the row in one call). Without v3 here, a v3 card read as one without code: retired, its
+// Start, Backtest and Deploy locked.
+test('a C card is either known entry, evaluate_v2 or evaluate_v3, and its run is its own code', () => {
+  const v3 = {
+    tickers: 'HDFCBANK',
+    script_entry: 'evaluate_v3',
+    script: 'def evaluate_v3(ctx, symbols): ...',
+    script_hash: 'v3-hash',
+    script_sig: 'v3-sig',
+    strategy_id: '6f1c2a7e-0d4b-4c3e-9a1f-2b3c4d5e6f70',
+    backtest_id: '0b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d',
+  };
+  assert.deepEqual(SCRIPT_ENTRIES_C, ['evaluate_v2', 'evaluate_v3']);
+  // Read-only in fact, not only in its type: no host can add an entry.
+  assert.equal(Object.isFrozen(SCRIPT_ENTRIES_C), true);
+  for (const entry of SCRIPT_ENTRIES_C) {
+    assert.equal(isScriptEntry(entry), true);
+    assert.equal(isScriptCard({terms: {...v3, script_entry: entry}}), true);
+  }
+  // The card's own code, hash and signature, whichever entry it names: nothing is swapped in.
+  assert.deepEqual(scriptRunOf(v3), {
+    script: 'def evaluate_v3(ctx, symbols): ...',
+    scriptHash: 'v3-hash',
+    scriptSig: 'v3-sig',
+    strategyId: v3.strategy_id,
+    backtestId: v3.backtest_id,
+  });
+});
+
+// A known set, not web's /^evaluate(_v\d+)?$/: an ABI nobody has shipped stays a card that cannot
+// be started, rather than code sent to an engine that may not run it.
+test('any other entry is not a C card: not a later version, not a near miss, not empty', () => {
+  const terms = {
+    tickers: 'HDFCBANK',
+    script: 'def evaluate_v4(ctx): ...',
+    script_hash: 'abc123',
+    script_sig: 'sig-1',
+  };
+  for (const entry of [
+    'evaluate_v4',
+    'evaluate_v1',
+    'evaluate_v30',
+    'evaluate',
+    '',
+    'EVALUATE_V3',
+    ' evaluate_v3',
+    'evaluate_v3 ',
+    'evaluate_v3x',
+    'evaluate_v',
+  ]) {
+    assert.equal(isScriptEntry(entry), false, entry);
+    assert.equal(scriptRunOf({...terms, script_entry: entry}), null, entry);
+    assert.equal(isScriptCard({terms: {...terms, script_entry: entry}}), false);
+    assert.equal(scriptCardHold({...terms, script_entry: entry}), null);
+  }
+  for (const entry of [undefined, null, 3, ['evaluate_v3']]) {
+    assert.equal(isScriptEntry(entry), false);
+    assert.equal(
+      scriptRunOf({...terms, script_entry: entry as unknown as string}),
+      null,
+    );
+  }
+  // The single entry v0.9.0 exported is still v2 alone, for a host that imported it.
+  assert.equal(SCRIPT_ENTRY_C, 'evaluate_v2');
+});
+
 test('a C card’s code signature is carried exactly when the card carries one', () => {
   const terms = {
+    tickers: 'HDFCBANK',
     script_entry: 'evaluate_v2',
     script: 'def evaluate_v2(ctx): ...',
     script_hash: 'abc123',
   };
+  assert.notEqual(scriptRunOf(terms), null);
   assert.equal(
     scriptRunOf({...terms, script_sig: 'sig-1'})?.scriptSig,
     'sig-1',
@@ -68,6 +151,339 @@ test('a C card’s code signature is carried exactly when the card carries one',
     scriptRunOf({...terms, script_sig: 'sig-1', script_entry: 'evaluate'}),
     null,
   );
+});
+
+test('tickers are split at a comma with any spaces around it, and a stray comma is not one symbol', () => {
+  assert.deepEqual(tickersOf('HDFCBANK'), ['HDFCBANK']);
+  assert.deepEqual(tickersOf('  HDFCBANK '), ['HDFCBANK']);
+  assert.deepEqual(tickersOf('HDFCBANK, ICICIBANK'), ['HDFCBANK', 'ICICIBANK']);
+  assert.deepEqual(tickersOf('HDFCBANK ,ICICIBANK,SBIN'), [
+    'HDFCBANK',
+    'ICICIBANK',
+    'SBIN',
+  ]);
+  // Only a comma separates: a name with a space in it is one symbol.
+  assert.deepEqual(tickersOf('NIFTY 50'), ['NIFTY 50']);
+  assert.deepEqual(tickersOf('HDFCBANK,'), ['HDFCBANK', '']);
+  assert.deepEqual(tickersOf(', '), ['', '']);
+  for (const none of ['', '   ', undefined, null]) {
+    assert.deepEqual(tickersOf(none), []);
+  }
+  assert.equal(TICKER_SEPARATOR.test('A , B'), true);
+});
+
+/**
+ * Every spelling a card's `tickers` has been seen in or could be, with its verdict: null is one
+ * clean symbol (the card can start), anything else the reason it is held. A comma is the only
+ * separator, so any other one leaves a single part that is no symbol: unreadable, never one symbol.
+ */
+const TICKER_VERDICTS: readonly (readonly [string, TickersHold | null])[] = [
+  ['HDFCBANK', null],
+  [' HDFCBANK ', null],
+  ['hdfcbank', null],
+  // An & or a - only where a listed equity carries one, itself or under a contract.
+  ['M&M', null],
+  ['BAJAJ-AUTO', null],
+  ['J&KBANK', null],
+  ['BAJAJ-AUTO26SEP9000CE', null],
+  ['20MICRONS', null],
+  ['NIFTY24OCTFUT', null],
+  ['NIFTY24OCT24500CE', null],
+  // The longest F&O spelling core parses is MAX_SYMBOL_LENGTH, 28; one longer is not a symbol. A
+  // `.` only as an option strike's decimal.
+  ['NIFTYNXT502026102770000CE', null],
+  ['TATASTEEL26SEP187.5CE', null],
+  ['MIDCPNIFTY20261028123456.5CE', null],
+  ['MIDCPNIFTY20261028123456.55CE', 'unreadableSymbol'],
+  // The tradable indices, by symbol and by their spaced names, as NSE_INDICES spells them.
+  ['NIFTY', null],
+  ['BANKNIFTY', null],
+  ['NIFTY 50', null],
+  ['NIFTY BANK', null],
+  ['nifty bank', null],
+  ['HDFCBANK, ICICIBANK', 'severalSymbols'],
+  ['HDFCBANK,ICICIBANK', 'severalSymbols'],
+  ['NIFTY24OCTFUT, RELIANCE', 'severalSymbols'],
+  [',HDFCBANK', 'unreadableSymbols'],
+  ['HDFCBANK,', 'unreadableSymbols'],
+  ['HDFCBANK, ,', 'unreadableSymbols'],
+  ['HDFCBANK ICICIBANK', 'unreadableSymbol'],
+  ['HDFCBANK;ICICIBANK', 'unreadableSymbol'],
+  ['HDFCBANK/ICICIBANK', 'unreadableSymbol'],
+  ['HDFCBANK\nICICIBANK', 'unreadableSymbol'],
+  ['NIFTY  50', 'unreadableSymbol'],
+  // Joined, suffixed, dotted or underscored: each goes out as one symbol no runner trades.
+  ['HDFCBANK&ICICIBANK', 'unreadableSymbol'],
+  ['NIFTY&BANKNIFTY', 'unreadableSymbol'],
+  ['TCS.INFY', 'unreadableSymbol'],
+  ['RELIANCE.NS', 'unreadableSymbol'],
+  ['NIFTY_BANKNIFTY', 'unreadableSymbol'],
+  ['RELIANCE-EQ', 'unreadableSymbol'],
+  ['500325', 'unreadableSymbol'],
+  ['A'.repeat(29), 'unreadableSymbol'],
+  // Indices that are not the tradable ones, by symbol or by name, and core's basket names.
+  ['NIFTY100', 'indexOrBasket'],
+  ['NIFTY 100', 'indexOrBasket'],
+  ['NIFTY500', 'indexOrBasket'],
+  ['NIFTYIT', 'indexOrBasket'],
+  ['NIFTYNXT50', 'indexOrBasket'],
+  ['INDIAVIX', 'indexOrBasket'],
+  ['SENSEX', 'indexOrBasket'],
+  ['BANKEX', 'indexOrBasket'],
+  ['BSE SENSEX', 'indexOrBasket'],
+  ['NSE500', 'indexOrBasket'],
+  ['FNO', 'indexOrBasket'],
+  ['ALL', 'indexOrBasket'],
+  ['CUSTOM_LIST', 'indexOrBasket'],
+  ['', 'noSymbol'],
+  [' ', 'noSymbol'],
+  [',', 'noSymbol'],
+  [', ', 'noSymbol'],
+  [' , , ', 'noSymbol'],
+  // What a card writes where it has none.
+  ['-', 'noSymbol'],
+  ['.', 'noSymbol'],
+  ['NA', 'noSymbol'],
+  ['N/A', 'noSymbol'],
+  ['none', 'noSymbol'],
+  ['TBD', 'noSymbol'],
+  ['TBA', 'noSymbol'],
+  ['null', 'noSymbol'],
+  ['undefined', 'noSymbol'],
+  ['NaN', 'noSymbol'],
+  ['nil', 'noSymbol'],
+  ['xxx', 'noSymbol'],
+  ['XXXX', 'noSymbol'],
+  ['TBC', 'noSymbol'],
+  ['symbol', 'noSymbol'],
+  ['Ticker', 'noSymbol'],
+  ['unknown', 'noSymbol'],
+  // Other spellings of an index, which isFnOSymbol reads as equities: by root, alias or underlying.
+  ['MIDCAPNIFTY', 'indexOrBasket'],
+  ['NSEBANK', 'indexOrBasket'],
+  ['NSEI', 'indexOrBasket'],
+  ['BSESN', 'indexOrBasket'],
+  ['BSE30', 'indexOrBasket'],
+  // An index's name anywhere in a clean, unlisted spelling: a fund on the index, or the index.
+  ['NIFTYIETF', 'indexOrBasket'],
+  ['SENSEXIETF', 'indexOrBasket'],
+  ['SETFNIFTY', 'indexOrBasket'],
+  ['MOBANKEX', 'indexOrBasket'],
+  ['NIFTY50', 'indexOrBasket'],
+  ['NIFTYBANK', 'indexOrBasket'],
+  ['NIFTYFIN', 'indexOrBasket'],
+  ['NIFTYNEXT50', 'indexOrBasket'],
+  ['SENSEX30', 'indexOrBasket'],
+  ['BSESENSEX', 'indexOrBasket'],
+  ['CNXIT', 'indexOrBasket'],
+  // NSE indices core's list does not carry.
+  ['NIFTYINFRA', 'indexOrBasket'],
+  ['NIFTYPSU', 'indexOrBasket'],
+  ['NIFTYCONSUMPTION', 'indexOrBasket'],
+  // ETFs named from an index's name: core lists none, so they cannot be told from an index, and are
+  // held. One named otherwise ("SETFNIF50" is SBI's Nifty 50 fund) is a security like any other: it
+  // trades in delivery, which no segment switch covers, as an equity does.
+  ['NIFTYBEES', 'indexOrBasket'],
+  ['NIFTY1', 'indexOrBasket'],
+  ['BANKBEES', null],
+  ['SETFNIF50', null],
+  // BSE Ltd, the one equity core lists that starts with an index's letters.
+  ['BSE', null],
+  // A contract on an index is F&O, as isFnOSymbol reads it.
+  ['BANKNIFTY24OCT52000CE', null],
+  ['SENSEX24OCTFUT', null],
+  // Two symbols joined in letters alone cannot be told from one: core's equity list is what the
+  // app resolves, not all of NSE. It starts, and trades nothing.
+  ['TCSINFY', null],
+  // Length alone is capped at MAX_SYMBOL_LENGTH, no tighter.
+  ['A'.repeat(28), null],
+  // A list says what it names: several stocks when two or more are symbols and none an index; an
+  // index when it names one beside another name; and cannot be read beside fewer than two names.
+  ['HDFCBANK, ICICIBANK, -', 'severalSymbols'],
+  ['NA, TBD', 'unreadableSymbols'],
+  ['RELIANCE, -', 'unreadableSymbols'],
+  ['NIFTY100, SENSEX', 'indexOrBasket'],
+  ['RELIANCE, NIFTY50', 'indexOrBasket'],
+  ['NIFTY, BANKNIFTY', 'severalSymbols'],
+];
+
+test('tickers are exactly one clean symbol, or held for why: each spelling, its verdict and reason', () => {
+  // The cap is the longest spelling it must admit, measured.
+  assert.equal('MIDCPNIFTY20261028123456.5CE'.length, MAX_SYMBOL_LENGTH);
+  for (const [tickers, reason] of TICKER_VERDICTS) {
+    assert.equal(tickersHold(tickers), reason, JSON.stringify(tickers));
+    assert.equal(
+      isOneSymbol(tickers),
+      reason === null,
+      JSON.stringify(tickers),
+    );
+  }
+  // Not a string is no symbol, and no throw.
+  for (const notString of [['HDFCBANK'], 7, null, undefined, {}]) {
+    assert.equal(tickersHold(notString), 'noSymbol');
+    assert.deepEqual(tickersOf(notString), []);
+  }
+});
+
+// The F&O switch is read by isFnOSymbol. An index-like spelling that started while it read as an
+// equity traded under no segment switch at all on a delivery card.
+test('every index-like spelling that can start reads as F&O, or is held', () => {
+  const spellings = new Set<string>([
+    'NIFTYBANK',
+    'NIFTYFIN',
+    'NIFTYNEXT50',
+    'MIDCAPNIFTY',
+    'BSESENSEX',
+    'NSEBANK',
+    'NSEI',
+    'BSESN',
+    'BSE30',
+    'NIFTYIETF',
+    'SENSEXIETF',
+    'SETFNIFTY',
+  ]);
+  for (const index of [...NSE_INDICES, ...BSE_INDICES]) {
+    spellings.add(index.symbol);
+    spellings.add(index.name);
+  }
+  for (const root of [
+    'NIFTY',
+    'BANKNIFTY',
+    'FINNIFTY',
+    'MIDCPNIFTY',
+    'SENSEX',
+    'BANKEX',
+    'CNX',
+  ]) {
+    for (const tail of [
+      '',
+      '1',
+      '30',
+      '50',
+      '100',
+      'BANK',
+      'BEES',
+      'FIN',
+      'INFRA',
+      'IT',
+      'NEXT50',
+      'PSU',
+      ' 50',
+      ' BANK',
+      '24OCTFUT',
+      '24OCT24500CE',
+    ]) {
+      spellings.add(root + tail);
+    }
+  }
+  for (const symbol of spellings) {
+    assert.ok(
+      tickersHold(symbol) !== null || isFnOSymbol(symbol),
+      `${symbol} starts and reads as an equity`,
+    );
+  }
+});
+
+test('a symbol can be charted when it is one name spelled as a symbol, and not a placeholder or a basket', () => {
+  // An index has bars, a non-tradable one included, and a listed equity with NSE's "-EQ" series
+  // suffix is still that equity.
+  for (const symbol of [
+    'HDFCBANK',
+    'SENSEX',
+    'NIFTYIT',
+    'NIFTY100',
+    'INDIAVIX',
+    'RELIANCE-EQ',
+    'M&M',
+    'NIFTY 50',
+  ]) {
+    assert.equal(isChartSymbol(symbol), true, symbol);
+  }
+  // A join is no one name, however it is spelled.
+  for (const symbol of [
+    'HDFCBANK, ICICIBANK',
+    'HDFCBANK ICICIBANK',
+    'HDFCBANK/ICICIBANK',
+    'HDFCBANK&ICICIBANK',
+    'TCS.INFY',
+    'HDFCBANK,',
+    'NSE500',
+    'FNO',
+    'NA',
+    '',
+    7,
+  ]) {
+    assert.equal(isChartSymbol(symbol), false, String(symbol));
+  }
+});
+
+// Every run of a card sends its tickers as one `symbol`, which backend-go's cardRow makes ONE
+// symbol: "HDFCBANK, ICICIBANK" is a symbol no runner trades, under a card that says Running, and
+// the card's one amount is shown for what the code may buy of each. A v2 card's code is no
+// different here: both are held, and both were startable before.
+test('a C card is held unless its tickers are one clean symbol: v2 and v3 alike, a C card still', () => {
+  for (const entry of SCRIPT_ENTRIES_C) {
+    const terms = {
+      tickers: 'HDFCBANK',
+      script_entry: entry,
+      script: `def ${entry}(ctx): ...`,
+      script_hash: 'abc123',
+      script_sig: 'sig-1',
+      strategy_id: '6f1c2a7e-0d4b-4c3e-9a1f-2b3c4d5e6f70',
+    };
+    for (const [tickers, reason] of TICKER_VERDICTS) {
+      const card = {...terms, tickers};
+      const label = `${entry} ${JSON.stringify(tickers)}`;
+      assert.equal(scriptCardHold(card), reason, label);
+      assert.equal(scriptRunOf(card) === null, reason !== null, label);
+      assert.equal(isScriptCard({terms: card}), true, label);
+    }
+    for (const held of [
+      without(terms, 'tickers'),
+      {...terms, tickers: ['HDFCBANK'] as unknown as string},
+      {...terms, tickers: 7 as unknown as string},
+    ]) {
+      assert.equal(scriptCardHold(held), 'noSymbol', entry);
+      assert.equal(scriptRunOf(held), null);
+      assert.equal(isScriptCard({terms: held}), true);
+    }
+  }
+});
+
+test('a card whose tickers are not a string reads as naming no symbol, without throwing', () => {
+  for (const tickers of [['HDFCBANK', 'SBIN'], 7]) {
+    assert.equal(
+      termsToConfig({tickers: tickers as unknown as string, timeframe: '1d'}),
+      null,
+    );
+  }
+});
+
+// types/backtest: `runnable: false` is a composed script the engine cannot run yet. Web starts it
+// anyway; here it is held, ahead of what its symbols say.
+test('a C card whose code the engine cannot run yet is held, whatever it names', () => {
+  const terms = {
+    tickers: 'HDFCBANK',
+    script_entry: 'evaluate_v3',
+    script: 'def evaluate_v3(ctx, symbols): ...',
+    script_hash: 'abc123',
+  };
+  assert.equal(scriptCardHold({...terms, runnable: false}), 'notRunnable');
+  assert.equal(scriptRunOf({...terms, runnable: false}), null);
+  assert.equal(isScriptCard({terms: {...terms, runnable: false}}), true);
+  assert.equal(
+    scriptCardHold({...terms, tickers: 'HDFCBANK, SBIN', runnable: false}),
+    'notRunnable',
+  );
+  // Only an explicit false holds it: true, or no word at all, is the card as it was.
+  assert.equal(scriptCardHold({...terms, runnable: true}), null);
+  assert.equal(scriptCardHold(terms), null);
+  // And none of it is said of a card that is not a C card.
+  assert.equal(
+    scriptCardHold({...terms, script_entry: 'evaluate', runnable: false}),
+    null,
+  );
+  assert.equal(scriptCardHold(undefined), null);
 });
 
 test('extractSetupConfig reads the confirm table rows back into a request', () => {

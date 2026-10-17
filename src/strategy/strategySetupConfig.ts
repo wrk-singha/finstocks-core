@@ -7,6 +7,16 @@
  * the `fsm` passthrough, the "1h" timeframe token and the WATCHLIST execution mode - the
  * mobile copy is the older row-parsing subset with none of those.
  */
+import {
+  BSE_INDICES,
+  FNO_STOCK_UNDERLYINGS,
+  NIFTY100_SYMBOLS,
+  NSE_INDICES,
+} from '../data/stocksData.ts';
+import {parseFuturesSymbol} from '../market/futuresSymbol.ts';
+import {parseOptionSymbol} from '../market/optionContract.ts';
+import {extractUnderlyingSymbol, TRADABLE_INDICES} from '../market/symbols.ts';
+import {BASKETS} from './strategyConflicts.ts';
 import type {BacktestSetupTerms} from '../types/backtest.ts';
 import type {ConsoleSizingMode} from '../types/console.ts';
 import type {ScriptRun} from '../types/strategyRun.ts';
@@ -34,22 +44,289 @@ export interface SetupConfig {
 export const normalizeSetupKey = (k: string): string =>
   k.toLowerCase().replace(/\s+/g, '_');
 
-/** The `script_entry` that marks a C strategy card. */
+/**
+ * The `script_entry` values that mark a C strategy card: the ABI the llm writes the card's code
+ * against, `evaluate_v2` (one symbol) or `evaluate_v3` (every symbol of the row in one call), as
+ * web reads them (5b02f608). A known set, where web matches `/^evaluate(_v\d+)?$/`: an entry not
+ * shipped yet (`evaluate_v4`) or a bare `evaluate` stays a card that cannot be started, rather
+ * than one whose code goes to an engine nobody has seen run it.
+ *
+ * The entry is read, never sent: backend-go's strategy-action has no such field and hands Athena
+ * only the card's code, its hash and its signature, so the code itself is what names its entry.
+ */
+export const SCRIPT_ENTRIES_C: readonly string[] = Object.freeze([
+  'evaluate_v2',
+  'evaluate_v3',
+]);
+
+/** Whether `entry` is exactly one of `SCRIPT_ENTRIES_C`. */
+export const isScriptEntry = (entry: unknown): entry is string =>
+  typeof entry === 'string' && SCRIPT_ENTRIES_C.includes(entry);
+
+/**
+ * The v2 entry alone, as v0.9.0 and earlier exported it. Not what makes a card a C card (that is
+ * any of `SCRIPT_ENTRIES_C`, `isScriptEntry`), and never sent or put in place of a card's own.
+ */
 export const SCRIPT_ENTRY_C = 'evaluate_v2';
 
 /**
- * The card's C strategy, when it is one: `script_entry` "evaluate_v2" with its code and the
- * code's hash, and the code's signature when the card carries one (an empty one is none, as the
- * backend reads it). Such a card runs only from its own buttons and only through `strategy-action`:
- * a create-backtest sent for it has no FSM to send (refused), or an FSM that is not the card's
- * code (deployed as a different rule). Null for every other card, including a composed
- * "script_preview" whose `script` is a receipt rather than an entry point.
+ * Where a card's `tickers`, and so a run's `symbol`, goes from one symbol to the next: a comma,
+ * with any spaces around it.
  */
-export function scriptRunOf(
+export const TICKER_SEPARATOR = /\s*,\s*/;
+
+/**
+ * The symbols a card's `tickers` (or a run's `symbol`) names, in order, each trimmed. A stray comma
+ * keeps its empty part ("HDFCBANK," is two parts, not one symbol); nothing at all names none, and
+ * so does anything that is not a string (a card can carry an array or a number there).
+ */
+export const tickersOf = (tickers: unknown): string[] => {
+  const all = typeof tickers === 'string' ? tickers.trim() : '';
+  return all === '' ? [] : all.split(TICKER_SEPARATOR);
+};
+
+/**
+ * The longest one symbol can be: core's longest F&O contract spelling. Measured, not guessed: the
+ * ISO option form (`parseOptionSymbol`, as backend-go's fnocontract.Parse) on a 10-letter
+ * underlying, the longest in FNO_STOCK_UNDERLYINGS and FNO_INDEX_UNDERLYINGS (MIDCPNIFTY,
+ * NIFTYNXT50, BAJAJ-AUTO), an 8-digit date, a 6-digit strike with one decimal (NSE's 2.5-rupee
+ * spacing) and CE/PE: 10 + 8 + 8 + 2. The longest in core's own tests is 25
+ * (NIFTYNXT502026102770000CE); every equity symbol core lists is 10 or less.
+ */
+export const MAX_SYMBOL_LENGTH = 28;
+
+/** What a card writes where it has no symbol, compared upper-cased: no symbol at all. */
+const PLACEHOLDERS: ReadonlySet<string> = new Set([
+  '-',
+  '.',
+  'NA',
+  'N/A',
+  'NONE',
+  'TBD',
+  'TBA',
+  'NULL',
+  'UNDEFINED',
+  'NAN',
+  'NIL',
+  'XXX',
+  'XXXX',
+  'TBC',
+  'SYMBOL',
+  'TICKER',
+  'UNKNOWN',
+]);
+
+/**
+ * Every index (NSE_INDICES and BSE_INDICES, by symbol and by name) that is not one of the
+ * `TRADABLE_INDICES`, and core's basket names (`BASKETS`): none is one symbol a strategy trades.
+ * "NIFTY100" and "NIFTY 100" alike.
+ */
+const INDEX_OR_BASKET: ReadonlySet<string> = new Set([
+  ...BASKETS,
+  ...[...NSE_INDICES, ...BSE_INDICES]
+    .filter(index => !TRADABLE_INDICES.includes(index.symbol))
+    .flatMap(index => [index.symbol, index.name]),
+]);
+
+/**
+ * The tradable indices by the names with a space NSE_INDICES gives them ("NIFTY 50", "NIFTY
+ * BANK"): the only spellings with a space that are one symbol.
+ */
+const SPACED_INDEX_NAMES: ReadonlySet<string> = new Set(
+  NSE_INDICES.filter(index => TRADABLE_INDICES.includes(index.symbol)).map(
+    index => index.name,
+  ),
+);
+
+/**
+ * The equity symbols core can resolve (NIFTY100_SYMBOLS, "every NSE equity symbol the app can
+ * resolve", and FNO_STOCK_UNDERLYINGS): the only ones an `&` or a `-` is trusted in (M&M,
+ * BAJAJ-AUTO, J&KBANK), since a join ("HDFCBANK&ICICIBANK") or a series suffix ("RELIANCE-EQ")
+ * is spelled the same way.
+ */
+const LISTED_EQUITIES: ReadonlySet<string> = new Set([
+  ...NIFTY100_SYMBOLS,
+  ...FNO_STOCK_UNDERLYINGS,
+]);
+
+/**
+ * The roots index names are spelled from, as strategyConflicts' INDEX_NAME reads them, with CNX
+ * (the old NSE index prefix: CNXIT, CNXPHARMA). No equity core lists starts with one.
+ */
+const INDEX_ROOT = /^(NIFTY|BANKNIFTY|FINNIFTY|MIDCPNIFTY|SENSEX|BANKEX|CNX)/;
+
+/** Spellings of an index that neither core's index lists nor the index-name rule reach. */
+const INDEX_ALIASES: ReadonlySet<string> = new Set([
+  'NIFTYBANK',
+  'NIFTYFIN',
+  'NIFTYNEXT50',
+  'MIDCAPNIFTY',
+  'BSESENSEX',
+  'NSEBANK',
+  'NSEI',
+  'BSESN',
+  'BSE30',
+]);
+
+/** An index's name anywhere in a spelling ("NIFTYIETF"); no equity core lists has one. */
+const INDEX_NAME_INSIDE = /NIFTY|SENSEX|BANKEX/;
+
+const isContract = (symbol: string): boolean =>
+  parseOptionSymbol(symbol) !== null || parseFuturesSymbol(symbol) !== null;
+
+/**
+ * A cleanly spelled symbol that is still an index, or a fund on one: one that is not a contract and
+ * starts with an index root ("NIFTY50", "NIFTYINFRA", "SENSEX30", "CNXIT"), carries an index's name
+ * anywhere ("NIFTYIETF", "SENSEXIETF"), or whose underlying is a tradable index it is not.
+ * `isFnOSymbol` reads each of these as an equity, so a delivery card on one read no segment's kill
+ * switch. A tradable index itself is not one, nor is an equity core lists, nor a contract, which
+ * `isFnOSymbol` reads as F&O. Core lists no exchange-traded fund: one spelled from an index's name
+ * (NIFTYBEES, NIFTY1, NIFTYIETF) cannot be told from the index and is held with it; one spelled
+ * otherwise (BANKBEES, JUNIORBEES, SETFNIF50) is not caught here and starts, as a security that
+ * trades in delivery. BSE (BSE Ltd), which core lists, starts too.
+ */
+const isIndexSpelling = (symbol: string): boolean => {
+  if (
+    TRADABLE_INDICES.includes(symbol) ||
+    SPACED_INDEX_NAMES.has(symbol) ||
+    LISTED_EQUITIES.has(symbol) ||
+    isContract(symbol)
+  ) {
+    return false;
+  }
+  return (
+    INDEX_ROOT.test(symbol) ||
+    INDEX_NAME_INSIDE.test(symbol) ||
+    TRADABLE_INDICES.includes(extractUnderlyingSymbol(symbol))
+  );
+};
+
+/**
+ * One symbol, as a strategy trades one: a tradable index by its spaced name, or letters and digits
+ * (a letter among them), no longer than `MAX_SYMBOL_LENGTH`, with an `&` or a `-` only where a
+ * listed equity carries one, itself or as a contract's underlying, and a `.` only in an option's
+ * strike (TATASTEEL26SEP187.5CE). Never a `_`, a space otherwise, or any other sign ("TCS.INFY",
+ * "RELIANCE.NS", "NIFTY_BANKNIFTY").
+ */
+const isCleanSymbol = (symbol: string): boolean => {
+  if (SPACED_INDEX_NAMES.has(symbol)) return true;
+  if (symbol.length > MAX_SYMBOL_LENGTH) return false;
+  const option = parseOptionSymbol(symbol);
+  const spelling = option === null ? /^[A-Z0-9&-]+$/ : /^[A-Z0-9&.-]+$/;
+  if (!spelling.test(symbol) || !/[A-Z]/.test(symbol)) return false;
+  const base =
+    option?.underlying ?? parseFuturesSymbol(symbol)?.underlying ?? symbol;
+  return !/[&-]/.test(symbol) || LISTED_EQUITIES.has(base);
+};
+
+/**
+ * Why `tickers` is not exactly one clean symbol, or null when it is:
+ * - `noSymbol`: no part with anything in it (nothing, spaces, bare commas, not a string), or a
+ *   placeholder ("-", "NA", "TBD", "null").
+ * - `severalSymbols`: more than one part, at least two of them clean symbols and none an index.
+ * - `unreadableSymbols`: a list that cannot be read: a stray comma beside one part (",HDFCBANK",
+ *   "HDFCBANK,"), or several parts fewer than two of which name a symbol or an index ("NA, TBD",
+ *   "RELIANCE, -").
+ * - `indexOrBasket`: an index that is not one of the tradable ones, a fund on one, or a basket
+ *   (`isIndexSpelling`: "NIFTY100", "SENSEX", "NIFTY50", "CNXIT", "NIFTYBEES", "NSE500"); or a list
+ *   of at least two names one of which is ("RELIANCE, NIFTY50", "NIFTY100, SENSEX").
+ * - `unreadableSymbol`: one part that is not one clean symbol (`isCleanSymbol`): separated some
+ *   other way ("HDFCBANK ICICIBANK", "HDFCBANK;ICICIBANK", a newline), joined
+ *   ("HDFCBANK&ICICIBANK", "TCS.INFY"), suffixed ("RELIANCE-EQ"), or too long. Each would go out
+ *   as one symbol no runner trades, and read no segment's kill switch.
+ *
+ * A join of two symbols in letters alone ("TCSINFY") cannot be told from one symbol here: core's
+ * equity list is what the app resolves, not all of NSE, and a contract or a new listing is not on
+ * it. Such a spelling starts, and trades nothing.
+ */
+export type TickersHold =
+  | 'noSymbol'
+  | 'severalSymbols'
+  | 'unreadableSymbols'
+  | 'indexOrBasket'
+  | 'unreadableSymbol';
+
+/** Why one part is not one symbol a strategy trades, or null when it is. */
+const partHold = (
+  part: string,
+): 'noSymbol' | 'indexOrBasket' | 'unreadableSymbol' | null => {
+  const symbol = part.toUpperCase();
+  if (PLACEHOLDERS.has(symbol)) return 'noSymbol';
+  // Any NSE or BSE index outside TRADABLE_INDICES by symbol or name, a basket, or an alias.
+  if (INDEX_OR_BASKET.has(symbol) || INDEX_ALIASES.has(symbol)) {
+    return 'indexOrBasket';
+  }
+  if (!isCleanSymbol(symbol)) return 'unreadableSymbol';
+  return isIndexSpelling(symbol) ? 'indexOrBasket' : null;
+};
+
+export function tickersHold(tickers: unknown): TickersHold | null {
+  const parts = tickersOf(tickers);
+  const named = parts.filter(part => part !== '');
+  if (named.length === 0) return 'noSymbol';
+  // A list says what it names: two or more symbols are several stocks, unless one is an index; and
+  // placeholders or junk beside fewer than two names are a list that cannot be read.
+  if (named.length > 1) {
+    const holds = named.map(partHold);
+    const names = holds.filter(
+      hold => hold === null || hold === 'indexOrBasket',
+    );
+    if (names.length < 2) return 'unreadableSymbols';
+    return names.includes('indexOrBasket') ? 'indexOrBasket' : 'severalSymbols';
+  }
+  const hold = partHold(named[0] ?? '');
+  if (hold === 'noSymbol') return 'noSymbol';
+  return parts.length > 1 ? 'unreadableSymbols' : hold;
+}
+
+/**
+ * Whether `symbol` can be charted: exactly one named part, not a placeholder or a basket, spelled
+ * as one symbol (`isCleanSymbol`, a tradable index's spaced name included) or an equity core lists,
+ * itself or with NSE's "-EQ" series suffix ("RELIANCE-EQ", which `extractUnderlyingSymbol` reads as
+ * RELIANCE). Never a join ("HDFCBANK ICICIBANK", "HDFCBANK/ICICIBANK", "HDFCBANK&ICICIBANK",
+ * "TCS.INFY"). Not the rule a strategy starts by (`tickersHold`): an index, a non-tradable one
+ * included, has bars, and a plan without code is only looked at.
+ */
+export function isChartSymbol(symbol: unknown): boolean {
+  const parts = tickersOf(symbol);
+  const only = (parts[0] ?? '').toUpperCase();
+  if (
+    parts.length !== 1 ||
+    only === '' ||
+    PLACEHOLDERS.has(only) ||
+    BASKETS.has(only)
+  ) {
+    return false;
+  }
+  return (
+    isCleanSymbol(only) ||
+    LISTED_EQUITIES.has(only) ||
+    (only.endsWith('-EQ') && LISTED_EQUITIES.has(only.slice(0, -3)))
+  );
+}
+
+/** Whether `tickers` names exactly one clean symbol (`tickersHold` is null). */
+export const isOneSymbol = (tickers: unknown): boolean =>
+  tickersHold(tickers) === null;
+
+/**
+ * Why a C card cannot be started here, though it is one (`isScriptCard`):
+ * - `notRunnable`: the card says the engine cannot run its code yet (`runnable: false`).
+ * - any `TickersHold`: its `tickers` are not exactly one clean symbol. Every run of the card sends
+ *   them as one `symbol`, which backend-go's `cardRow` makes a single symbol ("HDFCBANK,
+ *   ICICIBANK") that no runner trades, and the card's one amount would be shown for what the code
+ *   may buy of each; with none, a symbol read back out of its prose rows is what put unrunnable
+ *   rows in the database.
+ */
+export type ScriptCardHold = 'notRunnable' | TickersHold;
+
+/** The card's code, when it is a C card, whether or not it can be started. */
+function scriptCodeOf(
   terms: BacktestSetupTerms | null | undefined,
 ): ScriptRun | null {
   if (
-    terms?.script_entry !== SCRIPT_ENTRY_C ||
+    !terms ||
+    !isScriptEntry(terms.script_entry) ||
     typeof terms.script !== 'string' ||
     terms.script === '' ||
     typeof terms.script_hash !== 'string' ||
@@ -68,10 +345,38 @@ export function scriptRunOf(
   };
 }
 
-/** Whether a plan card is a C strategy card (`scriptRunOf` on its terms). */
+/** Why a C card cannot be started (`ScriptCardHold`); null for one that can, and any other card. */
+export function scriptCardHold(
+  terms: BacktestSetupTerms | null | undefined,
+): ScriptCardHold | null {
+  if (!terms || scriptCodeOf(terms) === null) return null;
+  if (terms.runnable === false) return 'notRunnable';
+  return tickersHold(terms.tickers);
+}
+
+/**
+ * The card's C strategy, when it is one that can be started: a `script_entry` of
+ * `SCRIPT_ENTRIES_C` with its code and the code's hash, and the code's signature when the card
+ * carries one (an empty one is none, as the backend reads it), on a card with no
+ * `scriptCardHold`: runnable, and naming exactly one symbol. Such a card runs only from its own
+ * buttons and only through `strategy-action`: a create-backtest sent for it has no FSM to send
+ * (refused), or an FSM that is not the card's code (deployed as a different rule). Null for every
+ * other card: a held C card, and a composed "script_preview" whose `script` is a receipt rather
+ * than an entry point. No request can be built for a card without one.
+ */
+export function scriptRunOf(
+  terms: BacktestSetupTerms | null | undefined,
+): ScriptRun | null {
+  return scriptCardHold(terms) === null ? scriptCodeOf(terms) : null;
+}
+
+/**
+ * Whether a plan card is a C strategy card: its rules are its code, whether or not it can be
+ * started here (`scriptRunOf`, `scriptCardHold`).
+ */
 export const isScriptCard = (setup: {
   terms?: BacktestSetupTerms | undefined;
-}): boolean => scriptRunOf(setup.terms) !== null;
+}): boolean => scriptCodeOf(setup.terms) !== null;
 
 /** The machine terms a plan card carries, when it carries them. */
 export type SetupTerms = BacktestSetupTerms;
@@ -120,7 +425,11 @@ export function termsToConfig(
   terms: SetupTerms | undefined,
 ): SetupConfig | null {
   if (!terms || typeof terms !== 'object') return null;
-  const symbol = (terms.tickers ?? '').trim().toUpperCase();
+  // Not a string (an array, a number) is no symbol, never a throw in a host's render.
+  const tickers: unknown = terms.tickers;
+  const symbol = (typeof tickers === 'string' ? tickers : '')
+    .trim()
+    .toUpperCase();
   if (!symbol) return null;
 
   const allocated_amount = toAmount(terms.position_sizing);

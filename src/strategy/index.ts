@@ -178,14 +178,27 @@ export type {
 } from './strategyRunOptions.ts';
 export {
   extractSetupConfig,
+  isChartSymbol,
+  isOneSymbol,
   isScriptCard,
+  isScriptEntry,
   normalizeSetupKey,
+  SCRIPT_ENTRIES_C,
   SCRIPT_ENTRY_C,
+  scriptCardHold,
   scriptRunOf,
   setupConfig,
   termsToConfig,
+  TICKER_SEPARATOR,
+  tickersHold,
+  tickersOf,
 } from './strategySetupConfig.ts';
-export type {SetupConfig, SetupTerms} from './strategySetupConfig.ts';
+export type {
+  ScriptCardHold,
+  SetupConfig,
+  SetupTerms,
+  TickersHold,
+} from './strategySetupConfig.ts';
 export {
   sourceLogTimeline,
   splitSharedIds,

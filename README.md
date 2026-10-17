@@ -63,6 +63,83 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **Unreleased** — main's v0.9.7 (tagged on main): comments only, no change in behaviour.
+  `isIndexSpelling`'s note now says which exchange-traded funds are held (those spelled from an
+  index's name, as core lists no fund) and which start (BANKBEES, JUNIORBEES, SETFNIF50), and that
+  BSE starts as a listed equity. The v0.9.6 entry below said that every spelling containing NIFTY,
+  SENSEX or BANKEX is held; the tradable indices themselves (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY)
+  and their contracts are not, and it now says so.
+- **Unreleased** — main's v0.9.6 (tagged on main): an index's name anywhere is an index, and a list
+  says what it names; a narrowing of `tickersHold` and of `isChartSymbol`. "MIDCAPNIFTY", "NSEBANK",
+  "NSEI", "BSESN" and "BSE30" are named aliases, and a clean, unlisted, non-contract spelling that
+  contains NIFTY, SENSEX or BANKEX is `indexOrBasket` (index funds such as "NIFTYIETF" with them:
+  core lists no fund), except the tradable indices themselves (NIFTY, BANKNIFTY, FINNIFTY,
+  MIDCPNIFTY) and their contracts, which start as before; no equity core lists contains one, and
+  "BSE" and "BANKBEES" still start. Placeholders add XXXX, TBC, SYMBOL, TICKER and UNKNOWN. A list
+  of two or more names is `indexOrBasket` when one is an index ("RELIANCE, NIFTY50"),
+  `severalSymbols` otherwise, and `unreadableSymbols` only beside fewer than two names.
+  `isChartSymbol` charts one name spelled as a symbol, or a listed equity itself or with "-EQ",
+  never a join ("HDFCBANK ICICIBANK", "HDFCBANK&ICICIBANK", "TCS.INFY").
+- **Unreleased** — main's v0.9.5 (tagged on main): any spelling of an index is an index; a narrowing
+  of `tickersHold`, and `isChartSymbol`. Index aliases passed as letters and digits and
+  `isFnOSymbol` read them as equities, so a delivery card on one read no segment switch: "NIFTY50",
+  "NIFTYBANK", "SENSEX30", "CNXIT", and NSE indices core does not list ("NIFTYINFRA", "NIFTYPSU"). A
+  cleanly spelled symbol that is not a contract is `indexOrBasket` when it starts with an index root
+  (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY, SENSEX, BANKEX, CNX) or its underlying is a tradable
+  index it is not, unless it is a tradable index itself or an equity core lists; "NIFTYBANK",
+  "NIFTYFIN", "NIFTYNEXT50" and "BSESENSEX" are named. Core's equity list holds nothing on those
+  roots and no ETF, so "NIFTYBEES" and "NIFTY1" are held with the indices. Placeholders add TBA,
+  NULL, UNDEFINED, NAN, NIL, XXX. A list is `severalSymbols` only when two of its parts are symbols,
+  else `unreadableSymbols` ("NA, TBD", "RELIANCE, -"). `isChartSymbol(symbol)` is the looser rule a
+  chart reads: one named part, not a placeholder or a basket.
+- **Unreleased** — main's v0.9.4 (tagged on main): one clean symbol is one a strategy can trade; a
+  narrowing of `tickersHold` (so of `scriptRunOf`) and two new reasons. Any run of letters, digits
+  and `& . _ -` passed, so non-tradable indices ("NIFTY100", "SENSEX"), core's own baskets
+  ("NSE500", "FNO", "ALL"), placeholders ("-", "NA") and joins ("HDFCBANK&ICICIBANK", "TCS.INFY",
+  "RELIANCE.NS") started as one symbol, most reading no segment's kill switch. Now one symbol has a
+  letter, letters and digits only, an `&` or `-` only where an equity core lists carries one
+  (`NIFTY100_SYMBOLS`, the 2058 NSE equities the app resolves, and `FNO_STOCK_UNDERLYINGS`; itself
+  or as a contract's underlying), a `.` only in an option's strike, and at most `MAX_SYMBOL_LENGTH`
+  (28: the ISO option spelling on a 10-letter underlying with a 6-digit, one-decimal strike,
+  measured; core's longest tested spelling is 25). Placeholders ("-", ".", "NA", "N/A", "NONE",
+  "TBD") are `noSymbol`; every NSE or BSE index outside `TRADABLE_INDICES`, by symbol or name, and
+  every `BASKETS` name is the new `indexOrBasket`; one part that is not a symbol is the new
+  `unreadableSymbol`, and `unreadableSymbols` is left to stray commas. `strategyConflicts` exports
+  `BASKETS`.
+- **Unreleased** — main's v0.9.3 (tagged on main): a C strategy card starts only on exactly one
+  clean symbol; one more narrowing of `scriptRunOf`, otherwise additive. Only a comma separated
+  symbols, so "HDFCBANK ICICIBANK", "HDFCBANK;ICICIBANK", "HDFCBANK/ICICIBANK" or a newline read as
+  one symbol, started, and went out joined all the same. `tickersHold(tickers)` (`TickersHold`) is
+  the rule and `isOneSymbol` its yes: no part with anything in it is `noSymbol`; more than one is
+  `severalSymbols`; one, beside a stray comma (",HDFCBANK", "HDFCBANK,") or not spelled as a symbol
+  (letters, digits and `& . _ -`, or a `TRADABLE_INDICES` index by its spaced `NSE_INDICES` name,
+  "NIFTY 50", "NIFTY BANK"), is the new `unreadableSymbols`. `ScriptCardHold` gains it;
+  `scriptCardHold` reads the rule after `runnable: false`. `tickers` that are not a string name no
+  symbol: `tickersOf`, `tickersHold` and `termsToConfig` no longer throw on an array or a number.
+  `market/symbols` exports `TRADABLE_INDICES`.
+- **Unreleased** — main's v0.9.2 (tagged on main): a C strategy card is started only on one symbol
+  whose code the engine can run; one narrowing of `scriptRunOf`, otherwise additive. Every run of a
+  C card sends its `tickers` as one `symbol`, which backend-go main's `cardRow` makes a single
+  symbol ("HDFCBANK, ICICIBANK", no runner trades it) while the card says Running and shows one
+  amount for what the code may buy of each; v0.9.1 made multi-symbol v3 cards startable, and v2
+  cards naming several always were. `scriptCardHold(terms)` (`ScriptCardHold`) says why a C card is
+  held: `notRunnable` (`runnable: false`, which web ignores), `noSymbol` (its `tickers` name none)
+  or `severalSymbols`. `scriptRunOf` is null for a held card, so no request is built for one;
+  `isScriptCard` is still true for it (its rules are its code). `tickersOf(tickers)` and
+  `TICKER_SEPARATOR` are the one split rule, a comma with any spaces around it, a stray comma kept
+  as an empty part; `resolveStrategyChartSymbol` reads it, refusing what it refused.
+  `SCRIPT_ENTRIES_C` is frozen.
+- **Unreleased** — main's v0.9.1 (tagged on main): a C strategy card is `script_entry`
+  `"evaluate_v2"` or `"evaluate_v3"`, as web main reads it (5b02f608: v2 runs one symbol, v3 every
+  symbol of the row in one call); additive. Before it a v3 card read as a plan without code, so a
+  host showed it retired with nothing to start. `strategy/strategySetupConfig` gains
+  `SCRIPT_ENTRIES_C` and `isScriptEntry(entry)`, an exact match of that set; `scriptRunOf` and
+  `isScriptCard` read through it. Web matches `/^evaluate(_v\d+)?$/`; the set keeps an entry not
+  shipped yet (`evaluate_v4`, a bare `evaluate`) a card that cannot be started. `SCRIPT_ENTRY_C` is
+  still exported and still v2 alone. Requests are unchanged: no strategy-action body names an entry,
+  as backend-go main's `StrategyActionRequest` has no such field and passes Athena only `code`,
+  `script_hash` and `script_sig`, and web sends none; a v3 card's requests carry its own code, hash
+  and signature.
 - **Unreleased** — two web-parity changes, released on main as v0.9.0. One breaking type change:
   `ChatWithMessages.messages` and `SharedChat.messages` are optional, because backend-go tags
   `Chat.Messages` `omitempty` and a chat with nothing saved yet (just created, or its first turn

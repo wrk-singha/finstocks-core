@@ -2,7 +2,13 @@
 // pricing. Both apps kept these beside their chart utils; they are pure
 // string logic about NSE contract naming, so they live with the market maths.
 
-const TRADABLE_INDICES = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY'];
+/** The indices traded as F&O underlyings; strategy's symbol rule reads their spaced names too. */
+export const TRADABLE_INDICES: readonly string[] = [
+  'NIFTY',
+  'BANKNIFTY',
+  'FINNIFTY',
+  'MIDCPNIFTY',
+];
 
 // Anchored on the contract suffix, never a bare digit-letter run: an
 // unanchored expiry match reads "BSE500IETF" as an option and files the ETF

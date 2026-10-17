@@ -25,6 +25,7 @@ import {
   type EquityPath,
 } from './backtestStats.ts';
 import {budgetMode, budgetVal} from './strategyBudget.ts';
+import {tickersOf} from './strategySetupConfig.ts';
 import {isAwaitingStart, isInProgress, isPaused} from './strategyStatus.ts';
 
 export interface StrategyPosition {
@@ -329,7 +330,7 @@ export function resolveStrategyChartSymbol(
   if (held) return held;
 
   const declared = (card.strategy.symbol || '').trim();
-  return declared && !declared.includes(',') ? declared : null;
+  return tickersOf(declared).length === 1 ? declared : null;
 }
 
 // A NaN comparator is non-transitive and scrambles the whole array, not just the undated row,

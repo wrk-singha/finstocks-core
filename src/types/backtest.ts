@@ -73,9 +73,9 @@ export interface BacktestSetupTerms {
    */
   script_sig?: string;
   /**
-   * "evaluate_v2" marks a C strategy card: its rules ARE its code, and it runs only through
-   * `strategy-action`, never through create-backtest (which would deploy a different rule, or
-   * nothing).
+   * "evaluate_v2" or "evaluate_v3" marks a C strategy card (`SCRIPT_ENTRIES_C`): its rules ARE
+   * its code, and it runs only through `strategy-action`, never through create-backtest (which
+   * would deploy a different rule, or nothing).
    */
   script_entry?: string;
   /** The saved strategy the card is a version of, and on a backtest card the row saved for it. */

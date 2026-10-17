@@ -99,6 +99,20 @@ export interface LogPayload {
   /** Legacy field - use `trades` instead. */
   execution_log?: ExecutionLogEntry[];
   trades?: ExecutionLogEntry[];
+  /** Legs still held when the window ended; not part of the realised stats. */
+  open_trades?: OpenTradeEntry[];
+}
+
+/**
+ * A leg the backtest was still holding when its window ended: bought, not yet sold. backend-go's
+ * `resultsPayload` (handlers/trading/tradelogs.go) writes these beside `trades`, `buy_time` in
+ * RFC 3339.
+ */
+export interface OpenTradeEntry {
+  symbol: string;
+  quantity: number;
+  buy_price: number;
+  buy_time: string;
 }
 
 export interface ExecutionLogEntry {

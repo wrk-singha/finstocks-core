@@ -63,6 +63,14 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **Unreleased** — main's v0.9.8 (tagged on main): a backtest results payload lists the legs its
+  window ended on: `LogPayload.open_trades` (`OpenTradeEntry`: symbol, quantity, buy_price,
+  buy_time), optional since older rows have none, as backend-go's `resultsPayload` writes them
+  beside `trades`. `istDateTimeParts` and `formatShortDateTime` take `withYear` ("Jul 5, 2026");
+  the Console's closed-position rows and fill activity (`consoleRows`) and `formatLogDateTime` now
+  date with the year, every other freshness stamp as before. NSE's ticker changes: HEG is HEGAM,
+  SILLYMONKS is CRESTO, AMIRCHAND is AEROPLANE and ASHIKA is ASHIKAG in `NIFTY100_SYMBOLS`, the old
+  names nowhere.
 - **Unreleased** — main's v0.9.7 (tagged on main): comments only, no change in behaviour.
   `isIndexSpelling`'s note now says which exchange-traded funds are held (those spelled from an
   index's name, as core lists no fund) and which start (BANKBEES, JUNIORBEES, SETFNIF50), and that

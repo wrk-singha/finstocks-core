@@ -58,7 +58,8 @@ test('toClosedConsolePosition leads with realized P&L against the exited cost ba
   );
   assert.deepEqual(row, {
     sym: 'TCS',
-    sub: 'Buy ₹100.00 · Jun 30 9:30 AM  →  Sell ₹110.00 · Jul 1 9:30 AM',
+    // Dated with the year: a ledger that spans years would otherwise not say which July.
+    sub: 'Buy ₹100.00 · Jun 30, 2026 9:30 AM  →  Sell ₹110.00 · Jul 1, 2026 9:30 AM',
     val: '+₹100',
     pl: '',
     plp: '+10.0%',
@@ -117,7 +118,7 @@ test('toActivityRows merges fills with warning/error logs, newest first, capped 
       sidePositive: true,
       sym: 'TCS',
       detail: '2 @ ₹300.00',
-      t: 'Jul 4 9:30 AM',
+      t: 'Jul 4, 2026 9:30 AM',
     },
     {
       side: 'ERR',
@@ -140,7 +141,7 @@ test('toActivityRows merges fills with warning/error logs, newest first, capped 
       sidePositive: false,
       sym: 'RELIANCE',
       detail: '10 @ ₹110.00',
-      t: 'Jul 1 9:30 AM',
+      t: 'Jul 1, 2026 9:30 AM',
     },
   ]);
   const many = Array.from({length: 10}, (_, i) =>

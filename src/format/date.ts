@@ -117,6 +117,18 @@ const istMonthDay = cachedBy(
     }),
 );
 
+// The same date with its year, for logs that span years. Read by parts, so en-IN's own order
+// ("5 Jul 2026") never reaches the output.
+const istMonthDayYear = cachedBy(
+  (padDay: boolean) =>
+    new Intl.DateTimeFormat('en-IN', {
+      month: 'short',
+      day: padDay ? '2-digit' : 'numeric',
+      year: 'numeric',
+      timeZone: IST,
+    }),
+);
+
 const istClockFormatter = new Intl.DateTimeFormat('en-IN', {
   hour: 'numeric',
   minute: '2-digit',
@@ -271,8 +283,9 @@ export const formatYyyymmdd = (
 
 /**
  * Single IST "MMM D h:mm AM/PM" core. Null for empty/invalid input so each caller supplies its
- * own fallback. `padDay` zero-pads the day ("Jul 05"). Epoch seconds are accepted alongside
- * strings. Midnight blanks the clock so a bare date never gains a fabricated time.
+ * own fallback. `padDay` zero-pads the day ("Jul 05"); `withYear` appends the year
+ * ("Jul 5, 2026"), for logs that span years. Epoch seconds are accepted alongside strings.
+ * Midnight blanks the clock so a bare date never gains a fabricated time.
  */
 // drift resolved 2026-09-13: web blanked midnight and took epoch seconds; mobile's copy
 // (utils/portfolio) printed midnight and took strings only. Web won: its callers (news
@@ -280,6 +293,7 @@ export const formatYyyymmdd = (
 export function istDateTimeParts(
   dateString: string | number | null | undefined,
   padDay = false,
+  withYear = false,
 ): {date: string; time: string} | null {
   if (dateString == null || dateString === '') return null;
   const d =
@@ -287,29 +301,32 @@ export function istDateTimeParts(
       ? new Date(dateString > 1_000_000_000 ? dateString * 1000 : dateString)
       : parseTimestamp(dateString);
   if (!d || Number.isNaN(d.getTime())) return null;
-  const date = partsOf(istMonthDay(padDay), d);
+  const date = partsOf((withYear ? istMonthDayYear : istMonthDay)(padDay), d);
   const clock = partsOf(istClockFormatter, d);
   const hour = clock('hour');
   const minute = clock('minute');
   const meridiem = clock('dayPeriod').toUpperCase();
   const isMidnight = hour === '12' && minute === '00' && meridiem === 'AM';
+  const monthDayText = `${date('month')} ${date('day')}`;
   return {
-    date: `${date('month')} ${date('day')}`,
+    date: withYear ? `${monthDayText}, ${date('year')}` : monthDayText,
     time: isMidnight ? '' : `${hour}:${minute} ${meridiem}`,
   };
 }
 
 /**
- * Date+time (IST) "MMM D h:mm AM/PM". No year and no commas: these read as freshness stamps,
- * where the year is noise. A midnight clock is dropped rather than printed, so a bare date
- * doesn't gain a fabricated 12:00 AM.
+ * Date+time (IST) "MMM D h:mm AM/PM". No year and no commas by default: these read as freshness
+ * stamps, where the year is noise. `withYear` gives "MMM D, YYYY h:mm AM/PM" for a ledger that
+ * spans years, where a bare "Jul 5" does not say which July. A midnight clock is dropped rather
+ * than printed, so a bare date doesn't gain a fabricated 12:00 AM.
  */
 // drift resolved 2026-09-13: web joined date and time with a space even when the time was
 // blank ("Aug 3 "); mobile trimmed. Trimmed output won — same text, no dangling space.
 export function formatShortDateTime(
   dateString: string | number | null | undefined,
+  withYear = false,
 ): string {
-  const p = istDateTimeParts(dateString);
+  const p = istDateTimeParts(dateString, false, withYear);
   if (!p) return '—';
   return p.time ? `${p.date} ${p.time}` : p.date;
 }

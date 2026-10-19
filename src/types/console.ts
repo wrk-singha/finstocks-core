@@ -77,8 +77,11 @@ export type ConsoleSizingMode = 'AMOUNT' | 'QTY' | 'PERCENT' | 'RISK_PERCENT';
  * path (switch-strategy) is used instead.
  */
 export interface ConsoleRulesDraft {
-  /** budget_config.val */
-  capital: number;
+  /**
+   * The row's size in its mode's unit (`budgetVal`). Absent for a row sized by quantity that
+   * states no count: never the capital passed in, read as one.
+   */
+  capital?: number;
   /** budget_config.mode */
   sizingMode: ConsoleSizingMode;
   /**

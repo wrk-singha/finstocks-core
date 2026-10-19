@@ -56,8 +56,10 @@ export const replaceAction = (
  *
  * - `replace`: the 409 with `needs: "replace"`. Nothing was changed; `message` is the backend's
  *   confirm to show, and `compileHash` the live version a `replace` must name.
- * - `refused`: the backend said no before anything ran, in its own words — 400 (the settings,
- *   QTY or RISK_PERCENT sizing, PERCENT with no capital), 403, 404 (build it again), a 409 that
+ * - `refused`: the backend said no before anything ran, in its own words — 400 (the settings:
+ *   `quantity` with `allocated_amount`, a quantity below 1 or not a whole number, a QTY count or
+ *   capital that is not positive, RISK_PERCENT sizing, PERCENT with no capital; QTY itself is
+ *   taken since backend-go 4c1db7b4), 403, 404 (build it again), a 409 that
  *   asks for no replace (the live version moved since the prompt), 412 (connect a broker),
  *   422 (could not be prepared), any other 4xx, and the handler's own 503 ("Running C
  *   strategies is not enabled yet"), which it answers before anything is asked of Athena.

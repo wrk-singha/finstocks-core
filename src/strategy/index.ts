@@ -142,6 +142,7 @@ export type {
   WordedTimeframe,
 } from './strategyRuleEdit.ts';
 export {
+  budgetHasRealCapital,
   budgetMode,
   budgetSizingMode,
   budgetVal,

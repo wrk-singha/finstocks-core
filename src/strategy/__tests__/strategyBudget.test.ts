@@ -3,6 +3,7 @@ import {test} from 'node:test';
 
 import type {BudgetConfig} from '../../types/trade.ts';
 import {
+  budgetHasRealCapital,
   budgetMode,
   budgetSizingMode,
   budgetVal,
@@ -15,6 +16,8 @@ import {
 import {athenaRow, sparseRow, strategy, UUID_A} from './fixtures.ts';
 
 const SCRIPT: BudgetConfig = {val: 200000, type: 'AMOUNT', allocate: '25%'};
+// What backend-go 4c1db7b4 writes for a QTY strategy-action: the default capital and the count.
+const SCRIPT_QTY: BudgetConfig = {val: 100000, type: 'QTY', qty: 2};
 // What the wire can carry where the type says otherwise.
 const odd = (budget: unknown) => budget as BudgetConfig;
 
@@ -116,4 +119,47 @@ test('normalizeStrategyRow fills what the backend dropped and leaves the budget 
     normalizeTradeStatus({message: false, key: 'IN', is_mock: true}).strategies,
     [],
   );
+});
+
+test('a script budget sized by quantity reads as QTY with its qty, never AMOUNT of its val', () => {
+  assert.equal(budgetMode(SCRIPT_QTY), 'QTY');
+  assert.equal(budgetMode(odd({val: 100000, type: 'qty', qty: 2})), 'QTY');
+  assert.equal(budgetSizingMode(SCRIPT_QTY), 'QTY');
+  assert.equal(budgetVal(SCRIPT_QTY), 2);
+  assert.equal(isScriptBudget(SCRIPT_QTY), true);
+  // No readable qty is no size: the 1,00,000 capital pool is never read as a count.
+  assert.equal(budgetVal({val: 100000, type: 'QTY'}), undefined);
+  assert.equal(budgetVal(odd({val: 100000, type: 'QTY', qty: '2'})), undefined);
+  // A mode the row writes wins over the type.
+  assert.equal(budgetMode({val: 50000, mode: 'AMOUNT', type: 'QTY'}), 'AMOUNT');
+  assert.equal(
+    budgetVal({val: 50000, mode: 'AMOUNT', type: 'QTY', qty: 2}),
+    50000,
+  );
+  // An odd type is no QTY.
+  assert.equal(budgetMode(odd({val: 100000, type: 7, qty: 2})), 'AMOUNT');
+
+  const row = athenaRow({budget_config: SCRIPT_QTY, is_fno: true});
+  assert.equal(isScriptStrategy(row), true);
+  assert.equal(strategyPositionSize(row), 2);
+  assert.equal(
+    strategyPositionSize(
+      athenaRow({budget_config: {val: 100000, type: 'QTY'}}),
+    ),
+    undefined,
+  );
+});
+
+test('budgetHasRealCapital: only an AMOUNT budget with a positive figure', () => {
+  assert.equal(budgetHasRealCapital({val: 50000, mode: 'AMOUNT'}), true);
+  assert.equal(budgetHasRealCapital({val: 50000}), true);
+  assert.equal(budgetHasRealCapital(SCRIPT), true);
+  assert.equal(budgetHasRealCapital(SCRIPT_QTY), false);
+  assert.equal(budgetHasRealCapital({val: 5, mode: 'QTY'}), false);
+  assert.equal(
+    budgetHasRealCapital({val: 10, mode: 'PERCENT', total: 1}),
+    false,
+  );
+  assert.equal(budgetHasRealCapital({val: 0, mode: 'AMOUNT'}), false);
+  assert.equal(budgetHasRealCapital(null), false);
 });

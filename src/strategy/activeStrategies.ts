@@ -24,7 +24,7 @@ import {
   calculateBacktestSummary,
   type EquityPath,
 } from './backtestStats.ts';
-import {budgetMode, budgetVal} from './strategyBudget.ts';
+import {budgetHasRealCapital, budgetMode, budgetVal} from './strategyBudget.ts';
 import {tickersOf} from './strategySetupConfig.ts';
 import {isAwaitingStart, isInProgress, isPaused} from './strategyStatus.ts';
 
@@ -55,18 +55,26 @@ export interface StrategyCardData {
   category: string;
   statusLabel: StrategyStatusLabel;
   paused: boolean;
+  /** The row's size in its mode's unit (`budgetVal`): rupees, a count, or a percent. */
   allocated: number;
   /**
-   * budget_config.mode: "AMOUNT" (₹) | "QTY" (shares) | "PERCENT" | "RISK_PERCENT", as the row
-   * wrote it. Undefined on a row with none, which sizes by AMOUNT - a script strategy's, whose
-   * `allocated` is then its total capital.
+   * budget_config.mode: "AMOUNT" (₹) | "QTY" (lots in F&O, shares in equity) | "PERCENT" |
+   * "RISK_PERCENT", as the row wrote it, or "QTY" for a script budget sized by quantity (its
+   * `allocated` is then the count). Undefined on a row with neither, which sizes by AMOUNT - a
+   * script strategy's, whose `allocated` is then its total capital.
    */
   allocationMode?: string;
+  /**
+   * Whether `allocated` is real rupee capital (`budgetHasRealCapital`). False for QTY, PERCENT and
+   * RISK_PERCENT: `pnlPct` is then 0 and `maxDrawdownPct` null, placeholders no surface should
+   * show as a return - only the rupee `pnl` is measured.
+   */
+  hasRealCapital: boolean;
   /** allocated, or DEFAULT_START_CAPITAL - the baseline the KPIs used */
   startCapital: number;
   /** realized total P&L across the strategy's CLOSED trades */
   pnl: number;
-  /** pnl / allocated * 100 */
+  /** pnl / allocated * 100; 0 without real capital (`hasRealCapital`), which is no return. */
   pnlPct: number;
   /** Mark-to-market P&L on the open book; covers `pricedOpenCount` rows only. */
   unrealizedPnl: number;
@@ -369,12 +377,13 @@ export function deriveStrategyCards(
     const sid = s.strategy_id;
     const group = tradesByStrategy.get(sid) ?? [];
 
-    // QTY (and PERCENT/RISK_PERCENT) budgets are share counts or ratios, not rupees - only
-    // AMOUNT (or unset, which defaults to AMOUNT) is real capital. A script budget is unset, and
-    // its `val` is the strategy's total capital: the base its return is a percentage of.
+    // QTY (and PERCENT/RISK_PERCENT) budgets are counts or ratios, not rupees - only AMOUNT (or
+    // unset, which defaults to AMOUNT) is real capital. A script budget sized by amount is unset,
+    // and its `val` is the strategy's total capital: the base its return is a percentage of. One
+    // sized by quantity is QTY: its `val` is a pool the backend fills with 1,00,000 when the run
+    // sent none, which no return is measured against.
     const allocated = budgetVal(s.budget_config) ?? 0;
-    const hasRealCapital =
-      budgetMode(s.budget_config) === 'AMOUNT' && allocated > 0;
+    const hasRealCapital = budgetHasRealCapital(s.budget_config);
     const startCapital = hasRealCapital ? allocated : DEFAULT_START_CAPITAL;
     const {
       summary,
@@ -390,7 +399,12 @@ export function deriveStrategyCards(
     const pnl = summary.totalPnL;
     const pnlPct = hasRealCapital ? (pnl / allocated) * 100 : 0;
 
-    const writtenMode = s.budget_config?.mode;
+    const writtenMode =
+      typeof s.budget_config?.mode === 'string'
+        ? s.budget_config.mode
+        : budgetMode(s.budget_config) === 'QTY'
+          ? 'QTY'
+          : undefined;
     const paused = isPaused(s);
     const category = s.is_intraday
       ? 'Intraday'
@@ -417,7 +431,8 @@ export function deriveStrategyCards(
       statusLabel,
       paused,
       allocated,
-      ...(typeof writtenMode === 'string' ? {allocationMode: writtenMode} : {}),
+      ...(writtenMode === undefined ? {} : {allocationMode: writtenMode}),
+      hasRealCapital,
       startCapital,
       pnl,
       pnlPct,

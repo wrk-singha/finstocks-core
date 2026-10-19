@@ -139,13 +139,16 @@ export interface BudgetConfig {
   /**
    * Polymorphic: `val` is ₹ in AMOUNT, a share count in QTY, a percent in PERCENT / RISK_PERCENT
    * — always branch on the mode before formatting. On a script budget it is the strategy's TOTAL
-   * capital (see `isScriptBudget`), never a position size. Read it through `budgetVal`.
+   * capital (see `isScriptBudget`), never a position size; on a script QTY budget that capital is
+   * the backend's 1,00,000 unless the run sent `total_capital`, and the size is `qty`. Read it
+   * through `budgetVal`, which hands back the size in the mode's unit.
    */
   val?: number;
   /**
    * What the backend writes (buildBudgetConfig in handlers/trading/createbacktest.go): "AMOUNT",
    * "QTY", "PERCENT" or "RISK_PERCENT"; "PERCENTAGE" matches nothing. Absent on a script budget,
-   * and AMOUNT when absent - read it through `budgetMode`, which also survives a non-string.
+   * whose `type` says it instead; AMOUNT when neither says - read it through `budgetMode`, which
+   * also survives a non-string.
    */
   mode?: string;
   /**
@@ -154,12 +157,20 @@ export interface BudgetConfig {
    */
   total?: number;
   /**
-   * Script budgets only: the Athena engine's sizing kind, "AMOUNT". Passed through verbatim from
-   * `backtesterBudget` (handlers/trading/strategyaction.go, feat/athena-integration).
+   * Script budgets only: the Athena engine's sizing kind, passed through verbatim from
+   * `backtesterBudget` (handlers/trading/strategyaction.go): "AMOUNT" with `allocate`, or since
+   * backend-go 4c1db7b4 (16 Oct 2026) "QTY" with `qty` - `{val: capital, type: "QTY", qty}`. Read
+   * the mode through `budgetMode`, which also survives anything else the wire carries here.
    */
-  type?: string;
+  type?: 'AMOUNT' | 'QTY';
   /** Script budgets only: the share of `val` each position takes, e.g. "25%". */
   allocate?: string;
+  /**
+   * Script QTY budgets only: lots (F&O) or shares (equity) per order - the run's `quantity`, or
+   * its `allocated_amount` when it sent none (backend-go `buildBudgetConfig`), unchecked there for
+   * a whole number or a cap. Read it through `budgetVal`.
+   */
+  qty?: number;
 }
 
 /**

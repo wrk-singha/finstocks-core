@@ -84,7 +84,8 @@ export function buildStrategyRules(
   for (const t of strategy.rules?.nlp_triggers ?? []) exitParts.push(t.summary);
   if (exitParts.length) rows.push({k: 'Exit rule', v: exitParts.join(' · ')});
 
-  // A script strategy's `val` is its total capital, so it states no position size of its own.
+  // A script strategy sized by amount has its total capital as `val`, so it states no position
+  // size of its own; one sized by quantity states its count.
   const capital = opts.capitalOverride ?? strategyPositionSize(strategy);
   if (capital != null) {
     rows.push({
@@ -158,9 +159,14 @@ export function buildConsoleRules(
       ? 'Custom list'
       : extractUnderlyingSymbol(rawUniverse) || rawUniverse;
   const written = strategy.budget_config?.mode;
-  const mode = typeof written === 'string' ? written : undefined;
-  const displayCapital =
-    mode && mode.toUpperCase() !== 'AMOUNT'
+  // A script budget sized by quantity writes no mode: its `type` says QTY, and its count is the
+  // size. Without one it states none - never the capital passed in, read as a count.
+  const isQty = budgetMode(strategy.budget_config) === 'QTY';
+  const mode =
+    typeof written === 'string' ? written : isQty ? 'QTY' : undefined;
+  const displayCapital = isQty
+    ? budgetVal(strategy.budget_config)
+    : mode && mode.toUpperCase() !== 'AMOUNT'
       ? (budgetVal(strategy.budget_config) ?? capital)
       : capital;
   const sizingMethod = mode === 'AMOUNT' ? 'Fixed amount' : mode;
@@ -206,8 +212,13 @@ export function buildConsoleRulesDraft(
   // a RISK_PERCENT strategy and pressing redeploy silently converted it to AMOUNT - and
   // reinterpreted `val` (e.g. 1, meaning 1% risk) as ₹1. The editor already offers all four modes.
   const totalCapital = strategy.budget_config?.total;
+  // A row sized by quantity that states no count (a script QTY row with no `qty`, whose `val` is
+  // a pool) has no size to seed: never the capital passed in, read as a count, as
+  // buildConsoleRules states none.
+  const size = budgetVal(strategy.budget_config);
+  const isQty = budgetMode(strategy.budget_config) === 'QTY';
   return {
-    capital: budgetVal(strategy.budget_config) ?? capital,
+    ...(size !== undefined ? {capital: size} : isQty ? {} : {capital}),
     sizingMode: budgetSizingMode(strategy.budget_config),
     ...(totalCapital !== undefined ? {totalCapital} : {}),
     entryQuery: strategy.original_query ?? '',

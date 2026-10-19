@@ -63,6 +63,15 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.9.9** — a strategy sized by quantity reads as its count, with no capital: since backend-go
+  4c1db7b4 a QTY strategy-action's row carries `budget_config {val: 100000, type: "QTY", qty: N}`,
+  and `BudgetConfig` gains `qty` (`type` is `"AMOUNT" | "QTY"`). `budgetMode` reads that `type` as
+  QTY (a written `mode` still wins), `budgetVal` hands back `qty`, never the `val` pool (no
+  readable `qty` is no size), and `strategyPositionSize` states the count. `budgetHasRealCapital`
+  is true only for AMOUNT with a positive figure; `StrategyCardData.hasRealCapital` carries it, a
+  QTY script's `allocationMode` is QTY, and no return or drawdown is measured against a pool
+  nobody set. `buildConsoleRules` states the count. `resolveBrokerageSegment` takes only a strike
+  then CE or PE (`/\d(CE|PE)$/`, as web) for an option: RELIANCE is charged as the stock it is.
 - **v0.9.8** — a backtest results payload lists the legs its window ended on: `LogPayload.open_trades`
   (`OpenTradeEntry`: symbol, quantity, buy_price, buy_time), optional since older rows have none,
   as backend-go's `resultsPayload` writes them beside `trades`. `istDateTimeParts` and

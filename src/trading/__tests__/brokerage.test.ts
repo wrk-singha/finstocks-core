@@ -75,6 +75,18 @@ test('resolveBrokerageSegment reads the strategy first, then average hold time',
     'intraday',
   );
   assert.equal(resolveBrokerageSegment({symbol: 'INFY'}), 'delivery');
+  // A stock whose name ends in CE or PE is the stock, not an option: only a strike then CE or PE
+  // is a contract.
+  assert.equal(resolveBrokerageSegment({symbol: 'RELIANCE'}), 'delivery');
+  assert.equal(
+    resolveBrokerageSegment({symbol: 'RELIANCE', is_intraday: true}),
+    'intraday',
+  );
+  assert.equal(resolveBrokerageSegment({symbol: 'BAJFINANCE'}), 'delivery');
+  assert.equal(
+    resolveBrokerageSegment({symbol: 'RELIANCE24JUL3000PE'}),
+    'options',
+  );
   assert.equal(resolveBrokerageSegment(undefined), 'delivery');
   assert.equal(
     resolveBrokerageSegment(undefined, [

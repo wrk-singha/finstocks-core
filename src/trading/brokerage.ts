@@ -110,7 +110,11 @@ export function resolveBrokerageSegment(
 ): BrokerageSegment {
   if (strategy) {
     const symbol = strategy.symbol ?? '';
-    if (symbol.endsWith('CE') || symbol.endsWith('PE')) return 'options';
+    // A contract ends in its strike and then CE or PE (NIFTY2410324000CE); a stock like
+    // RELIANCE ends in CE too, and was charged an option's brokerage and taxes (zerodha, 10 at
+    // 2,900 to 3,000: ₹117.86 against ₹80.88 delivery, ₹31.45 intraday). Web's rule (frontend
+    // `src/utils/trading/brokerage.ts`).
+    if (/\d(CE|PE)$/.test(symbol)) return 'options';
     if (strategy.is_fno || isFnOSymbol(symbol)) return 'futures';
     if (strategy.is_intraday) return 'intraday';
     return 'delivery';

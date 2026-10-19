@@ -76,15 +76,22 @@ export interface CreateBacktestRequest {
   /** Required when is_backtest is true (the default); ignored otherwise. */
   start_date?: string;
   end_date?: string;
+  /** The size in rupees (AMOUNT) or percent (PERCENT / RISK_PERCENT). Never with `quantity`. */
   allocated_amount?: number;
+  /**
+   * A QTY size: lots in F&O, shares in equity, a whole number of 1 or more (a Go *int; anything
+   * else fails the body's decode). The backend refuses it beside `allocated_amount`, and reads
+   * `allocated_amount` as the count, unchecked, when no `quantity` comes - so a QTY run sends
+   * this, never `allocated_amount`.
+   */
   quantity?: number;
   original_query: string;
   strategy_hname?: string;
   is_intraday?: boolean;
   execution_mode?: string;
   /**
-   * How `allocated_amount` should be read: AMOUNT (rupees), QTY (shares),
-   * PERCENT / RISK_PERCENT (a percentage of `total_capital`). An unrecognised
+   * How the size is read: AMOUNT (`allocated_amount`, rupees), QTY (`quantity`, lots or shares),
+   * PERCENT / RISK_PERCENT (`allocated_amount`, a percentage of `total_capital`). An unrecognised
    * value is a 400.
    */
   sizing_mode?: SizingMode;

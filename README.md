@@ -70,8 +70,12 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   readable `qty` is no size), and `strategyPositionSize` states the count. `budgetHasRealCapital`
   is true only for AMOUNT with a positive figure; `StrategyCardData.hasRealCapital` carries it, a
   QTY script's `allocationMode` is QTY, and no return or drawdown is measured against a pool
-  nobody set. `buildConsoleRules` states the count. `resolveBrokerageSegment` takes only a strike
-  then CE or PE (`/\d(CE|PE)$/`, as web) for an option: RELIANCE is charged as the stock it is.
+  nobody set. `buildConsoleRules` states the count, and `buildConsoleRulesDraft` seeds no size for a
+  QTY row with no count (`ConsoleRulesDraft.capital` is optional), never the capital passed in.
+  `resolveBrokerageSegment` takes only a strike then CE or PE, joined or spaced
+  (`/\d\s*(CE|PE)$/`; web's `/\d(CE|PE)$/` plus the spaced form backend-go keeps), for an option:
+  RELIANCE is charged as the stock it is, "NIFTY 24DEC 24000 CE" as an option. Comments say a QTY
+  size is sent as `quantity` and QTY is no longer a 400.
 - **v0.9.8** — a backtest results payload lists the legs its window ended on: `LogPayload.open_trades`
   (`OpenTradeEntry`: symbol, quantity, buy_price, buy_time), optional since older rows have none,
   as backend-go's `resultsPayload` writes them beside `trades`. `istDateTimeParts` and

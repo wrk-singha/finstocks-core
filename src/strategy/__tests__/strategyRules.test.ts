@@ -239,6 +239,18 @@ test('an Athena script sized by quantity states its count, never its capital as 
   // No count to read: no size, not the 1,00,000 passed in.
   const unread = athenaRow({budget_config: {val: 100000, type: 'QTY'}});
   assert.equal(buildConsoleRules(unread, 100000).capital, undefined);
+  const unreadDraft = buildConsoleRulesDraft(unread, 100000, raw => raw ?? '');
+  assert.equal(unreadDraft.sizingMode, 'QTY');
+  assert.equal('capital' in unreadDraft, false);
+  assert.equal(
+    'capital' in
+      buildConsoleRulesDraft(
+        strategy({...base, budget_config: {mode: 'QTY'}}),
+        100000,
+        raw => raw ?? '',
+      ),
+    false,
+  );
   assert.equal(
     buildStrategyRules(unread, {mode: 'MOCK'}).find(
       row => row.k === 'Position size',

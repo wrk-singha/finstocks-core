@@ -212,8 +212,13 @@ export function buildConsoleRulesDraft(
   // a RISK_PERCENT strategy and pressing redeploy silently converted it to AMOUNT - and
   // reinterpreted `val` (e.g. 1, meaning 1% risk) as ₹1. The editor already offers all four modes.
   const totalCapital = strategy.budget_config?.total;
+  // A row sized by quantity that states no count (a script QTY row with no `qty`, whose `val` is
+  // a pool) has no size to seed: never the capital passed in, read as a count, as
+  // buildConsoleRules states none.
+  const size = budgetVal(strategy.budget_config);
+  const isQty = budgetMode(strategy.budget_config) === 'QTY';
   return {
-    capital: budgetVal(strategy.budget_config) ?? capital,
+    ...(size !== undefined ? {capital: size} : isQty ? {} : {capital}),
     sizingMode: budgetSizingMode(strategy.budget_config),
     ...(totalCapital !== undefined ? {totalCapital} : {}),
     entryQuery: strategy.original_query ?? '',

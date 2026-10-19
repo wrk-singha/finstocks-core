@@ -248,6 +248,48 @@ test('deriveStrategyCards: an Athena script row reads its val as the total capit
   );
 });
 
+test('deriveStrategyCards: a script sized by quantity has no capital, so no return or drawdown', () => {
+  const qtyTrades = [
+    trade({
+      id: 'q1',
+      stock_symbol: 'NIFTY24JUL22000CE',
+      quantity: 150,
+      buy_price: 100,
+      sell_price: 120,
+      buy_time: '2026-07-08T04:00:00Z',
+      sell_time: '2026-07-08T06:00:00Z',
+      execution_strategy: `STRAT${UUID_E}`,
+    }),
+  ];
+  const [card] = deriveStrategyCards(
+    [
+      athenaRow({
+        budget_config: {val: 100000, type: 'QTY', qty: 2},
+        is_fno: true,
+      }),
+    ],
+    qtyTrades,
+  );
+  assert.ok(card);
+  assert.equal(card.allocated, 2);
+  assert.equal(card.allocationMode, 'QTY');
+  assert.equal(card.hasRealCapital, false);
+  assert.equal(card.pnl, 3000);
+  assert.equal(card.pnlPct, 0);
+  assert.equal(card.maxDrawdownPct, null);
+  assert.equal(card.equity.line, '');
+  assert.deepEqual(card.pnlSeries, [0, 3000]);
+
+  const [amount] = deriveStrategyCards([athenaRow()], []);
+  assert.equal(amount?.hasRealCapital, true);
+  const [counted] = deriveStrategyCards(
+    [strategy({strategy_id: UUID_A, budget_config: {val: 5, mode: 'QTY'}})],
+    [],
+  );
+  assert.equal(counted?.hasRealCapital, false);
+  assert.equal(counted?.allocationMode, 'QTY');
+});
+
 test('a sparse row - no symbol, prompt, timeframe or budget - derives a card and charts nothing', () => {
   const [card] = deriveStrategyCards([sparseRow()], []);
   assert.ok(card);

@@ -84,7 +84,8 @@ export function buildStrategyRules(
   for (const t of strategy.rules?.nlp_triggers ?? []) exitParts.push(t.summary);
   if (exitParts.length) rows.push({k: 'Exit rule', v: exitParts.join(' · ')});
 
-  // A script strategy's `val` is its total capital, so it states no position size of its own.
+  // A script strategy sized by amount has its total capital as `val`, so it states no position
+  // size of its own; one sized by quantity states its count.
   const capital = opts.capitalOverride ?? strategyPositionSize(strategy);
   if (capital != null) {
     rows.push({
@@ -158,9 +159,14 @@ export function buildConsoleRules(
       ? 'Custom list'
       : extractUnderlyingSymbol(rawUniverse) || rawUniverse;
   const written = strategy.budget_config?.mode;
-  const mode = typeof written === 'string' ? written : undefined;
-  const displayCapital =
-    mode && mode.toUpperCase() !== 'AMOUNT'
+  // A script budget sized by quantity writes no mode: its `type` says QTY, and its count is the
+  // size. Without one it states none - never the capital passed in, read as a count.
+  const isQty = budgetMode(strategy.budget_config) === 'QTY';
+  const mode =
+    typeof written === 'string' ? written : isQty ? 'QTY' : undefined;
+  const displayCapital = isQty
+    ? budgetVal(strategy.budget_config)
+    : mode && mode.toUpperCase() !== 'AMOUNT'
       ? (budgetVal(strategy.budget_config) ?? capital)
       : capital;
   const sizingMethod = mode === 'AMOUNT' ? 'Fixed amount' : mode;

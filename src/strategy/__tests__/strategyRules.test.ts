@@ -216,6 +216,37 @@ test('an Athena script row states no position size: its val is the total capital
   assert.equal(draft.rawFSM, null);
 });
 
+test('an Athena script sized by quantity states its count, never its capital as rupees', () => {
+  const lots = athenaRow({
+    budget_config: {val: 100000, type: 'QTY', qty: 2},
+    is_fno: true,
+  });
+  assert.equal(
+    buildStrategyRules(lots, {mode: 'MOCK'}).find(
+      row => row.k === 'Position size',
+    )?.v,
+    '2 lots',
+  );
+  const rules = buildConsoleRules(lots, 100000);
+  assert.equal(rules.capital, '2 lots');
+  assert.equal(rules.sizingMethod, 'QTY');
+  const draft = buildConsoleRulesDraft(lots, 100000, raw => raw ?? '');
+  assert.equal(draft.sizingMode, 'QTY');
+  assert.equal(draft.capital, 2);
+
+  const shares = athenaRow({budget_config: {val: 100000, type: 'QTY', qty: 1}});
+  assert.equal(buildConsoleRules(shares, 100000).capital, '1 share');
+  // No count to read: no size, not the 1,00,000 passed in.
+  const unread = athenaRow({budget_config: {val: 100000, type: 'QTY'}});
+  assert.equal(buildConsoleRules(unread, 100000).capital, undefined);
+  assert.equal(
+    buildStrategyRules(unread, {mode: 'MOCK'}).find(
+      row => row.k === 'Position size',
+    ),
+    undefined,
+  );
+});
+
 test('a mode that is not a string reads as none, and a missing val falls back', () => {
   const odd = {
     ...base,

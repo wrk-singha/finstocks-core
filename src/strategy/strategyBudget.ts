@@ -1,6 +1,6 @@
 /**
- * Reading a strategy's `budget_config`, whichever of its two shapes the row carries (see
- * BudgetConfig). Read through these rather than off the fields: an Athena script row has no
+ * Reading a strategy's `budget_config`, whichever shape the row carries (see BudgetConfig): a
+ * mode and its figure, or an Athena script's capital with its allocation or its quantity. Read through these rather than off the fields: an Athena script row has no
  * `mode`, and `budget_config.mode.toUpperCase()` on one took down the Console, the Portfolio
  * strategies pane and the chat strategy cards.
  */
@@ -21,14 +21,27 @@ const SIZING_MODES: readonly ConsoleSizingMode[] = [
   'RISK_PERCENT',
 ];
 
+const upper = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value.toUpperCase() : undefined;
+
 /**
- * The sizing mode, upper-cased. AMOUNT when the row names none - the backend's default, and what
- * every script budget sizes by - and a mode that is not a string reads as none rather than throws.
+ * Whether this is an Athena script budget sized by quantity, `{val, type: "QTY", qty}`: what
+ * backend-go writes for a QTY strategy-action (deploy, deploy_live, replace and backtest) since
+ * 4c1db7b4. Its `val` is the capital pool - the backend's 1,00,000 unless the run sent
+ * `total_capital` - and `qty` the lots or shares each order takes. A `mode` the row writes wins.
  */
-export const budgetMode = (budget: BudgetSource): string => {
-  const mode = budget?.mode;
-  return typeof mode === 'string' ? mode.toUpperCase() : 'AMOUNT';
-};
+const isScriptQtyBudget = (budget: BudgetSource): boolean =>
+  budget != null &&
+  upper(budget.mode) === undefined &&
+  upper(budget.type) === 'QTY';
+
+/**
+ * The sizing mode, upper-cased. A script budget says it by its `type` (QTY; AMOUNT otherwise).
+ * AMOUNT when the row names none - the backend's default - and a mode that is not a string reads
+ * as none rather than throws.
+ */
+export const budgetMode = (budget: BudgetSource): string =>
+  upper(budget?.mode) ?? (isScriptQtyBudget(budget) ? 'QTY' : 'AMOUNT');
 
 /** The mode as one of the rules editor's four; anything else is AMOUNT, the editor's default. */
 export const budgetSizingMode = (budget: BudgetSource): ConsoleSizingMode => {
@@ -36,17 +49,32 @@ export const budgetSizingMode = (budget: BudgetSource): ConsoleSizingMode => {
   return SIZING_MODES.find(known => known === mode) ?? 'AMOUNT';
 };
 
-/** `val` when it is a finite number; undefined when the row carries none. */
-export const budgetVal = (budget: BudgetSource): number | undefined => {
-  const val = budget?.val;
-  return typeof val === 'number' && Number.isFinite(val) ? val : undefined;
-};
+const finite = (value: unknown): number | undefined =>
+  typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 
 /**
- * Whether this is an Athena script ("C") strategy's budget, `{val, type, allocate}`: a `type` and
- * no `mode`, or an `allocate` whatever else it carries. Its `val` is the strategy's TOTAL capital
- * and `allocate` the share of it each position takes, so `val` is not the position size it is on
- * every other row.
+ * The figure the row sizes by, in its mode's unit (`budgetMode`), when it is a finite number;
+ * undefined when the row carries none. That is `val`, except on a script QTY budget, where `val`
+ * is a capital pool the user may never have set and the size is `qty`: such a row with no
+ * readable `qty` has no size, never its `val` read as one.
+ */
+export const budgetVal = (budget: BudgetSource): number | undefined =>
+  isScriptQtyBudget(budget) ? finite(budget?.qty) : finite(budget?.val);
+
+/**
+ * Whether the row states real rupee capital: an AMOUNT budget with a positive `val`. A QTY budget
+ * never does - its count is not rupees, and a script QTY budget's `val` is a pool the backend
+ * fills with 1,00,000 when the run sent none - nor does PERCENT or RISK_PERCENT. A return or a
+ * drawdown in percent is measured only against real capital.
+ */
+export const budgetHasRealCapital = (budget: BudgetSource): boolean =>
+  budgetMode(budget) === 'AMOUNT' && (budgetVal(budget) ?? 0) > 0;
+
+/**
+ * Whether this is an Athena script ("C") strategy's budget, `{val, type, allocate}` or
+ * `{val, type: "QTY", qty}`: a `type` and no `mode`, or an `allocate` whatever else it carries.
+ * Its `val` is the strategy's TOTAL capital and `allocate` the share of it each position takes (or
+ * `qty` the count each order takes), so `val` is not the position size it is on every other row.
  */
 export const isScriptBudget = (budget: BudgetSource): boolean =>
   budget != null &&
@@ -73,13 +101,16 @@ export const isScriptStrategy = (strategy: ScriptSource): boolean =>
 
 /**
  * One position's size as the row states it, in its mode's unit (₹, a count or a percent).
- * Undefined for a script strategy, whose `val` is the whole capital: no per-position figure is
- * better than a wrong one.
+ * Undefined for a script strategy sized by amount, whose `val` is the whole capital: no
+ * per-position figure is better than a wrong one. A script sized by quantity states its size,
+ * the `qty` each order takes.
  */
 export const strategyPositionSize = (
   strategy: ScriptSource,
 ): number | undefined =>
-  isScriptStrategy(strategy) ? undefined : budgetVal(strategy.budget_config);
+  isScriptQtyBudget(strategy.budget_config) || !isScriptStrategy(strategy)
+    ? budgetVal(strategy.budget_config)
+    : undefined;
 
 /**
  * An is-alive row with every field the backend may have dropped filled in with its empty value

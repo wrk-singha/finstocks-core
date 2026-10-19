@@ -87,6 +87,15 @@ test('resolveBrokerageSegment reads the strategy first, then average hold time',
     resolveBrokerageSegment({symbol: 'RELIANCE24JUL3000PE'}),
     'options',
   );
+  // The spaced contract form is an option still, as the backend reads it: not futures.
+  assert.equal(
+    resolveBrokerageSegment({symbol: 'NIFTY 24DEC 24000 CE'}),
+    'options',
+  );
+  assert.equal(
+    resolveBrokerageSegment({symbol: 'BANKNIFTY 26NOV 52000 PE', is_fno: true}),
+    'options',
+  );
   assert.equal(resolveBrokerageSegment(undefined), 'delivery');
   assert.equal(
     resolveBrokerageSegment(undefined, [

@@ -29,8 +29,8 @@ test('market reads build their query strings', async () => {
   assert.deepEqual(
     calls.map(c => c.path),
     [
-      '/market/recommendations',
-      '/market/recommendations?horizon=swing&status=open',
+      '/market/recommendations?kind=equity',
+      '/market/recommendations?horizon=swing&kind=equity&status=open',
       '/market/depth?symbol=TCS',
       '/market/screener',
       '/market/screener?rsi_min=40&interval=1d&price_min=100&ind=ema20%3A1%3A2',

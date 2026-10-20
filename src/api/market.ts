@@ -52,7 +52,10 @@ import type {
   MarketOverview,
   MarketRecommendationsResponse,
   MonthlyPnl,
+  Recommendation,
   RecommendationReport,
+  RecommendationRow,
+  RecommendationsWire,
 } from '../types/market.ts';
 import type {MarketProfile, ProfileInstrument} from '../types/marketProfile.ts';
 import type {AccordNewsResponse, GetAccordNewsParams} from '../types/news.ts';
@@ -111,6 +114,7 @@ import type {
   GetStockEventsRequest,
   GetStockEventsResponse,
 } from '../types/stockEvents.ts';
+import {parseTimestamp} from '../format/date.ts';
 import type {HttpClient} from './http.ts';
 import {query, statusOf} from './http.ts';
 import {joinQuery, symbolQuery} from './params.ts';
@@ -118,6 +122,12 @@ import {joinQuery, symbolQuery} from './params.ts';
 export interface RecommendationsQuery {
   horizon?: string;
   status?: string;
+  /**
+   * equity (the default) or commodity. The picks are read as equities only (`readRecommendation`),
+   * so asking for equities keeps commodity rows from being fetched and counted as dropped, and the
+   * server's closed-day fallback is the last day that closed an equity pick.
+   */
+  kind?: 'equity' | 'commodity';
 }
 
 // drift resolved 2026-09-13: the web's ScreenerFilters carried price/cap/holdings/watchlist
@@ -354,6 +364,160 @@ const readRecommendationReport = (
   ...report,
   monthly_returns: report.monthly_returns ?? [],
 });
+
+/** The rest of the app names an exchange equity bare (RELIANCE), not RELIANCE-NSE. */
+const bareSymbol = (symbol: string): string =>
+  symbol.trim().replace(/-(NSE|BSE)$/, '');
+
+const isPrice = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0;
+
+const zoneOf = (low: unknown, high: unknown): [number, number] | null =>
+  isPrice(low) && isPrice(high) && low <= high ? [low, high] : null;
+
+const textOf = (value: unknown): string | null =>
+  typeof value === 'string' && value.trim() !== '' ? value : null;
+
+/** A stamp the app can read on every engine (Go sends RFC 3339 with up to nine fraction digits). */
+const stampOf = (value: unknown): string | null =>
+  typeof value === 'string' && parseTimestamp(value) !== null ? value : null;
+
+/**
+ * A row that is not a stock pick by design: an options or spread idea (legs), the model portfolio,
+ * or a neutral view. Web leaves these out of the picks as well, so they are not counted as dropped.
+ */
+const isOtherThanAPick = (value: unknown): boolean => {
+  if (typeof value !== 'object' || value === null) return false;
+  const row = value as Partial<Record<keyof RecommendationRow, unknown>>;
+  return (
+    row.legs != null ||
+    row.horizon === 'portfolio' ||
+    (typeof row.direction === 'string' &&
+      row.direction.toLowerCase() === 'neutral')
+  );
+};
+
+/** How a closed pick closed. One that never filled (no exit price) reads as expired, as on web. */
+const closedStatus = (exitPrice: number | null, reason: unknown): string =>
+  exitPrice === null
+    ? 'expired'
+    : reason === 'target'
+      ? 'hit_target'
+      : reason === 'stop'
+        ? 'hit_stop'
+        : 'expired';
+
+/**
+ * One row of the recommendations table as the picks UI reads it, or null when it is not a plain
+ * pick this app can show and act on. Web's `recommendationView` (a6642a31, bb3d43ac) keeps a row
+ * with no legs, outside the model portfolio, long or short, with all six zone edges; this reader
+ * keeps the same and also drops what it cannot act on safely:
+ * - anything but an equity: the picks open the equity order pad and size a basket in shares, and a
+ *   commodity is a lot of a contract;
+ * - a zone edge that is not a positive number, or a zone written high to low;
+ * - a stop or target on the wrong side of the entry: the order pad seeds them as exits;
+ * - a status other than open or closed;
+ * - a published or valid-until stamp that cannot be read: an open pick is placeable only until
+ *   `valid_until` (`isPickExpired`), and says when it was published.
+ * A row is dropped whole, never shown half filled. The server sends no live price, and none is
+ * made up: `cmp` is null, and `ref_price` (the entry zone's midpoint, or the exit price once
+ * closed) is what the row's own figures are read at.
+ */
+function readRecommendation(value: unknown): Recommendation | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const row = value as Partial<Record<keyof RecommendationRow, unknown>>;
+  const {id, symbol, status} = row;
+  if (typeof id !== 'number' || !Number.isFinite(id)) return null;
+  if (typeof symbol !== 'string' || bareSymbol(symbol) === '') return null;
+  if (row.kind !== 'equity') return null;
+  if (row.legs != null || row.horizon === 'portfolio') return null;
+  if (status !== 'open' && status !== 'closed') return null;
+  const direction =
+    typeof row.direction === 'string' ? row.direction.toLowerCase() : '';
+  if (direction !== 'long' && direction !== 'short') return null;
+
+  const publishedAt = stampOf(row.published_at);
+  const validUntil = stampOf(row.valid_until);
+  if (publishedAt === null || validUntil === null) return null;
+
+  const entry = zoneOf(row.entry_min, row.entry_max);
+  const stop = zoneOf(row.stop_loss_min, row.stop_loss_max);
+  const target = zoneOf(row.target_min, row.target_max);
+  if (entry === null || stop === null || target === null) return null;
+
+  const isLong = direction === 'long';
+  const stopPx = isLong ? stop[1] : stop[0];
+  const targetPx = isLong ? target[0] : target[1];
+  const entryMid = (entry[0] + entry[1]) / 2;
+  const isOrdered = isLong
+    ? stopPx < entryMid && entryMid < targetPx
+    : targetPx < entryMid && entryMid < stopPx;
+  if (!isOrdered) return null;
+
+  const isClosed = status === 'closed';
+  const exitPrice = isClosed && isPrice(row.exit_price) ? row.exit_price : null;
+  const refPrice = exitPrice ?? entryMid;
+  const horizon = typeof row.horizon === 'string' ? row.horizon : '';
+  const modifyZone = zoneOf(row.modify_min, row.modify_max);
+  const pnl = row.realized_pnl;
+
+  return {
+    id,
+    stock_symbol: bareSymbol(symbol),
+    market: typeof row.market === 'string' ? row.market : '',
+    kind: row.kind,
+    horizon,
+    direction,
+    verdict: isLong ? 'Buy' : 'Sell',
+    tone: isLong ? 'pos' : 'cau',
+    remark: textOf(row.remark),
+    rationale: textOf(row.rationale) ?? '',
+    entry_min: entry[0],
+    entry_max: entry[1],
+    stop_loss: stopPx,
+    stop_loss_zone: stop,
+    target_price: targetPx,
+    target_zone: target,
+    cmp: null,
+    ref_price: refPrice,
+    ref_basis: exitPrice === null ? 'entry_mid' : 'exit',
+    upside_pct:
+      ((isLong ? targetPx - refPrice : refPrice - targetPx) / refPrice) * 100,
+    risk_reward: Math.abs(targetPx - entryMid) / Math.abs(entryMid - stopPx),
+    hold_label: textOf(row.hold_label) ?? horizon,
+    status: isClosed ? closedStatus(exitPrice, row.exit_reason) : 'active',
+    published_at: publishedAt,
+    valid_until: validUntil,
+    ...(isClosed && typeof pnl === 'number' && Number.isFinite(pnl)
+      ? {realized_pnl: pnl}
+      : {}),
+    ...(exitPrice === null ? {} : {resolved_price: exitPrice}),
+    modify_zone: modifyZone,
+    modify_note: textOf(row.modify_note),
+  };
+}
+
+/**
+ * The response as the picks UI reads it: the rows `readRecommendation` keeps, in the server's
+ * order, and how many it could not keep (`dropped`), not counting the rows that are not picks.
+ */
+const readRecommendations = (
+  wire: Partial<RecommendationsWire> | null,
+): MarketRecommendationsResponse => {
+  const rows: unknown = wire?.recommendations;
+  const recommendations: Recommendation[] = [];
+  let dropped = 0;
+  if (Array.isArray(rows)) {
+    for (const row of rows as unknown[]) {
+      const read = readRecommendation(row);
+      if (read !== null) recommendations.push(read);
+      else if (!isOtherThanAPick(row)) dropped += 1;
+    }
+  }
+  return wire?.showing_closed === true
+    ? {recommendations, dropped, showing_closed: true}
+    : {recommendations, dropped};
+};
 
 /**
  * The filing as the server sends it. Go serialises a nil slice as null, so a company whose
@@ -625,12 +789,18 @@ const readRelatedParty = ({
 });
 
 export const marketApi = (http: HttpClient) => ({
-  getRecommendations: (params?: RecommendationsQuery) =>
-    http.request<MarketRecommendationsResponse>(
-      `/market/recommendations${query({
-        horizon: params?.horizon,
-        status: params?.status,
-      })}`,
+  /** The plain picks among the rows, each as the picks UI reads it (`readRecommendation`). */
+  getRecommendations: async (
+    params?: RecommendationsQuery,
+  ): Promise<MarketRecommendationsResponse> =>
+    readRecommendations(
+      await http.request<Partial<RecommendationsWire> | null>(
+        `/market/recommendations${query({
+          horizon: params?.horizon,
+          kind: params?.kind ?? 'equity',
+          status: params?.status,
+        })}`,
+      ),
     ),
 
   getRecommendationReport: async (): Promise<RecommendationReport> =>

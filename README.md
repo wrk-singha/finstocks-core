@@ -63,6 +63,28 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **Unreleased** — main's v0.9.10 (tagged on main): recommendations are read from the recommendations table, and an F&O idea that
+  cannot be placed says why: since backend-go 4c8bf631 `GET /market/recommendations` serves that
+  table's rows (`RecommendationRow`, `RecommendationsWire`; `next_batch_at` is no longer sent), and
+  `getRecommendations` asks for `kind=equity` unless told otherwise. It keeps what web's
+  `recommendationView` keeps (no legs, not the portfolio, not neutral, all six zone edges) and also
+  drops a commodity, a zone edge that is not a positive number, a zone written high to low, a stop
+  or target on the wrong side of the entry, a status other than open or closed, and a
+  `published_at` or `valid_until` that `parseTimestamp` cannot read; a row is dropped whole, never
+  thrown on, and `dropped` counts them (not the rows that are not picks). A `Recommendation` is bare
+  (RELIANCE), Buy/Sell and pos/cau, its `stop_loss` and `target_price` the zone edges nearest the
+  entry, `stop_loss_zone`/`target_zone`/`modify_zone` kept, upside and risk:reward derived, no
+  `conviction_pct`. `cmp` is null (the server sends no price and none is made up) and `ref_price`
+  is the entry midpoint, or the exit once closed, with `ref_basis` saying which: shown labelled,
+  never an order's price; `BasketReco.cmp` says so, and the allocator leaves a NaN or infinite
+  price unpriced. `isPickExpired(rec, now)`: an open pick is expired from its `valid_until` on. F&O
+  ideas built from that table come with expiry "", spot, capital and conviction 0, lot size 0 when
+  unknown and status "open": `fnoIdeaHold` names why Place is held (`closed`, `noExpiry`,
+  `expiryPassed` from a bare expiry date's 15:30 IST close, `noLotSize`, `legIncomplete`, which
+  takes a leg priced at 0; `isLiveIdea` takes open and active as live), `describeStructure`
+  returns null for a structure `structureHold` refuses (both take `now`), `needsCondition` reads
+  nothing off a spot or lot size of 0, `marginUnlockPct` nothing off a capital of 0, and
+  `ideaFigure`/`ideaLotSize` turn the feed's 0-for-none into null.
 - **Unreleased** — main's v0.9.9 (tagged on main): a strategy sized by quantity reads as its count, with no capital: since backend-go
   4c1db7b4 a QTY strategy-action's row carries `budget_config {val: 100000, type: "QTY", qty: N}`,
   and `BudgetConfig` gains `qty` (`type` is `"AMOUNT" | "QTY"`). `budgetMode` reads that `type` as

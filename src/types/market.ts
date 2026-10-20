@@ -2,45 +2,139 @@
 
 export type RecommendationHorizon = 'swing' | 'intraday' | 'longterm';
 
-/** Row from `autopilot_recommendations` (market='IN'). */
-export interface Recommendation {
-  id: number;
-  stock_symbol: string;
-  market: string;
-  horizon: string;
-  direction: string;
-  verdict: string;
-  /** pos = constructive/green · neu = neutral · cau = cautious/amber */
-  tone: string;
-  conviction_pct: number;
-  rationale: string;
-  entry_min: number;
-  /** Upper edge of the published entry band. Absent on rows written before the
-   *  zone existed, where entry_min stands for the whole zone. */
-  entry_max?: number | null;
-  stop_loss: number;
-  target_price: number;
-  cmp: number;
-  upside_pct: number;
-  risk_reward: number;
-  hold_label: string;
-  status: string;
-  realized_pnl?: number;
-  resolved_price?: number;
+/** A leg of an options/spread recommendation, or a holding of the model portfolio. */
+export interface RecommendationLeg {
+  instrument?: string;
+  side?: 'buy' | 'sell';
+  lots?: number;
+  symbol?: string;
+  weight?: number;
+  entry?: number | null;
+  exit_price?: number | null;
 }
 
-/** GET /api/market/recommendations */
+/**
+ * A row of the `recommendations` table as GET /api/market/recommendations sends it (backend-go
+ * 4c8bf631, `repository.Recommendation`). Read only through `marketApi.getRecommendations`, which
+ * turns the rows it can read into `Recommendation`s and drops the rest.
+ */
+export interface RecommendationRow {
+  id: number;
+  market: string;
+  /** equity | commodity */
+  kind: string;
+  /** intraday | btst | swing | positional | longterm | portfolio */
+  horizon: string;
+  /** "RELIANCE-NSE"; MCX names pass through. */
+  symbol: string;
+  /** long | short | neutral */
+  direction: string;
+  legs: RecommendationLeg[] | null;
+  remark: string | null;
+  rationale: string | null;
+  hold_label: string | null;
+  entry_min: number | null;
+  entry_max: number | null;
+  stop_loss_min: number | null;
+  stop_loss_max: number | null;
+  target_min: number | null;
+  target_max: number | null;
+  modify_min: number | null;
+  modify_max: number | null;
+  modify_note: string | null;
+  published_at: string;
+  valid_until: string;
+  updated_at: string;
+  /** open | closed | cancelled */
+  status: string;
+  exit_at: string | null;
+  exit_price: number | null;
+  /** target | stop | expired | manual */
+  exit_reason: string | null;
+  realized_pnl: number | null;
+  return_pct: number | null;
+}
+
+/** GET /api/market/recommendations as the server sends it. `next_batch_at` is no longer sent. */
+export interface RecommendationsWire {
+  recommendations: RecommendationRow[] | null;
+  /** Nothing is open, so the rows are the latest day that closed any. */
+  showing_closed?: boolean;
+}
+
+/**
+ * One plain pick as the picks UI renders it: a single stock, long or short, with its entry, stop
+ * and target zones, read from a `RecommendationRow` (see `getRecommendations`). The scalar levels
+ * are the zone edge a fill exits at; the zones stay on the row for display.
+ */
+export interface Recommendation {
+  id: number;
+  /** Bare for an exchange equity (RELIANCE), the name the rest of the app uses. */
+  stock_symbol: string;
+  market: string;
+  kind: string;
+  horizon: string;
+  direction: 'long' | 'short';
+  verdict: 'Buy' | 'Sell';
+  /** pos = long · cau = short */
+  tone: 'pos' | 'cau';
+  remark: string | null;
+  rationale: string;
+  entry_min: number;
+  entry_max: number;
+  /** The stop zone's edge nearest the entry: its top for a long, its bottom for a short. */
+  stop_loss: number;
+  stop_loss_zone: [number, number];
+  /** The target zone's edge nearest the entry: its bottom for a long, its top for a short. */
+  target_price: number;
+  target_zone: [number, number];
+  /**
+   * A live price for the symbol (the app's own quote), or null. The server sends none and the
+   * reader sets none: an order is priced and sized only by a live quote, never by `ref_price`.
+   */
+  cmp: number | null;
+  /**
+   * The price the row's figures are read at while no live one is known, and what `ref_basis`
+   * says it is: the entry zone's midpoint while the pick is open, its exit price once it closed
+   * with one. Shown only with that label; never an order's price or size.
+   */
+  ref_price: number;
+  ref_basis: 'entry_mid' | 'exit';
+  /** Target against `ref_price`, in %. */
+  upside_pct: number;
+  /** Reward over risk, both measured from the entry zone's midpoint. Always above 0. */
+  risk_reward: number;
+  hold_label: string;
+  /** active (open) · hit_target · hit_stop · expired (closed, including not triggered) */
+  status: string;
+  /** RFC 3339, readable by `parseTimestamp`: the reader drops a row whose stamp is not. */
+  published_at: string;
+  /** Until when an open pick may be taken (`isPickExpired`). */
+  valid_until: string;
+  realized_pnl?: number;
+  resolved_price?: number;
+  modify_zone: [number, number] | null;
+  modify_note: string | null;
+}
+
+/** GET /api/market/recommendations, read: only the rows that are plain picks. */
 export interface MarketRecommendationsResponse {
   recommendations: Recommendation[];
+  /**
+   * Rows the reader could not keep (unreadable, or not safe to act on), not counting the rows that
+   * are not stock picks (options and spreads, the model portfolio, a neutral view). An empty list
+   * with rows dropped is not "nothing published".
+   */
+  dropped: number;
   /** The batch shown is the previous session's — the new one is not out yet. */
   showing_closed?: boolean;
-  /** IST wall clock "HH:MM" the next batch publishes at, counted down locally. */
+  /** IST wall clock "HH:MM" the next batch publishes at. No longer sent; kept for the horizons. */
   next_batch_at?: string;
-  /** RFC3339 stamp of when the shown batch was published. */
+  /** RFC3339 stamp of when the shown batch was published. No longer sent. */
   last_updated_at?: string;
 }
 
-/** One resolved (closed) recommendation — from autopilot_recommendations. */
+/** One resolved (closed) recommendation — from the `recommendations` table. */
 export interface ClosedTrade {
   stock_symbol: string;
   direction: string;

@@ -434,6 +434,10 @@ export {
   costDrag,
   daysToExpiry,
   describeStructure,
+  fnoIdeaHold,
+  ideaFigure,
+  ideaLotSize,
+  isLiveIdea,
   ivRead,
   legPayoff,
   marginUnlockPct,
@@ -443,10 +447,12 @@ export {
   payoffAt,
   positionExitState,
   riskedAmount,
+  structureHold,
   structureMath,
 } from './optionStructures.ts';
 export type {
   CostDrag,
+  FnoIdeaHold,
   IvRead,
   IvStance,
   LegChargesFn,
@@ -585,7 +591,12 @@ export type {
 export {rankByTopTraded} from './topTraded.ts';
 export type {RankedUnderlying} from './topTraded.ts';
 
-export {entryStatus, ladderPoints, tradeGeometry} from './tradeSetup.ts';
+export {
+  entryStatus,
+  isPickExpired,
+  ladderPoints,
+  tradeGeometry,
+} from './tradeSetup.ts';
 export type {
   EntryState,
   EntryStatus,

@@ -10,6 +10,7 @@ import {
   monthlyReturns,
   summarize,
   yearlyReturns,
+  yearlyVersus,
 } from '../basketBacktest.ts';
 
 const day = (
@@ -68,6 +69,36 @@ test('returns by year and by month chain from the previous period’s close', ()
       [2025, 12, -0.12],
     ],
   );
+});
+
+test('each year sets the strategy beside the benchmark, chained from the benchmark’s own close', () => {
+  const full: BacktestDay[] = [
+    day('2024-01-01', 1, 1),
+    day('2024-12-31', 1.2, 1.1),
+    day('2025-06-30', 1.5, 1.21),
+    day('2025-12-31', 1.32, 1.32),
+  ];
+  assert.deepEqual(
+    yearlyVersus(full).map(y => [
+      y.label,
+      Number(y.strategy.toFixed(4)),
+      y.benchmark === null ? null : Number(y.benchmark.toFixed(4)),
+    ]),
+    [
+      ['2024', 0.2, 0.1],
+      ['2025', 0.1, 0.2],
+    ],
+  );
+  // One day without a benchmark and no year is set against a part-year of the index (web dev).
+  assert.deepEqual(
+    yearlyVersus(daily).map(y => y.benchmark),
+    [null, null],
+  );
+  assert.deepEqual(
+    yearlyVersus(daily).map(y => y.strategy),
+    yearlyReturns(daily).map(y => y.basket),
+  );
+  assert.deepEqual(yearlyVersus([]), []);
 });
 
 test('the summary reads the final multiple, the worst trough and its day, the Sharpe and the win rate', () => {

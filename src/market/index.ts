@@ -160,6 +160,7 @@ export {
   summarize,
   TRADING_DAYS_PER_YEAR,
   yearlyReturns,
+  yearlyVersus,
   yearsBetween,
 } from './basketBacktest.ts';
 export type {
@@ -169,6 +170,7 @@ export type {
   MonteCarloBand,
   MonthCell as BasketMonthCell,
   PeriodReturn,
+  YearVersus,
 } from './basketBacktest.ts';
 
 export {blackScholesGreeks, impliedForward, yearsToExpiry} from './greeks.ts';

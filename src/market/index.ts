@@ -319,6 +319,10 @@ export {
   costDrag,
   daysToExpiry,
   describeStructure,
+  fnoIdeaHold,
+  ideaFigure,
+  ideaLotSize,
+  isLiveIdea,
   ivRead,
   legPayoff,
   marginUnlockPct,
@@ -328,10 +332,12 @@ export {
   payoffAt,
   positionExitState,
   riskedAmount,
+  structureHold,
   structureMath,
 } from './optionStructures.ts';
 export type {
   CostDrag,
+  FnoIdeaHold,
   IvRead,
   IvStance,
   LegChargesFn,

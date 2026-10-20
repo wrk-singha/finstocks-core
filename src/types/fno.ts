@@ -49,11 +49,13 @@ export interface FnoTradeIdea {
   /** The view in one line, e.g. "Mildly bullish into expiry". */
   view: string;
   legs: OptionLeg[];
+  /** 0 when the feed knows none (`ideaLotSize`). */
   lotSize: number;
-  /** ISO date of the expiry every leg shares. */
+  /** ISO date of the expiry every leg shares. Empty when the feed has none (`structureHold`). */
   expiry: string;
+  /** 0 when the feed has none (`ideaFigure`). */
   spot: number;
-  /** Margin or premium the broker blocks, in ₹. */
+  /** Margin or premium the broker blocks, in ₹. 0 when the feed has none (`ideaFigure`). */
   capitalRequired: number;
   /**
    * What the same directional view would cost unhedged. Present only when the
@@ -64,11 +66,15 @@ export interface FnoTradeIdea {
   nakedCapitalRequired?: number;
   /** IV percentile of the underlying, 0-100. Null when unavailable. */
   ivPercentile: number | null;
+  /** 0 when the feed has none (`ideaFigure`). */
   convictionPct: number;
   rationale: string;
   /** Which horizon the idea belongs to — intraday, positional or expiry. */
   horizon?: string;
-  /** "active" while the idea is live; hit_target/hit_stop/expired once resolved. */
+  /**
+   * "active" (before backend-go 4c8bf631) or "open" while the idea is live; closed, hit_target,
+   * hit_stop or expired once resolved (`isLiveIdea`).
+   */
   status?: string;
   realized_pnl?: number | null;
 }

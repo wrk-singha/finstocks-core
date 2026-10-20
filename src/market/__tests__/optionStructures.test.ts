@@ -6,6 +6,10 @@ import {
   costDrag,
   daysToExpiry,
   describeStructure,
+  fnoIdeaHold,
+  ideaFigure,
+  ideaLotSize,
+  isLiveIdea,
   ivRead,
   legPayoff,
   marginUnlockPct,
@@ -15,6 +19,7 @@ import {
   payoffAt,
   positionExitState,
   riskedAmount,
+  structureHold,
   structureMath,
 } from '../optionStructures.ts';
 
@@ -285,4 +290,137 @@ test('needs sentence words every shape exactly as v0.2.4 did', () => {
     longFuture: 'NIFTY above 24,000 (+0.0%)',
     nakedPut: 'NIFTY above 22,988 (-4.2%)',
   });
+});
+
+// Since backend-go 4c8bf631 an idea is built from a recommendations row: expiry "", spot 0, capital
+// 0 and conviction 0 always, lot size 0 when the backend knows none, status "open", and strike 0
+// with right "" for a leg whose instrument name does not parse.
+const tableIdea: FnoTradeIdea = {
+  id: 7,
+  underlying: 'NIFTY',
+  label: 'Bull call spread',
+  view: 'long',
+  legs: bullCallSpread,
+  lotSize: LOT,
+  expiry: '',
+  spot: 0,
+  capitalRequired: 0,
+  ivPercentile: null,
+  convictionPct: 0,
+  rationale: '',
+  horizon: 'positional',
+  status: 'open',
+};
+
+test('a figure the ideas feed sends as 0 for none is no figure', () => {
+  assert.equal(ideaFigure(24000), 24000);
+  for (const none of [
+    0,
+    -1,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    null,
+    undefined,
+  ])
+    assert.equal(ideaFigure(none), null);
+  assert.equal(ideaLotSize(idea), LOT);
+  assert.equal(ideaLotSize({lotSize: 0}), null);
+  assert.equal(ideaLotSize({lotSize: 2.5}), null);
+  assert.equal(ideaLotSize({lotSize: Number.NaN}), null);
+});
+
+test('open and active ideas are live; every resolved status is not', () => {
+  assert.equal(isLiveIdea({}), true);
+  assert.equal(isLiveIdea({status: 'active'}), true);
+  assert.equal(isLiveIdea({status: 'open'}), true);
+  for (const status of [
+    'closed',
+    'hit_target',
+    'hit_stop',
+    'expired',
+    'cancelled',
+  ])
+    assert.equal(isLiveIdea({status}), false, status);
+});
+
+test('Place is held, with its reason, for a resolved idea, no expiry, no lot size or an incomplete leg', () => {
+  const ready = {...tableIdea, expiry: '2026-10-28', lotSize: LOT};
+  assert.equal(fnoIdeaHold(ready), null);
+  assert.equal(fnoIdeaHold({...ready, status: 'closed'}), 'closed');
+  assert.equal(fnoIdeaHold({...ready, expiry: ''}), 'noExpiry');
+  assert.equal(fnoIdeaHold({...ready, expiry: '  '}), 'noExpiry');
+  assert.equal(fnoIdeaHold({...ready, expiry: 'soon'}), 'noExpiry');
+  assert.equal(
+    fnoIdeaHold({...ready, expiry: null as unknown as string}),
+    'noExpiry',
+  );
+  assert.equal(fnoIdeaHold({...ready, lotSize: 0}), 'noLotSize');
+  const unparsed = {
+    ...leg('buy', 'CE', 0, 120),
+    right: '' as OptionLeg['right'],
+  };
+  assert.equal(fnoIdeaHold({...ready, legs: [unparsed]}), 'legIncomplete');
+  assert.equal(
+    fnoIdeaHold({...ready, legs: [leg('buy', 'CE', 0, 120)]}),
+    'legIncomplete',
+  );
+  assert.equal(
+    fnoIdeaHold({...ready, legs: [leg('buy', 'PE', 24000, 120, 0)]}),
+    'legIncomplete',
+  );
+  assert.equal(
+    fnoIdeaHold({
+      ...ready,
+      legs: [
+        {...leg('buy', 'CE', 24000, 120), action: 'b' as OptionLeg['action']},
+      ],
+    }),
+    'legIncomplete',
+  );
+  assert.equal(fnoIdeaHold({...ready, legs: []}), 'legIncomplete');
+  // A future has no strike to lack.
+  assert.equal(
+    fnoIdeaHold({...ready, legs: [leg('buy', 'FUT', 0, 24000)]}),
+    null,
+  );
+  // A resolved idea says so first; the expiry is said before the lot size.
+  assert.equal(
+    fnoIdeaHold({...tableIdea, lotSize: 0, status: 'closed'}),
+    'closed',
+  );
+  assert.equal(fnoIdeaHold({...tableIdea, lotSize: 0}), 'noExpiry');
+  const closedReady = {...ready, status: 'closed'};
+  assert.equal(structureHold(closedReady), null);
+});
+
+test('a structure with no expiry, lot size or whole legs is never described as an order', () => {
+  assert.equal(describeStructure(tableIdea, 'Place'), null);
+  assert.equal(
+    describeStructure(
+      {...tableIdea, expiry: '2026-10-28', lotSize: 0},
+      'Place',
+    ),
+    null,
+  );
+  assert.equal(
+    describeStructure(
+      {...tableIdea, expiry: '2026-10-28', legs: [leg('buy', 'CE', 0, 120)]},
+      'Place',
+    ),
+    null,
+  );
+  assert.equal(
+    describeStructure({...tableIdea, expiry: '2026-10-28'}, 'Place'),
+    'Place Bull call spread on NIFTY, expiry 2026-10-28. Legs: BUY 1 lot(s) NIFTY 24000 CE @ 100; SELL 1 lot(s) NIFTY 24100 CE @ 50. Lot size 65.',
+  );
+});
+
+test('no needs condition is read off a spot or lot size of 0, and no margin unlock off a capital of 0', () => {
+  const m = structureMath(bullCallSpread, LOT);
+  assert.equal(needsCondition({...idea, spot: 0}, m), null);
+  assert.equal(needsCondition({...idea, spot: Number.NaN}, m), null);
+  assert.equal(needsCondition({...idea, lotSize: 0}, m), null);
+  assert.equal(needsSentence({...idea, spot: 0}, m), null);
+  assert.equal(marginUnlockPct({...idea, capitalRequired: 0}), null);
+  assert.equal(marginUnlockPct(idea), 75);
 });

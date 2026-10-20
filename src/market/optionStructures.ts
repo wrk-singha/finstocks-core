@@ -200,6 +200,9 @@ export function needsCondition(
 ): NeedsCondition | null {
   const {breakevens} = math;
   const {spot, underlying} = idea;
+  // The ideas feed sends spot 0 and lot size 0 when it has none (backend-go 4c8bf631): a move
+  // measured from 0 is Infinity%, and a payoff of 0 lots says nothing about which side wins.
+  if (ideaFigure(spot) === null || ideaLotSize(idea) === null) return null;
   const low = breakevens[0];
   const high = breakevens[breakevens.length - 1];
   if (low === undefined || high === undefined) return null;
@@ -326,18 +329,92 @@ export function ivRead(percentile: number | null): IvRead | null {
 /** Margin freed by the hedge leg, as a percentage of the unhedged requirement. */
 export function marginUnlockPct(idea: FnoTradeIdea): number | null {
   const naked = idea.nakedCapitalRequired;
+  // A capital of 0 is the feed having none, not a hedge that frees all of it.
+  if (ideaFigure(idea.capitalRequired) === null) return null;
   if (naked == null || naked <= 0 || idea.capitalRequired >= naked) return null;
   return ((naked - idea.capitalRequired) / naked) * 100;
 }
+
+/**
+ * A figure the ideas feed sends as 0 when it has none (spot, capital required, conviction, since
+ * backend-go 4c8bf631 builds ideas from the recommendations table): the number when it is a
+ * positive one, else null. Shown only when not null; never "0%" or "₹0".
+ */
+export const ideaFigure = (value: number | null | undefined): number | null =>
+  value != null && Number.isFinite(value) && value > 0 ? value : null;
+
+/** The lot size an idea can be sized by, or null: the feed sends 0 when it knows none. */
+export const ideaLotSize = (
+  idea: Pick<FnoTradeIdea, 'lotSize'>,
+): number | null =>
+  Number.isInteger(idea.lotSize) && idea.lotSize > 0 ? idea.lotSize : null;
+
+/**
+ * Live while the feed calls it `active` (before backend-go 4c8bf631) or `open` (since), or says
+ * nothing. Anything else (`closed`, `hit_target`, `hit_stop`, `expired`, `cancelled`) is resolved.
+ */
+export const isLiveIdea = (idea: Pick<FnoTradeIdea, 'status'>): boolean =>
+  idea.status === undefined ||
+  idea.status === 'active' ||
+  idea.status === 'open';
+
+/**
+ * Why an idea cannot be placed as it stands, in the order the reader is told:
+ * - `closed`: the idea has resolved;
+ * - `noExpiry`: no expiry date, which the feed sends empty when its source has none;
+ * - `noLotSize`: no lot size, which the feed sends as 0 when it knows none;
+ * - `legIncomplete`: no legs, or a leg without a buy/sell side, a whole number of lots, or (for an
+ *   option) a strike and CE/PE; the feed reads strike and right off the instrument's name and
+ *   leaves them 0 and "" when the name does not parse.
+ */
+export type FnoIdeaHold = 'closed' | 'noExpiry' | 'noLotSize' | 'legIncomplete';
+
+const isCompleteLeg = (leg: OptionLeg): boolean =>
+  (leg.action === 'buy' || leg.action === 'sell') &&
+  Number.isInteger(leg.lots) &&
+  leg.lots > 0 &&
+  (leg.right === 'FUT' ||
+    ((leg.right === 'CE' || leg.right === 'PE') &&
+      Number.isFinite(leg.strike) &&
+      leg.strike > 0));
+
+/** What keeps a structure from being stated as an order: everything `FnoIdeaHold` names but `closed`. */
+export function structureHold(
+  idea: Pick<FnoTradeIdea, 'expiry' | 'lotSize' | 'legs'>,
+): Exclude<FnoIdeaHold, 'closed'> | null {
+  const {expiry} = idea;
+  if (
+    typeof expiry !== 'string' ||
+    expiry.trim() === '' ||
+    daysToExpiry(expiry) === null
+  )
+    return 'noExpiry';
+  if (ideaLotSize(idea) === null) return 'noLotSize';
+  if (idea.legs.length === 0 || !idea.legs.every(isCompleteLeg))
+    return 'legIncomplete';
+  return null;
+}
+
+/** Why Place is held for an idea, or null when it may be placed. See `FnoIdeaHold`. */
+export const fnoIdeaHold = (
+  idea: Pick<FnoTradeIdea, 'expiry' | 'lotSize' | 'legs' | 'status'>,
+): FnoIdeaHold | null => (isLiveIdea(idea) ? structureHold(idea) : 'closed');
 
 /**
  * Serialise a structure into the chat handoff. Every leg is spelled out because
  * a spread placed one leg at a time is a different, riskier trade than the one
  * the card showed.
  *
+ * Null when the structure is not complete enough to be an order (`structureHold`): an assistant
+ * asked to place "expiry ." or "Lot size 0" would have to pick the expiry or the size itself.
+ *
  * English on purpose: this is a prompt for the AI assistant, not UI copy.
  */
-export function describeStructure(idea: FnoTradeIdea, prefix: string): string {
+export function describeStructure(
+  idea: FnoTradeIdea,
+  prefix: string,
+): string | null {
+  if (structureHold(idea) !== null) return null;
   const legs = idea.legs
     .map(
       l =>

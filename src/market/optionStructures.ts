@@ -362,43 +362,54 @@ export const isLiveIdea = (idea: Pick<FnoTradeIdea, 'status'>): boolean =>
  * Why an idea cannot be placed as it stands, in the order the reader is told:
  * - `closed`: the idea has resolved;
  * - `noExpiry`: no expiry date, which the feed sends empty when its source has none;
+ * - `expiryPassed`: its expiry day is behind it (`daysToExpiry` below 0);
  * - `noLotSize`: no lot size, which the feed sends as 0 when it knows none;
- * - `legIncomplete`: no legs, or a leg without a buy/sell side, a whole number of lots, or (for an
+ * - `legIncomplete`: no legs, or a leg without a buy/sell side, a whole number of lots, a price
+ *   above 0 (the feed fills a leg's premium from its entry, 0 when there is none), or (for an
  *   option) a strike and CE/PE; the feed reads strike and right off the instrument's name and
  *   leaves them 0 and "" when the name does not parse.
  */
-export type FnoIdeaHold = 'closed' | 'noExpiry' | 'noLotSize' | 'legIncomplete';
+export type FnoIdeaHold =
+  'closed' | 'noExpiry' | 'expiryPassed' | 'noLotSize' | 'legIncomplete';
 
 const isCompleteLeg = (leg: OptionLeg): boolean =>
   (leg.action === 'buy' || leg.action === 'sell') &&
   Number.isInteger(leg.lots) &&
   leg.lots > 0 &&
+  Number.isFinite(leg.premium) &&
+  leg.premium > 0 &&
   (leg.right === 'FUT' ||
     ((leg.right === 'CE' || leg.right === 'PE') &&
       Number.isFinite(leg.strike) &&
       leg.strike > 0));
 
-/** What keeps a structure from being stated as an order: everything `FnoIdeaHold` names but `closed`. */
+/**
+ * What keeps a structure from being stated as an order at `now` (epoch ms): everything
+ * `FnoIdeaHold` names but `closed`.
+ */
 export function structureHold(
   idea: Pick<FnoTradeIdea, 'expiry' | 'lotSize' | 'legs'>,
+  now: number = Date.now(),
 ): Exclude<FnoIdeaHold, 'closed'> | null {
   const {expiry} = idea;
-  if (
-    typeof expiry !== 'string' ||
-    expiry.trim() === '' ||
-    daysToExpiry(expiry) === null
-  )
-    return 'noExpiry';
+  const days =
+    typeof expiry === 'string' && expiry.trim() !== ''
+      ? daysToExpiry(expiry, now)
+      : null;
+  if (days === null) return 'noExpiry';
+  if (days < 0) return 'expiryPassed';
   if (ideaLotSize(idea) === null) return 'noLotSize';
   if (idea.legs.length === 0 || !idea.legs.every(isCompleteLeg))
     return 'legIncomplete';
   return null;
 }
 
-/** Why Place is held for an idea, or null when it may be placed. See `FnoIdeaHold`. */
+/** Why Place is held for an idea at `now`, or null when it may be placed. See `FnoIdeaHold`. */
 export const fnoIdeaHold = (
   idea: Pick<FnoTradeIdea, 'expiry' | 'lotSize' | 'legs' | 'status'>,
-): FnoIdeaHold | null => (isLiveIdea(idea) ? structureHold(idea) : 'closed');
+  now: number = Date.now(),
+): FnoIdeaHold | null =>
+  isLiveIdea(idea) ? structureHold(idea, now) : 'closed';
 
 /**
  * Serialise a structure into the chat handoff. Every leg is spelled out because
@@ -413,8 +424,9 @@ export const fnoIdeaHold = (
 export function describeStructure(
   idea: FnoTradeIdea,
   prefix: string,
+  now: number = Date.now(),
 ): string | null {
-  if (structureHold(idea) !== null) return null;
+  if (structureHold(idea, now) !== null) return null;
   const legs = idea.legs
     .map(
       l =>

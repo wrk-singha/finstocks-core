@@ -24,6 +24,9 @@ import {
 } from '../optionStructures.ts';
 
 const LOT = 65;
+// Clocks the expiry-dated cases read, so they do not change meaning as the real date moves on.
+const BEFORE_SEPT_EXPIRY = Date.parse('2026-09-10T04:00:00Z');
+const OCT_20 = Date.parse('2026-10-20T05:00:00Z');
 const leg = (
   action: OptionLeg['action'],
   right: OptionLeg['right'],
@@ -144,7 +147,7 @@ test('iv read, margin unlock and the chat description', () => {
   assert.equal(marginUnlockPct(idea), 75);
   assert.equal(marginUnlockPct({...idea, nakedCapitalRequired: 3000}), null);
   assert.equal(
-    describeStructure(idea, 'Place'),
+    describeStructure(idea, 'Place', BEFORE_SEPT_EXPIRY),
     'Place Bull call spread on NIFTY, expiry 2026-09-16. Legs: BUY 1 lot(s) NIFTY 24000 CE @ 100; SELL 1 lot(s) NIFTY 24100 CE @ 50. Lot size 65.',
   );
 });
@@ -345,60 +348,67 @@ test('open and active ideas are live; every resolved status is not', () => {
 
 test('Place is held, with its reason, for a resolved idea, no expiry, no lot size or an incomplete leg', () => {
   const ready = {...tableIdea, expiry: '2026-10-28', lotSize: LOT};
-  assert.equal(fnoIdeaHold(ready), null);
-  assert.equal(fnoIdeaHold({...ready, status: 'closed'}), 'closed');
-  assert.equal(fnoIdeaHold({...ready, expiry: ''}), 'noExpiry');
-  assert.equal(fnoIdeaHold({...ready, expiry: '  '}), 'noExpiry');
-  assert.equal(fnoIdeaHold({...ready, expiry: 'soon'}), 'noExpiry');
+  assert.equal(fnoIdeaHold(ready, OCT_20), null);
+  assert.equal(fnoIdeaHold({...ready, status: 'closed'}, OCT_20), 'closed');
+  assert.equal(fnoIdeaHold({...ready, expiry: ''}, OCT_20), 'noExpiry');
+  assert.equal(fnoIdeaHold({...ready, expiry: '  '}, OCT_20), 'noExpiry');
+  assert.equal(fnoIdeaHold({...ready, expiry: 'soon'}, OCT_20), 'noExpiry');
   assert.equal(
-    fnoIdeaHold({...ready, expiry: null as unknown as string}),
+    fnoIdeaHold({...ready, expiry: null as unknown as string}, OCT_20),
     'noExpiry',
   );
-  assert.equal(fnoIdeaHold({...ready, lotSize: 0}), 'noLotSize');
+  assert.equal(fnoIdeaHold({...ready, lotSize: 0}, OCT_20), 'noLotSize');
   const unparsed = {
     ...leg('buy', 'CE', 0, 120),
     right: '' as OptionLeg['right'],
   };
-  assert.equal(fnoIdeaHold({...ready, legs: [unparsed]}), 'legIncomplete');
   assert.equal(
-    fnoIdeaHold({...ready, legs: [leg('buy', 'CE', 0, 120)]}),
+    fnoIdeaHold({...ready, legs: [unparsed]}, OCT_20),
     'legIncomplete',
   );
   assert.equal(
-    fnoIdeaHold({...ready, legs: [leg('buy', 'PE', 24000, 120, 0)]}),
+    fnoIdeaHold({...ready, legs: [leg('buy', 'CE', 0, 120)]}, OCT_20),
     'legIncomplete',
   );
   assert.equal(
-    fnoIdeaHold({
-      ...ready,
-      legs: [
-        {...leg('buy', 'CE', 24000, 120), action: 'b' as OptionLeg['action']},
-      ],
-    }),
+    fnoIdeaHold({...ready, legs: [leg('buy', 'PE', 24000, 120, 0)]}, OCT_20),
     'legIncomplete',
   );
-  assert.equal(fnoIdeaHold({...ready, legs: []}), 'legIncomplete');
+  assert.equal(
+    fnoIdeaHold(
+      {
+        ...ready,
+        legs: [
+          {...leg('buy', 'CE', 24000, 120), action: 'b' as OptionLeg['action']},
+        ],
+      },
+      OCT_20,
+    ),
+    'legIncomplete',
+  );
+  assert.equal(fnoIdeaHold({...ready, legs: []}, OCT_20), 'legIncomplete');
   // A future has no strike to lack.
   assert.equal(
-    fnoIdeaHold({...ready, legs: [leg('buy', 'FUT', 0, 24000)]}),
+    fnoIdeaHold({...ready, legs: [leg('buy', 'FUT', 0, 24000)]}, OCT_20),
     null,
   );
   // A resolved idea says so first; the expiry is said before the lot size.
   assert.equal(
-    fnoIdeaHold({...tableIdea, lotSize: 0, status: 'closed'}),
+    fnoIdeaHold({...tableIdea, lotSize: 0, status: 'closed'}, OCT_20),
     'closed',
   );
-  assert.equal(fnoIdeaHold({...tableIdea, lotSize: 0}), 'noExpiry');
+  assert.equal(fnoIdeaHold({...tableIdea, lotSize: 0}, OCT_20), 'noExpiry');
   const closedReady = {...ready, status: 'closed'};
-  assert.equal(structureHold(closedReady), null);
+  assert.equal(structureHold(closedReady, OCT_20), null);
 });
 
 test('a structure with no expiry, lot size or whole legs is never described as an order', () => {
-  assert.equal(describeStructure(tableIdea, 'Place'), null);
+  assert.equal(describeStructure(tableIdea, 'Place', OCT_20), null);
   assert.equal(
     describeStructure(
       {...tableIdea, expiry: '2026-10-28', lotSize: 0},
       'Place',
+      OCT_20,
     ),
     null,
   );
@@ -406,11 +416,12 @@ test('a structure with no expiry, lot size or whole legs is never described as a
     describeStructure(
       {...tableIdea, expiry: '2026-10-28', legs: [leg('buy', 'CE', 0, 120)]},
       'Place',
+      OCT_20,
     ),
     null,
   );
   assert.equal(
-    describeStructure({...tableIdea, expiry: '2026-10-28'}, 'Place'),
+    describeStructure({...tableIdea, expiry: '2026-10-28'}, 'Place', OCT_20),
     'Place Bull call spread on NIFTY, expiry 2026-10-28. Legs: BUY 1 lot(s) NIFTY 24000 CE @ 100; SELL 1 lot(s) NIFTY 24100 CE @ 50. Lot size 65.',
   );
 });
@@ -423,4 +434,35 @@ test('no needs condition is read off a spot or lot size of 0, and no margin unlo
   assert.equal(needsSentence({...idea, spot: 0}, m), null);
   assert.equal(marginUnlockPct({...idea, capitalRequired: 0}), null);
   assert.equal(marginUnlockPct(idea), 75);
+});
+
+test('an idea whose expiry day is behind it, or with a leg priced at 0, is held', () => {
+  const ready = {...tableIdea, expiry: '2026-10-28'};
+  assert.equal(fnoIdeaHold(ready, OCT_20), null);
+  // Still placeable on its expiry day; held from the day after.
+  assert.equal(fnoIdeaHold(ready, Date.parse('2026-10-28T09:00:00Z')), null);
+  assert.equal(
+    fnoIdeaHold(ready, Date.parse('2026-10-29T04:00:00Z')),
+    'expiryPassed',
+  );
+  assert.equal(
+    describeStructure(ready, 'Place', Date.parse('2026-10-29T04:00:00Z')),
+    null,
+  );
+  const [first, ...rest] = bullCallSpread;
+  assert.ok(first);
+  for (const premium of [0, -5, Number.NaN])
+    assert.equal(
+      fnoIdeaHold({...ready, legs: [{...first, premium}, ...rest]}, OCT_20),
+      'legIncomplete',
+      String(premium),
+    );
+  // The expiry is said before the lot size and the legs.
+  assert.equal(
+    fnoIdeaHold(
+      {...ready, lotSize: 0, legs: []},
+      Date.parse('2026-11-02T04:00:00Z'),
+    ),
+    'expiryPassed',
+  );
 });

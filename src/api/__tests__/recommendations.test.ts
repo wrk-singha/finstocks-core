@@ -284,12 +284,19 @@ test('a hold label, remark or rationale left empty falls back, and a modify zone
   assert.equal(second.modify_zone, null);
 });
 
-test('the request still sends only the horizon and status asked for', async () => {
-  const {http, calls} = fakeHttp([{recommendations: []}]);
+test('the request asks for the horizon and equities, the only kind the picks read', async () => {
+  const {http, calls} = fakeHttp([
+    {recommendations: []},
+    {recommendations: []},
+  ]);
   await marketApi(http).getRecommendations({horizon: 'swing'});
+  await marketApi(http).getRecommendations({kind: 'commodity'});
   assert.deepEqual(
     calls.map(call => call.path),
-    ['/market/recommendations?horizon=swing'],
+    [
+      '/market/recommendations?horizon=swing&kind=equity',
+      '/market/recommendations?kind=commodity',
+    ],
   );
 });
 

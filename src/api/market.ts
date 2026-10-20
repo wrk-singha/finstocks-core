@@ -106,6 +106,12 @@ import {joinQuery, symbolQuery} from './params.ts';
 export interface RecommendationsQuery {
   horizon?: string;
   status?: string;
+  /**
+   * equity (the default) or commodity. The picks are read as equities only (`readRecommendation`),
+   * so asking for equities keeps commodity rows from being fetched and counted as dropped, and the
+   * server's closed-day fallback is the last day that closed an equity pick.
+   */
+  kind?: 'equity' | 'commodity';
 }
 
 // drift resolved 2026-09-13: the web's ScreenerFilters carried price/cap/holdings/watchlist
@@ -775,6 +781,7 @@ export const marketApi = (http: HttpClient) => ({
       await http.request<Partial<RecommendationsWire> | null>(
         `/market/recommendations${query({
           horizon: params?.horizon,
+          kind: params?.kind ?? 'equity',
           status: params?.status,
         })}`,
       ),

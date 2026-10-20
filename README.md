@@ -63,6 +63,17 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.9.11** — the strategy library hands a strategy to chat for Deploy and Forward test as well as
+  Ask and Backtest: `LibraryChatIntent` gains `deploy` and `forward_test` with web dev's wording
+  ("Deploy the {name} strategy for me.", "Forward test the {name} strategy with mock money."), and
+  the visible sentence (`libraryChatRequest`) and the strategy marker (`libraryChatMarker`) are
+  exported apart so an app can stage the sentence and attach the marker on send; none carries a
+  capital or a quantity. The list summary's backend-dev fields (a 60-point `curve` and nine trade
+  stats) are optional, since main sends only `annual_return` and `max_drawdown`; `libraryMetrics`
+  lists them in web's order and gates and leaves out a benchmark return of 0 (dev's "none"),
+  `compactHold`/`compactPace` format the hold and the pace, and `libraryCurve` hands a list the
+  summary's curve only. `yearlyVersus` (`YearVersus`) pairs each backtest year with the
+  benchmark's, and pairs none when any day lacks a benchmark.
 - **v0.9.10** — recommendations are read from the recommendations table, and an F&O idea that
   cannot be placed says why: since backend-go 4c8bf631 `GET /market/recommendations` serves that
   table's rows (`RecommendationRow`, `RecommendationsWire`; `next_batch_at` is no longer sent), and

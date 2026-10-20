@@ -281,8 +281,14 @@ export {
   LIBRARY_SEGMENT_LABEL,
   LIBRARY_STYLE_LABEL,
   libraryBacktestLead,
+  compactHold,
+  compactPace,
   libraryChatContext,
+  libraryChatMarker,
   libraryChatMessage,
+  libraryChatRequest,
+  libraryCurve,
+  libraryMetrics,
   libraryTradeLog,
   libraryWinPeriods,
   liveThrough,
@@ -298,4 +304,9 @@ export {
   tradesBothWays,
   tradesWithLiveSession,
 } from './strategyLibrary.ts';
-export type {LibraryChatIntent, LibraryTradeRow} from './strategyLibrary.ts';
+export type {
+  LibraryChatIntent,
+  LibraryMetric,
+  LibraryMetricKey,
+  LibraryTradeRow,
+} from './strategyLibrary.ts';

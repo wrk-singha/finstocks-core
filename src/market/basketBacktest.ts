@@ -90,10 +90,12 @@ export const yearsBetween = (from: string, to: string): number =>
 function returnsByPeriod(
   daily: readonly EsfBacktestDay[],
   key: (date: string) => string,
+  value: (day: EsfBacktestDay) => number = d => d.nav,
 ): [string, number][] {
   const closing = new Map<string, number>();
-  for (const d of daily) closing.set(key(d.date), d.nav);
-  let previous = daily[0]?.nav ?? 1;
+  for (const d of daily) closing.set(key(d.date), value(d));
+  const first = daily[0];
+  let previous = first === undefined ? 1 : value(first);
   return [...closing].map(([k, nav]) => {
     const change = nav / previous - 1;
     previous = nav;
@@ -108,6 +110,33 @@ export const yearlyReturns = (
     label,
     basket,
   }));
+
+export interface YearVersus {
+  label: string;
+  strategy: number;
+  benchmark: number | null;
+}
+
+/**
+ * Each calendar year's return for the strategy beside the benchmark's, as web dev reads it
+ * (`fc577dca`, `basketBacktest.yearlyVersus`). The benchmark is null in every year when any day of
+ * the curve has none, so a year is never set against a part-year of the index.
+ */
+export function yearlyVersus(daily: readonly EsfBacktestDay[]): YearVersus[] {
+  const hasBenchmark = daily.every(d => Number(d.benchmark) > 0);
+  const benchmark = new Map(
+    returnsByPeriod(
+      daily,
+      date => date.slice(0, 4),
+      d => Number(d.benchmark) || 0,
+    ),
+  );
+  return yearlyReturns(daily).map(({label, basket}) => ({
+    label,
+    strategy: basket,
+    benchmark: hasBenchmark ? (benchmark.get(label) ?? null) : null,
+  }));
+}
 
 export const monthlyReturns = (daily: readonly EsfBacktestDay[]): MonthCell[] =>
   returnsByPeriod(daily, date => date.slice(0, 7)).map(([ym, basket]) => ({

@@ -163,6 +163,7 @@ export {
   summarize,
   TRADING_DAYS_PER_YEAR,
   yearlyReturns,
+  yearlyVersus,
   yearsBetween,
 } from './basketBacktest.ts';
 export type {
@@ -171,6 +172,7 @@ export type {
   MonteCarloBand,
   MonthCell as BasketMonthCell,
   PeriodReturn,
+  YearVersus,
 } from './basketBacktest.ts';
 export {basketCharges} from './basketCharges.ts';
 export type {BasketCharges} from './basketCharges.ts';

@@ -78,10 +78,35 @@ export interface LibraryStrategy {
   backtest_summary: LibraryBacktestSummary | null;
 }
 
-/** The headline of a backtest, as fractions: 0.214 is +21.4% a year, -0.18 an 18% drawdown. */
+/**
+ * The headline of a backtest, as fractions: 0.214 is +21.4% a year, -0.18 an 18% drawdown.
+ *
+ * Backend main sends only the first two. The rest are backend dev's (`d30a9a01` the curve,
+ * `4ae73380` the trade stats; web dev `fc577dca` reads them) and are optional here, so a reader
+ * shows each only once it arrives. Dev sends them without `omitempty`, so a 0 there can mean
+ * "none": no closed trades (the trade stats), no loser (`payoff_ratio`), no benchmark curve
+ * (`benchmark_return`).
+ */
 export interface LibraryBacktestSummary {
   annual_return: number;
   max_drawdown: number;
+  /** The weakest calendar month's return. */
+  worst_month?: number | undefined;
+  /** The benchmark's annualised return over the same window; 0 from dev when it has no benchmark. */
+  benchmark_return?: number | undefined;
+  /** Length of the backtest window, in years. */
+  years?: number | undefined;
+  /** Closed trades in the backtest, and the fraction of them that made money. */
+  trades?: number | undefined;
+  win_rate?: number | undefined;
+  /** Mean calendar days a closed trade was held; under a day is intraday. */
+  avg_hold_days?: number | undefined;
+  trades_per_month?: number | undefined;
+  /** Mean closed-trade return, and average winner over average loser (0 when undefined). */
+  avg_trade_return?: number | undefined;
+  payoff_ratio?: number | undefined;
+  /** The equity curve thinned to about 60 values, 1 on the first day. */
+  curve?: readonly number[] | undefined;
 }
 
 /** Set on a position that profits from a fall; a long one carries no side. */

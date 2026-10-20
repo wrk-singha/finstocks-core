@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {entryStatus, ladderPoints, tradeGeometry} from '../tradeSetup.ts';
+import {
+  entryStatus,
+  isPickExpired,
+  ladderPoints,
+  tradeGeometry,
+} from '../tradeSetup.ts';
 
 const reco = {
   cmp: 105,
@@ -120,5 +125,24 @@ test('entry status state and label read exactly as v0.2.4 did', () => {
       {state: 'above_zone', label: '0.3% above entry'},
       {state: 'unknown', label: 'Entry zone unavailable'},
     ],
+  );
+});
+
+test('an open pick is expired from its valid-until on, and a closed one is judged by its status', () => {
+  const until = '2026-10-20T09:45:00.123456Z';
+  const at = Date.parse('2026-10-20T09:45:00.123Z');
+  const open = {status: 'active', valid_until: until};
+  assert.equal(isPickExpired(open, at - 60_000), false);
+  assert.equal(isPickExpired(open, at), true);
+  assert.equal(isPickExpired(open, at + 60_000), true);
+  // A stamp that cannot be read is not a pick to take.
+  assert.equal(isPickExpired({status: 'active', valid_until: ''}, 0), true);
+  assert.equal(
+    isPickExpired({status: 'hit_target', valid_until: until}, at),
+    false,
+  );
+  assert.equal(
+    isPickExpired({status: 'expired', valid_until: until}, at),
+    false,
   );
 });

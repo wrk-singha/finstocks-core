@@ -107,7 +107,9 @@ export interface Recommendation {
   hold_label: string;
   /** active (open) · hit_target · hit_stop · expired (closed, including not triggered) */
   status: string;
+  /** RFC 3339, readable by `parseTimestamp`: the reader drops a row whose stamp is not. */
   published_at: string;
+  /** Until when an open pick may be taken (`isPickExpired`). */
   valid_until: string;
   realized_pnl?: number;
   resolved_price?: number;
@@ -118,6 +120,12 @@ export interface Recommendation {
 /** GET /api/market/recommendations, read: only the rows that are plain picks. */
 export interface MarketRecommendationsResponse {
   recommendations: Recommendation[];
+  /**
+   * Rows the reader could not keep (unreadable, or not safe to act on), not counting the rows that
+   * are not stock picks (options and spreads, the model portfolio, a neutral view). An empty list
+   * with rows dropped is not "nothing published".
+   */
+  dropped: number;
   /** The batch shown is the previous session's — the new one is not out yet. */
   showing_closed?: boolean;
   /** IST wall clock "HH:MM" the next batch publishes at. No longer sent; kept for the horizons. */

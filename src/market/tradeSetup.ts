@@ -1,4 +1,20 @@
+import {parseTimestamp} from '../format/date.ts';
 import type {Recommendation} from '../types/market.ts';
+
+/**
+ * Whether an open pick is past its `valid_until` at `now` (epoch ms), or has a stamp that cannot be
+ * read. The open list keeps a pick until the dashboard's day is finalised, so an intraday pick can
+ * still be listed after its square-off, or the next morning: it is expired from its `valid_until`,
+ * and is no longer a trade to take. A closed pick has its own status and is not judged here.
+ */
+export function isPickExpired(
+  rec: Pick<Recommendation, 'status' | 'valid_until'>,
+  now: number,
+): boolean {
+  if (rec.status !== 'active') return false;
+  const until = parseTimestamp(rec.valid_until);
+  return until === null || until.getTime() <= now;
+}
 
 export type EntryState = 'in_zone' | 'above_zone' | 'below_zone' | 'unknown';
 

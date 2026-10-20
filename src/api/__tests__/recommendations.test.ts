@@ -256,7 +256,7 @@ test('an answer with no list, a null list or no body reads as no picks', async (
     null,
     {recommendations: {}},
   ]) {
-    assert.deepEqual(await read(body), {recommendations: []});
+    assert.deepEqual(await read(body), {recommendations: [], dropped: 0});
   }
 });
 
@@ -290,5 +290,44 @@ test('the request still sends only the horizon and status asked for', async () =
   assert.deepEqual(
     calls.map(call => call.path),
     ['/market/recommendations?horizon=swing'],
+  );
+});
+
+test('rows that cannot be kept are counted as dropped; rows that are not picks are not', async () => {
+  const {recommendations, dropped} = await read({
+    recommendations: [
+      row({id: 1}),
+      // Not picks, by design, as on web: an options spread, the portfolio, a neutral view.
+      row({id: 2, legs: [{instrument: 'NIFTY26OCT24500CE-NSE'}]}),
+      row({id: 3, horizon: 'portfolio'}),
+      row({id: 4, direction: 'neutral'}),
+      // Could not be kept: a missing edge, a commodity, a stop above a long's entry, no stamp.
+      row({id: 5, target_max: null}),
+      row({id: 6, kind: 'commodity', symbol: 'GOLD-MCX'}),
+      row({id: 7, stop_loss_min: 1440, stop_loss_max: 1445}),
+      row({id: 8, valid_until: ''}),
+      null,
+    ],
+  });
+  assert.deepEqual(
+    recommendations.map(pick => pick.id),
+    [1],
+  );
+  assert.equal(dropped, 5);
+});
+
+test('a pick needs stamps the app can read; Go’s nanosecond and Postgres’s microsecond forms are read', async () => {
+  const {recommendations} = await read({
+    recommendations: [
+      row({id: 1, published_at: '2026-10-20T03:40:00.123456789Z'}),
+      row({id: 2, valid_until: '2026-10-20 09:45:00.827232+00'}),
+      row({id: 3, published_at: 'soon'}),
+      row({id: 4, valid_until: null as unknown as string}),
+      row({id: 5, published_at: 42 as unknown as string}),
+    ],
+  });
+  assert.deepEqual(
+    recommendations.map(pick => pick.id),
+    [1, 2],
   );
 });

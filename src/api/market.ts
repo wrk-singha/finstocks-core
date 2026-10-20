@@ -98,6 +98,7 @@ import type {
   GetStockEventsRequest,
   GetStockEventsResponse,
 } from '../types/stockEvents.ts';
+import {parseTimestamp} from '../format/date.ts';
 import type {HttpClient} from './http.ts';
 import {query, statusOf} from './http.ts';
 import {joinQuery, symbolQuery} from './params.ts';
@@ -355,6 +356,25 @@ const zoneOf = (low: unknown, high: unknown): [number, number] | null =>
 const textOf = (value: unknown): string | null =>
   typeof value === 'string' && value.trim() !== '' ? value : null;
 
+/** A stamp the app can read on every engine (Go sends RFC 3339 with up to nine fraction digits). */
+const stampOf = (value: unknown): string | null =>
+  typeof value === 'string' && parseTimestamp(value) !== null ? value : null;
+
+/**
+ * A row that is not a stock pick by design: an options or spread idea (legs), the model portfolio,
+ * or a neutral view. Web leaves these out of the picks as well, so they are not counted as dropped.
+ */
+const isOtherThanAPick = (value: unknown): boolean => {
+  if (typeof value !== 'object' || value === null) return false;
+  const row = value as Partial<Record<keyof RecommendationRow, unknown>>;
+  return (
+    row.legs != null ||
+    row.horizon === 'portfolio' ||
+    (typeof row.direction === 'string' &&
+      row.direction.toLowerCase() === 'neutral')
+  );
+};
+
 /** How a closed pick closed. One that never filled (no exit price) reads as expired, as on web. */
 const closedStatus = (exitPrice: number | null, reason: unknown): string =>
   exitPrice === null
@@ -374,7 +394,9 @@ const closedStatus = (exitPrice: number | null, reason: unknown): string =>
  *   commodity is a lot of a contract;
  * - a zone edge that is not a positive number, or a zone written high to low;
  * - a stop or target on the wrong side of the entry: the order pad seeds them as exits;
- * - a status other than open or closed.
+ * - a status other than open or closed;
+ * - a published or valid-until stamp that cannot be read: an open pick is placeable only until
+ *   `valid_until` (`isPickExpired`), and says when it was published.
  * A row is dropped whole, never shown half filled. The server sends no live price, and none is
  * made up: `cmp` is null, and `ref_price` (the entry zone's midpoint, or the exit price once
  * closed) is what the row's own figures are read at.
@@ -391,6 +413,10 @@ function readRecommendation(value: unknown): Recommendation | null {
   const direction =
     typeof row.direction === 'string' ? row.direction.toLowerCase() : '';
   if (direction !== 'long' && direction !== 'short') return null;
+
+  const publishedAt = stampOf(row.published_at);
+  const validUntil = stampOf(row.valid_until);
+  if (publishedAt === null || validUntil === null) return null;
 
   const entry = zoneOf(row.entry_min, row.entry_max);
   const stop = zoneOf(row.stop_loss_min, row.stop_loss_max);
@@ -438,8 +464,8 @@ function readRecommendation(value: unknown): Recommendation | null {
     risk_reward: Math.abs(targetPx - entryMid) / Math.abs(entryMid - stopPx),
     hold_label: textOf(row.hold_label) ?? horizon,
     status: isClosed ? closedStatus(exitPrice, row.exit_reason) : 'active',
-    published_at: typeof row.published_at === 'string' ? row.published_at : '',
-    valid_until: typeof row.valid_until === 'string' ? row.valid_until : '',
+    published_at: publishedAt,
+    valid_until: validUntil,
     ...(isClosed && typeof pnl === 'number' && Number.isFinite(pnl)
       ? {realized_pnl: pnl}
       : {}),
@@ -449,20 +475,26 @@ function readRecommendation(value: unknown): Recommendation | null {
   };
 }
 
-/** The response as the picks UI reads it: the rows `readRecommendation` keeps, in the server's order. */
+/**
+ * The response as the picks UI reads it: the rows `readRecommendation` keeps, in the server's
+ * order, and how many it could not keep (`dropped`), not counting the rows that are not picks.
+ */
 const readRecommendations = (
   wire: Partial<RecommendationsWire> | null,
 ): MarketRecommendationsResponse => {
   const rows: unknown = wire?.recommendations;
-  const recommendations = Array.isArray(rows)
-    ? rows.flatMap(row => {
-        const read = readRecommendation(row);
-        return read === null ? [] : [read];
-      })
-    : [];
+  const recommendations: Recommendation[] = [];
+  let dropped = 0;
+  if (Array.isArray(rows)) {
+    for (const row of rows as unknown[]) {
+      const read = readRecommendation(row);
+      if (read !== null) recommendations.push(read);
+      else if (!isOtherThanAPick(row)) dropped += 1;
+    }
+  }
   return wire?.showing_closed === true
-    ? {recommendations, showing_closed: true}
-    : {recommendations};
+    ? {recommendations, dropped, showing_closed: true}
+    : {recommendations, dropped};
 };
 
 /**

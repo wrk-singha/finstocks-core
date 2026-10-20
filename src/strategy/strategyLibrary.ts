@@ -1,3 +1,4 @@
+import {formatNumber, signedFractionPct} from '../format/index.ts';
 import {
   annualisedReturn,
   monthlyReturns,
@@ -199,22 +200,175 @@ export function backtestPreview(s: LibraryStrategy): string[] {
 }
 
 /**
- * Chat hand-off. The visible sentence is what the user sees in their bubble; the
- * `[<Library Strategy: …>]` marker is stripped from display and carries the public id the model
- * resolves to the strategy's hidden logic server-side.
+ * Chat hand-off, as web dev words it (`fc577dca`, `strategyLibrary.ts`). The visible sentence is
+ * what the user sees in their bubble; the `[<Library Strategy: …>]` marker is stripped from display
+ * and carries the public id the model resolves to the strategy's hidden logic server-side. Neither
+ * carries a capital or a quantity: the assistant asks, or its plan card is confirmed in the chat.
  */
-export type LibraryChatIntent = 'ask' | 'backtest';
+export type LibraryChatIntent = 'ask' | 'backtest' | 'deploy' | 'forward_test';
+
+const CHAT_REQUEST: Readonly<
+  Record<LibraryChatIntent, (name: string) => string>
+> = {
+  ask: name => `Tell me about the ${name} strategy.`,
+  backtest: name => `Backtest the ${name} strategy for me.`,
+  deploy: name => `Deploy the ${name} strategy for me.`,
+  forward_test: name => `Forward test the ${name} strategy with mock money.`,
+};
+
+/** The visible sentence of a hand-off, without its marker. */
+export const libraryChatRequest = (
+  s: Pick<LibraryStrategy, 'name'>,
+  intent: LibraryChatIntent,
+): string => CHAT_REQUEST[intent](s.name);
+
+/** The hidden marker that names the strategy to the model; a display strips it. */
+export const libraryChatMarker = (
+  s: Pick<LibraryStrategy, 'id' | 'name'>,
+): string => `[<Library Strategy: ID: ${s.id}, Name: ${s.name}>]`;
 
 export function libraryChatMessage(
-  s: LibraryStrategy,
+  s: Pick<LibraryStrategy, 'id' | 'name'>,
   intent: LibraryChatIntent,
 ): string {
-  const visible =
-    intent === 'backtest'
-      ? `Backtest the ${s.name} strategy for me.`
-      : `Tell me about the ${s.name} strategy.`;
-  return `${visible} [<Library Strategy: ID: ${s.id}, Name: ${s.name}>]`;
+  return `${libraryChatRequest(s, intent)} ${libraryChatMarker(s)}`;
 }
+
+/** A backtest's mean hold in a stat tile, as web dev's `libraryTradeStats`: "Intraday", "32d", "8.5 mo". */
+export const compactHold = (days: number): string =>
+  days < 1
+    ? 'Intraday'
+    : days < 90
+      ? `${String(Math.round(days))}d`
+      : `${(days / 30.4).toFixed(1).replace(/\.0$/, '')} mo`;
+
+/** A backtest's trade pace in a stat tile: "<1", "~14". */
+export const compactPace = (perMonth: number): string =>
+  perMonth < 1 ? '<1' : `~${String(Math.round(perMonth))}`;
+
+export type LibraryMetricKey =
+  | 'maxDrawdown'
+  | 'worstMonth'
+  | 'riskLevel'
+  | 'winRate'
+  | 'riskReward'
+  | 'avgTrade'
+  | 'avgHold'
+  | 'tradesPerMonth'
+  | 'direction'
+  | 'benchmarkReturn'
+  | 'totalTrades'
+  | 'backtestYears';
+
+export interface LibraryMetric {
+  key: LibraryMetricKey;
+  value: string;
+  /** Loss for a fall, by sign for a trade's mean return; null reads plain. */
+  tone: 'profit' | 'loss' | null;
+}
+
+const toneBySign = (value: number): 'profit' | 'loss' =>
+  value < 0 ? 'loss' : 'profit';
+
+/**
+ * A strategy's numbers in web dev's order (`LibraryMetrics.metricsOf`), skipping every one the
+ * server did not send. On backend main that leaves Max drawdown, Risk level and Direction. The
+ * trade stats need a closed trade, as web gates them, and a 0 that dev sends for "none" is left
+ * out: the payoff (no loser, as web), and the benchmark's return (no benchmark curve; web prints
+ * it as 0%).
+ */
+export function libraryMetrics(
+  strategy: Pick<
+    LibraryStrategy,
+    'backtest_summary' | 'risk_level' | 'direction'
+  >,
+): LibraryMetric[] {
+  const s = strategy.backtest_summary;
+  const hasTrades = (s?.trades ?? 0) > 0;
+  const out: (LibraryMetric | null)[] = [
+    s === null
+      ? null
+      : {
+          key: 'maxDrawdown',
+          value: signedFractionPct(s.max_drawdown),
+          tone: 'loss',
+        },
+    s?.worst_month == null
+      ? null
+      : {
+          key: 'worstMonth',
+          value: signedFractionPct(s.worst_month),
+          tone: 'loss',
+        },
+    {key: 'riskLevel', value: riskLabel(strategy.risk_level), tone: null},
+    hasTrades && s?.win_rate != null
+      ? {
+          key: 'winRate',
+          value: `${String(Math.round(s.win_rate * 100))}%`,
+          tone: null,
+        }
+      : null,
+    s?.payoff_ratio
+      ? {
+          key: 'riskReward',
+          value: `1 : ${s.payoff_ratio.toFixed(1)}`,
+          tone: null,
+        }
+      : null,
+    hasTrades && s?.avg_trade_return != null
+      ? {
+          key: 'avgTrade',
+          value: signedFractionPct(s.avg_trade_return),
+          tone: toneBySign(s.avg_trade_return),
+        }
+      : null,
+    hasTrades && s?.avg_hold_days != null
+      ? {key: 'avgHold', value: compactHold(s.avg_hold_days), tone: null}
+      : null,
+    hasTrades && s?.trades_per_month != null
+      ? {
+          key: 'tradesPerMonth',
+          value: compactPace(s.trades_per_month),
+          tone: null,
+        }
+      : null,
+    {
+      key: 'direction',
+      value: LIBRARY_DIRECTION_LABEL[strategy.direction],
+      tone: null,
+    },
+    s?.benchmark_return
+      ? {
+          key: 'benchmarkReturn',
+          value: signedFractionPct(s.benchmark_return),
+          tone: null,
+        }
+      : null,
+    hasTrades && s?.trades != null
+      ? {key: 'totalTrades', value: formatNumber(s.trades), tone: null}
+      : null,
+    s?.years != null && s.years > 0
+      ? {
+          key: 'backtestYears',
+          value: `${s.years.toFixed(1).replace(/\.0$/, '')} yr`,
+          tone: null,
+        }
+      : null,
+  ];
+  return out.filter((m): m is LibraryMetric => m !== null);
+}
+
+/**
+ * The list's curve for a strategy: the summary's thinned equity curve, only when the server sent
+ * one of at least two points. Web falls back to fetching each card's whole detail for it; an app
+ * list does not, so a strategy without one draws none.
+ */
+export const libraryCurve = (
+  strategy: Pick<LibraryStrategy, 'backtest_summary'>,
+): readonly number[] | null => {
+  const curve = strategy.backtest_summary?.curve;
+  return curve !== undefined && curve.length >= 2 ? curve : null;
+};
 
 export function libraryChatContext(s: LibraryStrategy): ChatContext {
   return {label: s.name, sublabel: s.tagline};

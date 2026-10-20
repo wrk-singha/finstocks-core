@@ -20,12 +20,18 @@ import {
 import {
   activitySession,
   backtestPreview,
+  compactHold,
+  compactPace,
   hasFnoStrategy,
   isReference,
   isTodaysSession,
   libraryBacktestLead,
   libraryChatContext,
+  libraryChatMarker,
   libraryChatMessage,
+  libraryChatRequest,
+  libraryCurve,
+  libraryMetrics,
   libraryTradeLog,
   libraryWinPeriods,
   liveThrough,
@@ -166,6 +172,26 @@ test('the chat hand-off carries the visible sentence and the hidden id marker', 
     libraryChatMessage(condor, 'backtest'),
     'Backtest the Expiry Iron Condor strategy for me. [<Library Strategy: ID: krishna, Name: Expiry Iron Condor>]',
   );
+  assert.equal(
+    libraryChatMessage(condor, 'deploy'),
+    'Deploy the Expiry Iron Condor strategy for me. [<Library Strategy: ID: krishna, Name: Expiry Iron Condor>]',
+  );
+  assert.equal(
+    libraryChatMessage(condor, 'forward_test'),
+    'Forward test the Expiry Iron Condor strategy with mock money. [<Library Strategy: ID: krishna, Name: Expiry Iron Condor>]',
+  );
+  // The message is the sentence and the marker, so a composer can hold one and attach the other.
+  for (const intent of ['ask', 'backtest', 'deploy', 'forward_test'] as const) {
+    assert.equal(
+      libraryChatMessage(condor, intent),
+      `${libraryChatRequest(condor, intent)} ${libraryChatMarker(condor)}`,
+    );
+    // No capital, quantity or mode rides on any of them, as on web.
+    assert.doesNotMatch(
+      libraryChatMessage(condor, intent),
+      /₹|\d+ lots?|qty|live/i,
+    );
+  }
   assert.deepEqual(libraryChatContext(condor), {
     label: 'Expiry Iron Condor',
     sublabel: 'krishna tagline',
@@ -486,4 +512,121 @@ test('two trades in one stock on one day keep separate row keys', () => {
   });
   assert.notEqual(tradeRowKey(first), tradeRowKey(second));
   assert.equal(tradeRowKey(first), 'UPL-long-2024-10-08-2024-10-08-580.05');
+});
+
+test('a hold and a pace read as web dev’s stat tiles', () => {
+  assert.equal(compactHold(0.4), 'Intraday');
+  assert.equal(compactHold(1), '1d');
+  assert.equal(compactHold(31.6), '32d');
+  assert.equal(compactHold(89.4), '89d');
+  assert.equal(compactHold(258.4), '8.5 mo');
+  assert.equal(compactHold(304), '10 mo');
+  assert.equal(compactPace(0.3), '<1');
+  assert.equal(compactPace(1), '~1');
+  assert.equal(compactPace(13.6), '~14');
+});
+
+const keysOf = (s: LibraryStrategy) => libraryMetrics(s).map(m => m.key);
+
+test('the metrics backend main can fill are the drawdown, the risk, the direction, in web’s order', () => {
+  const main = strategy('annapurna', {
+    has_backtest: true,
+    backtest_summary: {annual_return: 0.247, max_drawdown: -0.145},
+  });
+  assert.deepEqual(libraryMetrics(main), [
+    {key: 'maxDrawdown', value: '-14.5%', tone: 'loss'},
+    {key: 'riskLevel', value: 'Moderately high', tone: null},
+    {key: 'direction', value: 'Long only', tone: null},
+  ]);
+  // No backtest: only what the catalogue says.
+  assert.deepEqual(keysOf(strategy('x')), ['riskLevel', 'direction']);
+});
+
+test('the metrics backend dev sends are all shown, in web’s order', () => {
+  const dev = strategy('kangto', {
+    direction: 'both',
+    has_backtest: true,
+    backtest_summary: {
+      annual_return: 0.31,
+      max_drawdown: -0.2,
+      worst_month: -0.081,
+      benchmark_return: 0.112,
+      years: 3,
+      trades: 1234,
+      win_rate: 0.546,
+      avg_hold_days: 12.2,
+      trades_per_month: 13.6,
+      avg_trade_return: -0.004,
+      payoff_ratio: 1.84,
+      curve: [1, 1.1, 1.3],
+    },
+  });
+  assert.deepEqual(libraryMetrics(dev), [
+    {key: 'maxDrawdown', value: '-20.0%', tone: 'loss'},
+    {key: 'worstMonth', value: '-8.1%', tone: 'loss'},
+    {key: 'riskLevel', value: 'Moderately high', tone: null},
+    {key: 'winRate', value: '55%', tone: null},
+    {key: 'riskReward', value: '1 : 1.8', tone: null},
+    {key: 'avgTrade', value: '-0.4%', tone: 'loss'},
+    {key: 'avgHold', value: '12d', tone: null},
+    {key: 'tradesPerMonth', value: '~14', tone: null},
+    {key: 'direction', value: 'Long & short', tone: null},
+    {key: 'benchmarkReturn', value: '+11.2%', tone: null},
+    {key: 'totalTrades', value: '1,234', tone: null},
+    {key: 'backtestYears', value: '3 yr', tone: null},
+  ]);
+});
+
+test('a 0 the server sends for "none" is never shown as a figure', () => {
+  // Dev without omitempty: no closed trades, no loser, no benchmark curve.
+  const none = strategy('x', {
+    has_backtest: true,
+    backtest_summary: {
+      annual_return: 0.1,
+      max_drawdown: -0.05,
+      worst_month: -0.02,
+      benchmark_return: 0,
+      years: 1.5,
+      trades: 0,
+      win_rate: 0,
+      avg_hold_days: 0,
+      trades_per_month: 0,
+      avg_trade_return: 0,
+      payoff_ratio: 0,
+    },
+  });
+  assert.deepEqual(keysOf(none), [
+    'maxDrawdown',
+    'worstMonth',
+    'riskLevel',
+    'direction',
+    'backtestYears',
+  ]);
+  assert.equal(libraryMetrics(none).at(-1)?.value, '1.5 yr');
+});
+
+test('the list draws a curve only from one the summary carries', () => {
+  assert.equal(libraryCurve(strategy('x')), null);
+  assert.equal(
+    libraryCurve(
+      strategy('x', {backtest_summary: {annual_return: 0, max_drawdown: 0}}),
+    ),
+    null,
+  );
+  assert.equal(
+    libraryCurve(
+      strategy('x', {
+        backtest_summary: {annual_return: 0, max_drawdown: 0, curve: [1]},
+      }),
+    ),
+    null,
+  );
+  assert.deepEqual(
+    libraryCurve(
+      strategy('x', {
+        backtest_summary: {annual_return: 0, max_drawdown: 0, curve: [1, 1.2]},
+      }),
+    ),
+    [1, 1.2],
+  );
 });

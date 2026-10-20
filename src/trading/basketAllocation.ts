@@ -7,7 +7,10 @@ export type BasketRowBlock = 'unpriced' | 'underfunded';
 
 /**
  * The slice of a market recommendation the allocator reads. Structural so the apps pass their
- * full `Recommendation` rows through and get them back on each `BasketRow.reco`.
+ * full `Recommendation` rows through and get them back on each `BasketRow.reco`. `cmp` is what a
+ * row is sized at, so it is the host's live quote for the symbol and never a recommendation's
+ * `ref_price` (a `Recommendation` carries `cmp: null` until the host prices it); anything but a
+ * positive number leaves the row unpriced.
  */
 export interface BasketReco {
   stock_symbol: string;
@@ -98,7 +101,7 @@ function buildRow<R extends BasketReco>(
   const price = reco.cmp;
   const side: OrderSide = isShortDirection(reco.direction) ? 'SELL' : 'BUY';
   const allotted = mode === 'custom' ? (override.amount ?? perRow) : perRow;
-  const qty = price > 0 ? Math.floor(allotted / price) : 0;
+  const qty = isPriced(price) ? Math.floor(allotted / price) : 0;
   const block = blockFor(price, qty);
   const placeable = block == null;
 
@@ -129,8 +132,11 @@ function buildRow<R extends BasketReco>(
   };
 }
 
+const isPriced = (price: number): boolean =>
+  Number.isFinite(price) && price > 0;
+
 function blockFor(price: number, qty: number): BasketRowBlock | null {
-  if (!(price > 0)) return 'unpriced';
+  if (!isPriced(price)) return 'unpriced';
   if (qty < 1) return 'underfunded';
   return null;
 }

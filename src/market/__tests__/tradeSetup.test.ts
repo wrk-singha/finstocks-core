@@ -33,7 +33,7 @@ test('entry status is judged against the published band', () => {
     'in_zone',
   );
   assert.equal(
-    entryStatus({...reco, cmp: null as unknown as number}).label,
+    entryStatus({...reco, cmp: null}).label,
     'Entry zone unavailable',
   );
 });
@@ -74,10 +74,7 @@ test('ladder points sit proportionally between stop and target, cmp clamped', ()
 });
 
 test('entry drift is measured to the nearer edge, and null when there is none to measure', () => {
-  assert.equal(
-    entryStatus({...reco, cmp: null as unknown as number}).driftPct,
-    null,
-  );
+  assert.equal(entryStatus({...reco, cmp: null}).driftPct, null);
   assert.equal(
     entryStatus({...reco, entry_min: null as unknown as number}).driftPct,
     null,

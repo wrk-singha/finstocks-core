@@ -88,3 +88,28 @@ test('custom mode honours amounts; seed and sweep edit the override map', () => 
     Math.floor((10000 + equal.remainder) / 1500),
   );
 });
+
+test('a price that is not a positive finite number leaves the row unpriced, never sized', () => {
+  const basket = allocateBasket({
+    recos: [
+      {stock_symbol: 'NAN', cmp: Number.NaN},
+      {stock_symbol: 'INF', cmp: Number.POSITIVE_INFINITY},
+      {stock_symbol: 'NEG', cmp: -1500},
+    ],
+    amount: 30000,
+    mode: 'equal',
+    overrides: {},
+    targetPct: 5,
+    stopPct: 2,
+  });
+  assert.deepEqual(
+    basket.rows.map(row => [row.block, row.qty, row.stopPrice]),
+    [
+      ['unpriced', null, null],
+      ['unpriced', null, null],
+      ['unpriced', null, null],
+    ],
+  );
+  assert.equal(basket.placeableCount, 0);
+  assert.equal(basket.total, 0);
+});

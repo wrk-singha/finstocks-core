@@ -23,10 +23,12 @@ export interface LadderPoint {
   price: number;
 }
 
+// `cmp` is a live price or null (a recommendation's `ref_price` is never one); a band read without
+// its upper edge collapses to `entry_min`.
 type SetupFields = Pick<
   Recommendation,
-  'cmp' | 'entry_min' | 'entry_max' | 'stop_loss' | 'target_price'
->;
+  'cmp' | 'entry_min' | 'stop_loss' | 'target_price'
+> & {entry_max?: number | null};
 
 /**
  * Where CMP sits against the backend's own entry band, so "can I still take

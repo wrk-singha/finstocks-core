@@ -439,8 +439,21 @@ test('no needs condition is read off a spot or lot size of 0, and no margin unlo
 test('an idea whose expiry day is behind it, or with a leg priced at 0, is held', () => {
   const ready = {...tableIdea, expiry: '2026-10-28'};
   assert.equal(fnoIdeaHold(ready, OCT_20), null);
-  // Still placeable on its expiry day; held from the day after.
+  // Placeable on its expiry day until that day's 15:30 IST close, and held from then on.
   assert.equal(fnoIdeaHold(ready, Date.parse('2026-10-28T09:00:00Z')), null);
+  assert.equal(fnoIdeaHold(ready, Date.parse('2026-10-28T09:59:00Z')), null);
+  assert.equal(
+    fnoIdeaHold(ready, Date.parse('2026-10-28T10:00:00Z')),
+    'expiryPassed',
+  );
+  // A full stamp ends at itself.
+  assert.equal(
+    fnoIdeaHold(
+      {...ready, expiry: '2026-10-28T08:00:00Z'},
+      Date.parse('2026-10-28T08:00:00Z'),
+    ),
+    'expiryPassed',
+  );
   assert.equal(
     fnoIdeaHold(ready, Date.parse('2026-10-29T04:00:00Z')),
     'expiryPassed',

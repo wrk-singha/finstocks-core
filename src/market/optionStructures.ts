@@ -362,7 +362,8 @@ export const isLiveIdea = (idea: Pick<FnoTradeIdea, 'status'>): boolean =>
  * Why an idea cannot be placed as it stands, in the order the reader is told:
  * - `closed`: the idea has resolved;
  * - `noExpiry`: no expiry date, which the feed sends empty when its source has none;
- * - `expiryPassed`: its expiry day is behind it (`daysToExpiry` below 0);
+ * - `expiryPassed`: its expiry has closed: a bare date at that day's 15:30 IST close, a full stamp
+ *   at itself;
  * - `noLotSize`: no lot size, which the feed sends as 0 when it knows none;
  * - `legIncomplete`: no legs, or a leg without a buy/sell side, a whole number of lots, a price
  *   above 0 (the feed fills a leg's premium from its entry, 0 when there is none), or (for an
@@ -371,6 +372,14 @@ export const isLiveIdea = (idea: Pick<FnoTradeIdea, 'status'>): boolean =>
  */
 export type FnoIdeaHold =
   'closed' | 'noExpiry' | 'expiryPassed' | 'noLotSize' | 'legIncomplete';
+
+/** When an expiry stops trading: a bare YYYY-MM-DD at that day's 15:30 IST close, else the stamp. */
+const expiryCloseAt = (expiry: string): number => {
+  const day = expiry.trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(day)
+    ? Date.parse(`${day}T15:30:00+05:30`)
+    : new Date(day).getTime();
+};
 
 const isCompleteLeg = (leg: OptionLeg): boolean =>
   (leg.action === 'buy' || leg.action === 'sell') &&
@@ -397,7 +406,7 @@ export function structureHold(
       ? daysToExpiry(expiry, now)
       : null;
   if (days === null) return 'noExpiry';
-  if (days < 0) return 'expiryPassed';
+  if (now >= expiryCloseAt(expiry)) return 'expiryPassed';
   if (ideaLotSize(idea) === null) return 'noLotSize';
   if (idea.legs.length === 0 || !idea.legs.every(isCompleteLeg))
     return 'legIncomplete';

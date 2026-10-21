@@ -135,7 +135,7 @@ test('closedTradeReturnPct is null rather than a made-up figure when the prices 
   );
 });
 
-test('closedTradeEntry is the stored fill when there is one, else the entry zone low', () => {
+test('closedTradeEntry is the stored fill when there is one, else the entry zone low, else none', () => {
   assert.equal(
     closedTradeEntry({entry_min: 1000, entry_price: 1004.5}),
     1004.5,
@@ -147,4 +147,8 @@ test('closedTradeEntry is the stored fill when there is one, else the entry zone
     closedTradeEntry({entry_min: 1000, entry_price: Number.NaN}),
     1000,
   );
+  // The report's 0 for an entry zone it has none of is no price.
+  assert.equal(closedTradeEntry({entry_min: 0}), null);
+  assert.equal(closedTradeEntry({entry_min: 0, entry_price: -2}), null);
+  assert.equal(closedTradeEntry({entry_min: 0, entry_price: 998}), 998);
 });

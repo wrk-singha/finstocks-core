@@ -20,16 +20,22 @@ export const tradeReturnPct = (
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
+const isPositive = (value: unknown): value is number =>
+  isFiniteNumber(value) && value > 0;
+
 /**
  * The price a closed trade entered at: its stored fill when the row carries one (backend-go
- * 5295af0e), else the entry zone's low edge, which is all an older row has (web 4105264b).
+ * 5295af0e), else the entry zone's low edge, which is all an older row has (web 4105264b). Null when
+ * it has neither: the report sends an entry zone it has none of as 0, which is no price.
  */
 export const closedTradeEntry = (
   t: Pick<ClosedTrade, 'entry_price' | 'entry_min'>,
-): number =>
-  isFiniteNumber(t.entry_price) && t.entry_price > 0
+): number | null =>
+  isPositive(t.entry_price)
     ? t.entry_price
-    : t.entry_min;
+    : isPositive(t.entry_min)
+      ? t.entry_min
+      : null;
 
 /**
  * A closed trade's return in %: the figure stored when it was finalised, else the move from its
@@ -46,8 +52,7 @@ export const closedTradeReturnPct = (
 ): number | null => {
   if (isFiniteNumber(t.return_pct)) return t.return_pct;
   const entry = closedTradeEntry(t);
-  if (!isFiniteNumber(t.resolved_price) || !isFiniteNumber(entry) || entry <= 0)
-    return null;
+  if (entry === null || !isFiniteNumber(t.resolved_price)) return null;
   const move = ((t.resolved_price - entry) / entry) * 100;
   return isShortDirection(t.direction) ? -move : move;
 };

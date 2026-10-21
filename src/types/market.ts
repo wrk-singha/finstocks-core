@@ -296,6 +296,10 @@ export interface Mover {
   symbol: string;
   last: number;
   change_pct: number;
+  /** The company master's sector string; the heatmap looks it up as an industry in the tree. */
+  sector?: string | null;
+  /** ₹ crore; a mover without one gets no heatmap tile. */
+  market_cap?: number | null;
 }
 
 /** One session's institutional flow for one reporting source, in Rs crore. */

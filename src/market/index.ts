@@ -430,11 +430,7 @@ export type {TreemapRect} from './treemap.ts';
 
 export {mulberry32, percentileSorted} from './sampling.ts';
 
-export {
-  expiryCalendar,
-  FNO_HISTORY_START,
-  NSE_TUESDAY_EXPIRY_FROM,
-} from './expiryDays.ts';
+export {expiryCalendar, NSE_TUESDAY_EXPIRY_FROM} from './expiryDays.ts';
 export type {ExpiryCalendar, ExpiryDay} from './expiryDays.ts';
 
 export {

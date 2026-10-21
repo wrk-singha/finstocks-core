@@ -31,8 +31,8 @@ export interface ExpiryCalendar {
   ruleFrom: string | null;
 }
 
-/** Stored 1-minute F&O history starts here: anything earlier was never recorded. */
-export const FNO_HISTORY_START = '2026-01-02';
+/** Stored 1-minute F&O history starts here: one definition, in marketHours, shared with the replay. */
+export {FNO_HISTORY_START} from './marketHours.ts';
 
 /** NSE: every equity derivative expires on a Tuesday from this date (Thursday before). */
 export const NSE_TUESDAY_EXPIRY_FROM = '2025-09-01';

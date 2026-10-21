@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
 import {
+  closedTradeEntry,
+  closedTradeReturnPct,
   istDayOfMonth,
   istYMD,
   MIN_EDGE_SAMPLE,
@@ -70,4 +72,99 @@ test('monthlyGrid keeps only the last twelve months and crosses a year boundary'
   assert.equal(cells[10]?.label, 'Jan 26');
   assert.deepEqual(monthlyGrid([]), []);
   assert.equal(MIN_EDGE_SAMPLE, 30);
+});
+
+// Report rows since backend-go 5295af0e / aaafcc28 may carry the fill and the stored return; web
+// f72ddef6 shows each row's return in % from them.
+const trade = {
+  direction: 'long',
+  entry_min: 1000,
+  resolved_price: 1030,
+};
+
+test('closedTradeReturnPct reads the stored return first, the stored 0 and a loss included', () => {
+  assert.equal(closedTradeReturnPct({...trade, return_pct: 2.794}), 2.794);
+  assert.equal(closedTradeReturnPct({...trade, return_pct: 0}), 0);
+  assert.equal(
+    closedTradeReturnPct({...trade, direction: 'short', return_pct: -1.25}),
+    -1.25,
+  );
+  // Stored, it is not re-derived from the prices, whatever they say.
+  assert.equal(
+    closedTradeReturnPct({...trade, entry_price: 1002, return_pct: 2.5}),
+    2.5,
+  );
+});
+
+test('closedTradeReturnPct derives from the stored fill, else the entry zone, a short flipped', () => {
+  assert.equal(
+    closedTradeReturnPct({...trade, entry_price: 1025, resolved_price: 1066}),
+    ((1066 - 1025) / 1025) * 100,
+  );
+  // An older row: no fill, so the entry zone's low edge, as web reads it.
+  assert.equal(closedTradeReturnPct(trade), 3);
+  assert.equal(
+    closedTradeReturnPct({...trade, entry_price: null, return_pct: null}),
+    3,
+  );
+  assert.equal(closedTradeReturnPct({...trade, direction: 'short'}), -3);
+  // The Short tag reads the side whatever its case; the return does too.
+  assert.equal(closedTradeReturnPct({...trade, direction: 'SHORT'}), -3);
+  // A stored figure that is not a number is not one.
+  assert.equal(
+    closedTradeReturnPct({
+      ...trade,
+      return_pct: Number.NaN,
+      entry_price: Number.POSITIVE_INFINITY,
+    }),
+    3,
+  );
+});
+
+test('closedTradeReturnPct is null rather than a made-up figure when the prices cannot back one', () => {
+  assert.equal(closedTradeReturnPct({...trade, resolved_price: null}), null);
+  // The report sends 0 for an entry it has none of.
+  assert.equal(closedTradeReturnPct({...trade, entry_min: 0}), null);
+  assert.equal(
+    closedTradeReturnPct({...trade, entry_min: 0, entry_price: 0}),
+    null,
+  );
+  assert.equal(
+    closedTradeReturnPct({...trade, entry_min: 0, entry_price: -5}),
+    null,
+  );
+  // An exit that is no price is no figure, not -100% (or +100% for a short).
+  assert.equal(closedTradeReturnPct({...trade, resolved_price: 0}), null);
+  assert.equal(
+    closedTradeReturnPct({...trade, direction: 'short', resolved_price: 0}),
+    null,
+  );
+  assert.equal(closedTradeReturnPct({...trade, resolved_price: -5}), null);
+  assert.equal(
+    closedTradeReturnPct({...trade, resolved_price: Number.NaN}),
+    null,
+  );
+  // A stored figure still stands whatever the exit says.
+  assert.equal(
+    closedTradeReturnPct({...trade, resolved_price: 0, return_pct: -2.1}),
+    -2.1,
+  );
+});
+
+test('closedTradeEntry is the stored fill when there is one, else the entry zone low, else none', () => {
+  assert.equal(
+    closedTradeEntry({entry_min: 1000, entry_price: 1004.5}),
+    1004.5,
+  );
+  assert.equal(closedTradeEntry({entry_min: 1000}), 1000);
+  assert.equal(closedTradeEntry({entry_min: 1000, entry_price: null}), 1000);
+  assert.equal(closedTradeEntry({entry_min: 1000, entry_price: 0}), 1000);
+  assert.equal(
+    closedTradeEntry({entry_min: 1000, entry_price: Number.NaN}),
+    1000,
+  );
+  // The report's 0 for an entry zone it has none of is no price.
+  assert.equal(closedTradeEntry({entry_min: 0}), null);
+  assert.equal(closedTradeEntry({entry_min: 0, entry_price: -2}), null);
+  assert.equal(closedTradeEntry({entry_min: 0, entry_price: 998}), 998);
 });

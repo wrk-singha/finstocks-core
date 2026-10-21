@@ -63,6 +63,19 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **Unreleased** — main's v0.9.12 (tagged on main): recommendations read target 2, the stored entry and exit, and a closed trade's
+  return in %: since backend-go 5295af0e (migration 26) and aaafcc28, a `RecommendationRow` may carry
+  `target2_min`/`target2_max`, `entry_at`, `entry_price` and `target2_hit_at`, and a report row
+  `entered_at`, `entry_price`, `target2_hit_at` and `return_pct`, all optional. A `Recommendation`
+  gains `target2_zone` and `target2_price` (the edge nearest the entry, as `target_price` is; left off
+  when target 2 is not past the target), `entered_at`/`entry_price` as the server stored them at the
+  day's finalise (this reader has no candles and makes no fill up), `exited_at` from a closed call's
+  `exit_at`, and `target2_hit_at`; target 2 is shown only and is never an order's target, stop, size
+  or deadline. An old open row reads exactly as before; an old closed row gains only `exited_at`.
+  `closedTradeEntry` and `closedTradeReturnPct` give a closed trade's entry (none for a missing or
+  zero entry) and its return in percent: the stored `return_pct`, else the move from the fill (or
+  the entry zone's low on older rows) to the exit, signed for a short; an exit that is not a positive
+  number is no return.
 - **Unreleased** — main's v0.9.11 (tagged on main): the strategy library hands a strategy to chat for Deploy and Forward test as well as
   Ask and Backtest: `LibraryChatIntent` gains `deploy` and `forward_test` with web dev's wording
   ("Deploy the {name} strategy for me.", "Forward test the {name} strategy with mock money."), and

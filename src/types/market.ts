@@ -53,6 +53,17 @@ export interface RecommendationRow {
   exit_reason: string | null;
   realized_pnl: number | null;
   return_pct: number | null;
+  /**
+   * Target 2, a stretch level past the target (backend-go 5295af0e, migration 26). Absent from a
+   * server before it and null on a call without one. Shown only: it never moves the exit or P&L.
+   */
+  target2_min?: number | null;
+  target2_max?: number | null;
+  /** Set when the day is finalised: when and at what price the call entered (null = never triggered). */
+  entry_at?: string | null;
+  entry_price?: number | null;
+  /** The first time price reached target 2 after the entry, before any stop. */
+  target2_hit_at?: string | null;
 }
 
 /** GET /api/market/recommendations as the server sends it. `next_batch_at` is no longer sent. */
@@ -115,6 +126,25 @@ export interface Recommendation {
   resolved_price?: number;
   modify_zone: [number, number] | null;
   modify_note: string | null;
+  /**
+   * Target 2's zone and its edge nearest the entry (the bottom for a long, the top for a short, as
+   * `target_price` is), both or neither: a call without one, or with one that is not past the
+   * target, has neither. Shown only. Never an order's target, stop, size or deadline: web's resolver
+   * says it "never changes the exit or P&L".
+   */
+  target2_zone?: [number, number];
+  target2_price?: number;
+  /**
+   * When and at what price the call entered, as the server stored them once the day was finalised
+   * (`entry_at`, `entry_price`); absent until then and on a call that never filled. Web reads an
+   * open call's fill live from candles (`fill_price`); this reader has no candles and makes none up.
+   */
+  entered_at?: string;
+  entry_price?: number;
+  /** When a closed call exited (its `exit_at`). Absent while it is open. */
+  exited_at?: string;
+  /** When price first reached target 2 after the entry, before any stop. Only with a target 2. */
+  target2_hit_at?: string;
 }
 
 /** GET /api/market/recommendations, read: only the rows that are plain picks. */
@@ -145,6 +175,19 @@ export interface ClosedTrade {
   entry_min: number;
   hold_minutes: number;
   resolved_at: string;
+  /**
+   * When the trade entered and at what fill (backend-go 5295af0e): Postgres text stamps, so read
+   * them through `parseTimestamp`. Absent on older rows; strategy rows carry these two only.
+   */
+  entered_at?: string | null;
+  entry_price?: number | null;
+  /** When price first reached target 2 after the entry. Recommendation rows only. */
+  target2_hit_at?: string | null;
+  /**
+   * Return in percent as stored when the trade was finalised (backend-go aaafcc28); absent on older
+   * rows and on strategy rows. `closedTradeReturnPct` falls back to the entry-to-exit move.
+   */
+  return_pct?: number | null;
   /** Strategy-report rows only — the strategy that produced the trade. Absent on
    *  recommendation rows, which have no parent strategy. */
   strategy_name?: string;

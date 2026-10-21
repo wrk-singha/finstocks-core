@@ -98,6 +98,8 @@ export {
 } from './consoleRows.ts';
 export {projectRawFsm} from './fsmProjection.ts';
 export {
+  closedTradeEntry,
+  closedTradeReturnPct,
   istDayOfMonth,
   istYMD,
   MIN_EDGE_SAMPLE,

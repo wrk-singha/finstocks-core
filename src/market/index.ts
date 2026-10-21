@@ -219,21 +219,27 @@ export {livePriceFor, priceSymbolFor} from './livePrice.ts';
 
 export {
   addMarketDays,
+  FNO_HISTORY_START,
+  formatSessionDate,
   hasHolidayCalendar,
   isMarketOpen,
   isTradingDay,
   lastSessionOpen,
+  latestSession,
   MARKET_TIMEZONE,
   marketDateString,
   marketDaysUntil,
   marketMinutesNow,
   marketMoment,
   marketToday,
+  minuteLabel,
   nextTradingDay,
   SESSION_CLOSE,
   SESSION_OPEN,
+  sessionFor,
+  stepSession,
 } from './marketHours.ts';
-export type {MarketMoment} from './marketHours.ts';
+export type {MarketMoment, TradingSession} from './marketHours.ts';
 
 export {
   breadthOf,
@@ -295,6 +301,23 @@ export type {
   HeatUniverse,
   HeatWeights,
 } from './sectorHeatmap.ts';
+
+export {
+  buildReplay,
+  DEFAULT_REPLAY_INTERVAL,
+  REPLAY_INTERVALS,
+  replayClock,
+  replayIntervalOf,
+  replayReturns,
+  sliceReplay,
+  spansDays,
+  withReplayReturns,
+} from './heatReplay.ts';
+export type {
+  ReplayFrames,
+  ReplayInterval,
+  ReplayIntervalSpec,
+} from './heatReplay.ts';
 
 export {treemap} from './treemap.ts';
 export type {TreemapRect} from './treemap.ts';

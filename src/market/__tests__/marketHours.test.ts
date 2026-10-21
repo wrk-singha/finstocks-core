@@ -12,8 +12,10 @@ import {
   marketDaysUntil,
   marketMinutesNow,
   marketMoment,
+  marketSession,
   marketToday,
   nextTradingDay,
+  PRE_OPEN_START,
   SESSION_CLOSE,
   SESSION_OPEN,
 } from '../marketHours.ts';
@@ -68,6 +70,26 @@ test('the market is open only inside the session on a trading day', () => {
   assert.equal(isMarketOpen('IN', fridayPreOpen), false);
   assert.equal(isMarketOpen('IN', saturday), false);
   assert.equal(isMarketOpen('IN', new Date('2026-09-14T05:00:00Z')), false);
+});
+
+test('the session is pre-open from 09:00, open from 09:15 to 15:30, and closed otherwise', () => {
+  assert.equal(PRE_OPEN_START, 540);
+  assert.equal(marketSession('IN', fridayOpen), 'open');
+  // 09:00 and 09:14 IST are the auction; 09:15 is the bell.
+  assert.equal(
+    marketSession('IN', new Date('2026-09-11T03:30:00Z')),
+    'preopen',
+  );
+  assert.equal(
+    marketSession('IN', new Date('2026-09-11T03:44:00Z')),
+    'preopen',
+  );
+  assert.equal(marketSession('IN', new Date('2026-09-11T03:45:00Z')), 'open');
+  assert.equal(marketSession('IN', fridayPreOpen), 'closed');
+  assert.equal(marketSession('IN', fridayEvening), 'closed');
+  assert.equal(marketSession('IN', saturday), 'closed');
+  // A holiday has no auction either.
+  assert.equal(marketSession('IN', new Date('2026-09-14T03:30:00Z')), 'closed');
 });
 
 test('the last session open walks back over pre-open, weekends and holidays', () => {

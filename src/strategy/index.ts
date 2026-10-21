@@ -28,6 +28,62 @@ export {
 } from './backtestStats.ts';
 export type {BacktestStatItem, EquityPath, StatTone} from './backtestStats.ts';
 export {buildSweepCurves, prepareSweep} from './backtestSweep.ts';
+export {
+  filterTrips,
+  hourLabel,
+  istDay,
+  istHour,
+  journalStats,
+  MIN_TRADES_PER_HOUR,
+} from './journalStats.ts';
+export type {
+  BucketStats,
+  HourStats,
+  JournalFilter,
+  JournalStats,
+} from './journalStats.ts';
+export {
+  advanceMonteCarlo,
+  createMonteCarloJob,
+  DEFAULT_PATHS,
+  DEFAULT_SEED,
+  fanSteps,
+  isMonteCarloDone,
+  MIN_MONTE_CARLO_TRADES,
+  monteCarloDraws,
+  monteCarloProgress,
+  monteCarloResult,
+  ruinProbability,
+  runMonteCarlo,
+} from './monteCarlo.ts';
+export type {
+  EdgeVerdict,
+  Histogram,
+  MonteCarloInput,
+  MonteCarloJob,
+  MonteCarloResult,
+  Percentiles,
+  RuinThreshold,
+} from './monteCarlo.ts';
+export {
+  backtestRoundTrips,
+  bookRoundTrips,
+  tradeInstantMs,
+  tripSymbols,
+} from './roundTrips.ts';
+export type {RoundTrip, TripSource} from './roundTrips.ts';
+export {
+  PRICE_TOLERANCE,
+  tradeExcursion,
+  tripExcursions,
+} from './tradeExcursion.ts';
+export type {
+  Excursion,
+  ExcursionBar,
+  ExcursionRefusal,
+  ExcursionResult,
+  TripExcursion,
+} from './tradeExcursion.ts';
 export type {
   PreparedVariant,
   SweepCurve,

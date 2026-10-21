@@ -1,11 +1,13 @@
 export {
   IST,
+  formatChartLongDate,
   formatChatListTime,
   formatDateTime,
   formatDateTimeStamp,
   formatDayMonthYear,
   formatDurationMins,
   formatEventDayHeading,
+  formatExpiryDate,
   formatLastUpdatedIST,
   formatNetWorthChartDate,
   formatNotificationTime,

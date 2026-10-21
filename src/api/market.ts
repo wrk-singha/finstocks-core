@@ -74,7 +74,23 @@ import type {
   RelatedPartyRow,
   RelatedPartyTxnRow,
 } from '../types/relatedParty.ts';
-import type {StockScoreResponse} from '../types/scores.ts';
+import type {
+  ExpiryRank,
+  FlyoneDates,
+  FlyoneDetail,
+  FlyoneDetailParams,
+  FlyoneScreen,
+  FlyoneScreenParams,
+  FlyoneSnapshot,
+} from '../types/flyone.ts';
+import type {
+  RegimeDates,
+  RegimeDecay,
+  RegimeDetail,
+  RegimeSentiment,
+  RegimeSnapshot,
+} from '../types/regimePulse.ts';
+import type {RsPair, RsSectorMatrix} from '../types/rsSectorMatrix.ts';
 import type {
   ScreenCatalog,
   ScreenRequest,
@@ -859,8 +875,94 @@ export const marketApi = (http: HttpClient) => ({
   getMarketDepth: (symbol: string) =>
     http.request<MarketDepth>(`/market/depth${query({symbol})}`),
 
-  getScore: (symbol: string) =>
-    http.request<StockScoreResponse | null>(`/market/score${query({symbol})}`),
+  /**
+   * RS Sector Matrix (backend `dev`, handlers/rssectormatrix): every catalogue index ranked by how
+   * many others it is beating on a Point & Figure chart of their price ratio, at one box size
+   * (a percentage of the ratio, 0.05 to 10; the server's default is 0.25).
+   */
+  getRsSectorMatrix: (box?: number) =>
+    http.request<RsSectorMatrix>(`/market/rs-sector-matrix${query({box})}`),
+
+  /** One pair's P&F columns. 400 when row and col are the same, 404 when either has no current price. */
+  getRsSectorPair: (row: string, col: string, box?: number) =>
+    http.request<RsPair>(
+      `/market/rs-sector-matrix/pair${query({box, row, col})}`,
+    ),
+
+  /**
+   * The options regime (backend `dev`, handlers/regimepulse): the latest reading of every scored
+   * underlying, one request for a whole screen of chips. Without a `date` (YYYY-MM-DD) the newest
+   * stored trading day answers; before the engine has stored anything the rows are `[]`.
+   */
+  getRegimeSnapshot: (date?: string) =>
+    http.request<RegimeSnapshot>(
+      `/market/regimepulse/snapshot${query({date})}`,
+    ),
+
+  /** How many underlyings sit in each regime through the session. */
+  getRegimeSentiment: (date?: string) =>
+    http.request<RegimeSentiment>(
+      `/market/regimepulse/sentiment${query({date})}`,
+    ),
+
+  /** The trading days the engine has stored, newest first: the days a scanner can replay. */
+  getRegimeDates: () => http.request<RegimeDates>('/market/regimepulse/dates'),
+
+  /** One underlying's readings through the session, oldest first, with its strikes and ATM. */
+  getRegimeDetail: (symbol: string, date?: string) =>
+    http.request<RegimeDetail>(
+      `/market/regimepulse/detail${query({symbol, date})}`,
+    ),
+
+  /**
+   * One underlying's tracked contracts against decay-only pricing through the session, oldest cycle
+   * first; the internal `signal` is blank unless the account sees it.
+   */
+  getRegimeDecay: (symbol: string, date?: string) =>
+    http.request<RegimeDecay>(
+      `/market/regimepulse/decay${query({symbol, date})}`,
+    ),
+
+  /** Whether the account sees the internal signals the snapshot otherwise blanks. */
+  getRegimeMe: () =>
+    http.request<{internal: boolean}>('/market/regimepulse/me'),
+
+  /** The underlyings the engine scores. */
+  getRegimeSymbols: () => http.request<string[]>('/market/regimepulse/symbols'),
+
+  /**
+   * The option levels (backend `dev`, handlers/flyone): every chain's latest row for one expiry
+   * rank, one request for a screen of levels cards. Without a `date` the newest stored day answers.
+   */
+  getFlyoneSnapshot: (expiry: ExpiryRank, date?: string) =>
+    http.request<FlyoneSnapshot>(
+      `/market/flyone/snapshot${query({expiry, date})}`,
+    ),
+
+  /** The trading days the engine has stored, newest first: the days the direction scanner replays. */
+  getFlyoneDates: () => http.request<FlyoneDates>('/market/flyone/dates'),
+
+  /** F&O names filtered by their levels: `where` is "score>0,gex_regime=POS|STRONG_POS". */
+  getFlyoneScreen: ({symbols, ...params}: FlyoneScreenParams) =>
+    http.request<FlyoneScreen>(
+      `/market/flyone/screen${query({
+        ...params,
+        symbols:
+          symbols === undefined || symbols.length === 0
+            ? undefined
+            : symbols.join(','),
+      })}`,
+    ),
+
+  /**
+   * One chain's reading in full (backend `dev`, handlers/flyone/live.go): the latest row, the
+   * session's minutes, each wing width's vote and the curves the detail charts draw. `expiry` is
+   * `near`, `next` or an exact expiry; the latest stored day answers without a `date`.
+   */
+  getFlyoneDetail: (symbol: string, {expiry, date}: FlyoneDetailParams = {}) =>
+    http.request<FlyoneDetail>(
+      `/market/flyone/detail${query({symbol, expiry, date})}`,
+    ),
 
   getScreenerStocks: (filters?: ScreenerStocksQuery) =>
     http.request<ScreenerStocksResponse>(

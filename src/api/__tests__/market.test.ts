@@ -12,7 +12,6 @@ test('market reads build their query strings', async () => {
   await api.getRecommendations();
   await api.getRecommendations({horizon: 'swing', status: 'open'});
   await api.getMarketDepth('TCS');
-  await api.getScore('TCS');
   await api.getScreenerStocks();
   await api.getScreenerStocks({
     rsi_min: '40',
@@ -33,7 +32,6 @@ test('market reads build their query strings', async () => {
       '/market/recommendations?kind=equity',
       '/market/recommendations?horizon=swing&kind=equity&status=open',
       '/market/depth?symbol=TCS',
-      '/market/score?symbol=TCS',
       '/market/screener',
       '/market/screener?rsi_min=40&interval=1d&price_min=100&ind=ema20%3A1%3A2',
       '/market/screener/indicators?interval=5m',
@@ -515,4 +513,96 @@ test('a vocabulary with null lists arrives with empty ones', async () => {
   assert.deepEqual(await api.getPatternVocab(), {
     patterns: [{...doji, aliases: []}],
   });
+});
+
+test('the RS sector matrix and one pair, the box only when given', async () => {
+  const {http, calls} = fakeHttp();
+  const api = marketApi(http);
+  await api.getRsSectorMatrix();
+  await api.getRsSectorMatrix(0.5);
+  await api.getRsSectorPair('NIFTYIT', 'NIFTY');
+  await api.getRsSectorPair('NIFTYIT', 'NIFTY', 1);
+  assert.deepEqual(
+    calls.map(c => c.path),
+    [
+      '/market/rs-sector-matrix',
+      '/market/rs-sector-matrix?box=0.5',
+      '/market/rs-sector-matrix/pair?row=NIFTYIT&col=NIFTY',
+      '/market/rs-sector-matrix/pair?box=1&row=NIFTYIT&col=NIFTY',
+    ],
+  );
+});
+
+test('the options regime reads: a missing date asks for the newest day', async () => {
+  const {http, calls} = fakeHttp();
+  const api = marketApi(http);
+  await api.getRegimeSnapshot();
+  await api.getRegimeSnapshot('2026-10-06');
+  await api.getRegimeSentiment();
+  await api.getRegimeSentiment('2026-10-01');
+  await api.getRegimeDates();
+  await api.getRegimeDetail('NIFTY');
+  await api.getRegimeDetail('M&M', '2026-10-06');
+  await api.getRegimeDecay('NIFTY');
+  await api.getRegimeDecay('M&M', '2026-10-06');
+  await api.getRegimeMe();
+  await api.getRegimeSymbols();
+  assert.deepEqual(
+    calls.map(c => c.path),
+    [
+      '/market/regimepulse/snapshot',
+      '/market/regimepulse/snapshot?date=2026-10-06',
+      '/market/regimepulse/sentiment',
+      '/market/regimepulse/sentiment?date=2026-10-01',
+      '/market/regimepulse/dates',
+      '/market/regimepulse/detail?symbol=NIFTY',
+      '/market/regimepulse/detail?symbol=M%26M&date=2026-10-06',
+      '/market/regimepulse/decay?symbol=NIFTY',
+      '/market/regimepulse/decay?symbol=M%26M&date=2026-10-06',
+      '/market/regimepulse/me',
+      '/market/regimepulse/symbols',
+    ],
+  );
+});
+
+test('the option levels reads: the screen joins its symbols and drops an empty list', async () => {
+  const {http, calls} = fakeHttp();
+  const api = marketApi(http);
+  await api.getFlyoneSnapshot('near');
+  await api.getFlyoneSnapshot('next', '2026-10-06');
+  await api.getFlyoneDates();
+  await api.getFlyoneScreen({
+    where: 'score>0,gex_regime=POS|STRONG_POS',
+    universe: 'stock',
+    limit: 50,
+  });
+  await api.getFlyoneScreen({symbols: ['NIFTY', 'M&M'], expiry: 'near'});
+  await api.getFlyoneScreen({symbols: []});
+  assert.deepEqual(
+    calls.map(c => c.path),
+    [
+      '/market/flyone/snapshot?expiry=near',
+      '/market/flyone/snapshot?expiry=next&date=2026-10-06',
+      '/market/flyone/dates',
+      '/market/flyone/screen?where=score%3E0%2Cgex_regime%3DPOS%7CSTRONG_POS&universe=stock&limit=50',
+      '/market/flyone/screen?expiry=near&symbols=NIFTY%2CM%26M',
+      '/market/flyone/screen',
+    ],
+  );
+});
+
+test('the options direction detail asks for one symbol, with its expiry and day when given', async () => {
+  const {http, calls} = fakeHttp();
+  const api = marketApi(http);
+  await api.getFlyoneDetail('NIFTY');
+  await api.getFlyoneDetail('NIFTY', {expiry: 'next'});
+  await api.getFlyoneDetail('M&M', {expiry: '2026-10-28', date: '2026-10-06'});
+  assert.deepEqual(
+    calls.map(c => c.path),
+    [
+      '/market/flyone/detail?symbol=NIFTY',
+      '/market/flyone/detail?symbol=NIFTY&expiry=next',
+      '/market/flyone/detail?symbol=M%26M&expiry=2026-10-28&date=2026-10-06',
+    ],
+  );
 });

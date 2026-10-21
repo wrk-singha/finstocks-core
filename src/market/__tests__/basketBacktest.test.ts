@@ -1,25 +1,32 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
+import type {
+  EsfBacktestDay,
+  EsfBacktestDetail,
+  EsfBacktestMonth,
+  EsfBacktestPick,
+} from '../../types/esf.ts';
 import {
   annualisedReturn,
-  type BacktestDay,
   dailyReturns,
   equityCurve,
   monteCarlo,
   monthlyReturns,
+  picksByReview,
   summarize,
   yearlyReturns,
   yearlyVersus,
 } from '../basketBacktest.ts';
+import {basketCharges} from '../basketCharges.ts';
 
 const day = (
   date: string,
   nav: number,
   benchmark: number | null = null,
-): BacktestDay => ({date, nav, benchmark});
+): EsfBacktestDay => ({date, nav, benchmark});
 
-const daily: BacktestDay[] = [
+const daily: EsfBacktestDay[] = [
   day('2024-01-01', 1, 1),
   day('2024-01-02', 1.1, 1.02),
   day('2024-02-01', 0.99, null),
@@ -71,8 +78,20 @@ test('returns by year and by month chain from the previous period’s close', ()
   );
 });
 
+const month = (asOf: string, net: number): EsfBacktestMonth => ({
+  as_of: asOf,
+  exit_on: asOf,
+  names: 2,
+  gross: net + 0.5,
+  net,
+  benchmark: 1,
+  universe: null,
+  turnover: 0.5,
+  market_label: null,
+});
+
 test('each year sets the strategy beside the benchmark, chained from the benchmark’s own close', () => {
-  const full: BacktestDay[] = [
+  const full: EsfBacktestDay[] = [
     day('2024-01-01', 1, 1),
     day('2024-12-31', 1.2, 1.1),
     day('2025-06-30', 1.5, 1.21),
@@ -102,7 +121,11 @@ test('each year sets the strategy beside the benchmark, chained from the benchma
 });
 
 test('the summary reads the final multiple, the worst trough and its day, the Sharpe and the win rate', () => {
-  const summary = summarize(daily, [{net: 3}, {net: -1}, {net: 2}]);
+  const summary = summarize(daily, [
+    month('a', 3),
+    month('b', -1),
+    month('c', 2),
+  ]);
   assert.ok(summary);
   assert.equal(summary.finalMultiple, 1.32);
   assert.equal(Number(summary.maxDrawdown.toFixed(2)), -0.12);
@@ -152,4 +175,92 @@ test('a multiple annualises over a year or more, and never under one', () => {
   assert.equal(annualisedReturn(1.21, 2)?.toFixed(4), '0.1000');
   assert.equal(annualisedReturn(1.1, 1)?.toFixed(4), '0.1000');
   assert.equal(annualisedReturn(1.5, 0.99), null);
+  // The win rate counts any period by its net return alone, the library's months included.
+  assert.equal(
+    summarize(daily, [{net: 3}, {net: -1}, {net: 2}])?.winRate.toFixed(4),
+    '0.6667',
+  );
+});
+
+const pick = (
+  asOf: string,
+  symbol: string,
+  fwd: number | null,
+  change: EsfBacktestPick['change'] = 'kept',
+): EsfBacktestPick => ({
+  as_of: asOf,
+  symbol,
+  rank: 1,
+  selection_score: null,
+  stage: null,
+  fwd_return: fwd,
+  change,
+});
+
+test('picks group by review, and the charges replay the trades a subscription would make', () => {
+  const picks = [
+    pick('2025-01-31', 'A', 0.1, 'added'),
+    pick('2025-01-31', 'B', 0, 'added'),
+    pick('2025-07-31', 'A', 0.05),
+    pick('2025-07-31', 'C', 0.02, 'added'),
+  ];
+  assert.deepEqual(
+    [...picksByReview(picks).entries()].map(([k, v]) => [
+      k,
+      v.map(p => p.symbol),
+    ]),
+    [
+      ['2025-01-31', ['A', 'B']],
+      ['2025-07-31', ['A', 'C']],
+    ],
+  );
+  const detail: EsfBacktestDetail = {
+    run: {
+      id: 1,
+      label: '1 year',
+      window_start: '2025-01-31',
+      window_end: '2026-01-31',
+      rebalances: 2,
+      is_primary: true,
+      method: '',
+      metrics: {
+        window: '1y',
+        strategy_net: {'total_%': 0, 'cagr_%': null, 'vol_%': 0, 'max_dd_%': 0},
+        strategy_gross: {
+          'total_%': 0,
+          'cagr_%': null,
+          'vol_%': 0,
+          'max_dd_%': 0,
+        },
+        nifty500: {'total_%': 0, 'cagr_%': null, 'vol_%': 0, 'max_dd_%': 0},
+        equal_weight_universe: {
+          'total_%': 0,
+          'cagr_%': null,
+          'vol_%': 0,
+          'max_dd_%': 0,
+        },
+      },
+    },
+    months: [month('2025-01-31', 5), month('2025-07-31', 3)],
+    picks,
+    daily: [],
+  };
+  const charges = basketCharges(detail, 100000, 2, 'zerodha');
+  assert.ok(charges);
+  // Two buys at the first review, then one sell and one buy at the second: four orders over a
+  // year, every one of them traded.
+  assert.equal(Math.round(charges.ordersPerYear), 4);
+  assert.ok(charges.firstBuy > 0);
+  assert.ok(charges.perReview > 0);
+  assert.ok(charges.tradedPerYear > 150000 && charges.tradedPerYear < 250000);
+  assert.equal(
+    Number(charges.yearly.totalCharges.toFixed(2)),
+    Number(charges.perYear.toFixed(2)),
+  );
+  // The sell carries the DP charge a buy never does.
+  assert.ok(charges.yearly.dpCharges > 0);
+  assert.equal(
+    basketCharges({...detail, months: []}, 100000, 2, 'zerodha'),
+    null,
+  );
 });

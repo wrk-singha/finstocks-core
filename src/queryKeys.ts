@@ -10,6 +10,7 @@ import type {
   FundamentalsSection,
   StatementBasis,
 } from './types/fundamentalsDetail.ts';
+import type {ExpiryRank, FlyoneScreenParams} from './types/flyone.ts';
 import type {FundamentalPeriod} from './types/fundamentalSeries.ts';
 import type {WatchlistSearchType} from './types/stockWatchlist.ts';
 import type {GetStockEventsRequest} from './types/stockEvents.ts';
@@ -398,6 +399,74 @@ export const queryKeys = {
     /** ["pattern-vocab"] — every pattern the scanner answers: the registry compiled into the
      *  backend, the same for every symbol and day, so it is fetched once and kept. */
     patternVocab: () => ['pattern-vocab'],
+    /** ["rs-sector-matrix", box] — the sector ranking at one box size, as web keys it. */
+    rsSectorMatrix: (box: number) => ['rs-sector-matrix', box],
+    /** ["rs-sector-matrix", "pair", box, row, col] — one pair's P&F columns, as web keys it. */
+    rsSectorPair: (box: number, row: string, col: string) => [
+      'rs-sector-matrix',
+      'pair',
+      box,
+      row,
+      col,
+    ],
+  },
+
+  /** The options regime, keyed as web keys it: a missing date is "latest". */
+  regimePulse: {
+    /** ["regimepulse", "snapshot", date] — every underlying's latest reading */
+    snapshot: (date?: string) => ['regimepulse', 'snapshot', date ?? 'latest'],
+    /** ["regimepulse", "sentiment", date] — the regime counts through the session */
+    sentiment: (date?: string) => [
+      'regimepulse',
+      'sentiment',
+      date ?? 'latest',
+    ],
+    /** ["regimepulse", "detail", symbol, date] — one underlying's session */
+    detail: (symbol: string | null | undefined, date?: string) => [
+      'regimepulse',
+      'detail',
+      symbol,
+      date ?? 'latest',
+    ],
+    /** ["regimepulse", "decay", symbol, date] — one underlying's tracked contracts */
+    decay: (symbol: string | null | undefined, date?: string) => [
+      'regimepulse',
+      'decay',
+      symbol,
+      date ?? 'latest',
+    ],
+    /** ["regimepulse", "dates"] — the stored trading days a scanner replays */
+    dates: () => ['regimepulse', 'dates'],
+    /** ["regimepulse", "me"] */
+    me: () => ['regimepulse', 'me'],
+    /** ["regimepulse", "symbols"] */
+    symbols: () => ['regimepulse', 'symbols'],
+  },
+
+  /** The option levels, keyed as web keys them: a missing date is "latest". */
+  flyone: {
+    /** ["flyone", "snapshot", expiry, date] — every chain's latest row for one expiry rank */
+    snapshot: (expiry: ExpiryRank, date?: string) => [
+      'flyone',
+      'snapshot',
+      expiry,
+      date ?? 'latest',
+    ],
+    /**
+     * ["flyone", "detail", symbol, expiry, date] — one chain's full reading; the expiry as asked
+     * (`near`, `next` or a date), `near` when omitted, a missing date "latest"
+     */
+    detail: (symbol: string, expiry?: string, date?: string) => [
+      'flyone',
+      'detail',
+      symbol,
+      expiry ?? 'near',
+      date ?? 'latest',
+    ],
+    /** ["flyone", "screen", params] — one screen's rows, by the whole request */
+    screen: (params: FlyoneScreenParams) => ['flyone', 'screen', params],
+    /** ["flyone", "dates"] — the stored trading days the direction scanner replays */
+    dates: () => ['flyone', 'dates'],
   },
 
   fno: {
@@ -421,8 +490,17 @@ export const queryKeys = {
     indexUnderlyings: () => ['fno-index-underlyings'],
   },
 
-  /** ["stockScore", symbol] — one stock's FinStocks score and pillars */
-  stockScore: (symbol: string | null) => ['stockScore', symbol],
+  /** ["manual-page", slug] — whether a field manual page answers where it is served. */
+  manualPage: (slug: string) => ['manual-page', slug],
+
+  /** ["esf-score", symbol] — one stock's FinStocks Score (ESF), as web keys it */
+  esfScore: (symbol: string | null) => ['esf-score', symbol],
+  /** ["esf-baskets"] — every rule-based basket as a card, as web keys it */
+  esfBaskets: () => ['esf-baskets'],
+  /** ["esf-basket", slug] — one basket's detail */
+  esfBasket: (slug: string) => ['esf-basket', slug],
+  /** ["esf-backtest", slug, id] — one backtest run's months, picks and days */
+  esfBacktest: (slug: string, id: number) => ['esf-backtest', slug, id],
 
   /** ["ownership", symbol] — one stock's holder register, bulk and block deals and insider
    *  trades; no symbol is "" rather than null, as web keys it */
@@ -522,6 +600,18 @@ export const queryKeys = {
    *  first; the chat card and the chart picker's Custom tab read the same list. */
   customIndicators: () => ['custom-indicators'],
 };
+
+/**
+ * What a write to a basket subscription (`esfApi.subscribe`, `setSubscriptionStatus`) changes on
+ * the read side, as web's `useEsfSubscribe` / `useEsfSubscriptionStatus` invalidate it: the
+ * basket's own detail, which carries the subscription, and the cards, which carry each basket's
+ * `my_subscription_mode`. Also the host's own paper or live book, which the backend's basket
+ * orders write to: that key is the host's (`portfolio`, `status`) and is not listed here.
+ */
+export const esfSubscriptionTouches = (slug: string) => [
+  queryKeys.esfBasket(slug),
+  queryKeys.esfBaskets(),
+];
 
 /**
  * What a `tradingApi.strategyAction` call changes on the read side, whichever way it ended: the

@@ -1,14 +1,86 @@
 import type {BacktestSetup, BacktestSweep, StrategySetup} from './backtest.ts';
 import type {CustomIndicatorDraft} from './customIndicator.ts';
 import type {DataTablePayload} from './dataTable.ts';
+import type {FlyoneScreenCardPayload} from './flyone.ts';
+import type {ManualReportPayload} from './manualReport.ts';
+import type {ProfileSnapshot} from './marketProfile.ts';
+import type {
+  DepthInterpretation,
+  DepthLevel,
+  PreOpenAuction,
+} from './market.ts';
 import type {
   FindingAction,
   PortfolioAnalysis,
   PortfolioAnalysisPosition,
 } from './portfolioAnalysis.ts';
 import type {PortfolioSimPayload} from './portfolioSim.ts';
+import type {RegimeStrategyId} from './regimePulse.ts';
+import type {RsSectorMatrix} from './rsSectorMatrix.ts';
 import type {AlertSetup} from './savedAlert.ts';
 import type {OrderSide, OrderType} from './trade.ts';
+
+/**
+ * The sector reading a sectors answer was written from (llm graph/nodes/sectors/node.py `_card`):
+ * the matrix as read, the sector the answer is about, the pair when one was asked, and `source`,
+ * the code-built line saying which close it is from.
+ */
+export interface SectorsCardPayload {
+  matrix: RsSectorMatrix;
+  focus: string;
+  highlight: string[];
+  pair: {row: string; col: string} | null;
+  source: string;
+  /** How the standings are worked out, in plain words; web shows it on hover over `source`. Absent on older messages. */
+  method?: string;
+}
+
+/**
+ * The market profiles a market-profile answer was written from (llm graph/nodes/market_profile/
+ * node.py `_card`): one per instrument, as read, with `source` the code-built line saying which
+ * session and when. `horizon` is which setups the question was about.
+ */
+export interface MarketProfileCardPayload {
+  horizon: 'intraday' | 'swing' | 'both';
+  profiles: {
+    name: string;
+    page: string;
+    profile: ProfileSnapshot;
+    source: string;
+  }[];
+}
+
+/**
+ * One order book the depth branch read (llm graph/nodes/depth/node.py), as it stood when read.
+ * `source` is the code-built line saying where and when — "NSE order book · as of 23 Sep, 3:11 PM
+ * IST" — and `live` is true only for a book seen in the last two minutes, so an older one is never
+ * shown as live. `status` "index" means `symbol` is the index's nearest future, read instead.
+ */
+export interface DepthCardBook {
+  query: string;
+  status: 'stock' | 'contract' | 'index';
+  symbol: string;
+  /** How a person names it: "NIFTY 25000 CE · 6 Oct"; the symbol for a stock. */
+  name?: string;
+  /** A contract's parts, which its own page is addressed by; absent for a stock. */
+  contract?: {
+    underlying: string;
+    expiry: string;
+    strike: number;
+    right: 'FUT' | 'CE' | 'PE';
+  } | null;
+  live: boolean;
+  source: string;
+  ltp?: number | null;
+  bids: DepthLevel[];
+  asks: DepthLevel[];
+  total_bid_qty: number;
+  total_ask_qty: number;
+  as_of?: number;
+  interpretation?: DepthInterpretation | null;
+  interpretation_error?: string;
+  auction?: PreOpenAuction | null;
+}
 
 /**
  * Typed chat card list emitted by the LLM on the completion frame (`cards[]`).
@@ -76,6 +148,50 @@ export type ChatCard =
    * in the chart picker.
    */
   | {type: 'custom_indicator'; payload: CustomIndicatorDraft}
+  /**
+   * A stock's research report: Finstocks research guidance for its industry and cap band applied
+   * item by item, with the note an investor reads. The card is the short summary; the report
+   * itself opens on its own screen. There is no endpoint: the payload is the whole report.
+   */
+  | {type: 'report'; payload: ManualReportPayload}
+  /** The order books a depth answer is written from, one card per book. */
+  | {type: 'depth'; payload: {books: DepthCardBook[]}}
+  /** The sector reading a sectors answer is written from. */
+  | {type: 'sectors'; payload: SectorsCardPayload}
+  /** The market profiles a market-profile answer is written from. */
+  | {type: 'market_profile'; payload: MarketProfileCardPayload}
+  /**
+   * The options regime an options answer was written from (llm graph/nodes/options). The card is
+   * live — it reads the regime again — so it carries only what the answer said and when, and
+   * flags a reading that has moved since.
+   */
+  | {
+      type: 'regime';
+      payload: {
+        underlyings: string[];
+        /** The underlyings whose option levels the answer also read; the card shows them under the regime. */
+        levels?: string[];
+        /** What the answer beside the card said for each underlying, and when it read it. */
+        answered?: Record<string, string>;
+        answered_at?: string;
+      };
+    }
+  /**
+   * The expiry backtest an options answer asked for: which strategy, which symbols, to which expiry.
+   * Web runs it from the card (`POST /market/regimepulse/expiry-backtest`); the payload carries no
+   * result.
+   */
+  | {
+      type: 'regime_backtest';
+      payload: {
+        symbols: string[];
+        expiry: string;
+        from?: string;
+        strategy: RegimeStrategyId;
+      };
+    }
+  /** F&O names screened by their option levels, run live by the card (llm graph/nodes/options). */
+  | {type: 'flyone_screen'; payload: FlyoneScreenCardPayload}
   /**
    * An order the assistant read off the user's instruction. It does NOT place anything: the
    * ticket renders pre-filled and the user confirms it there, through the same path as every

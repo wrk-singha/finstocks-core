@@ -1,18 +1,15 @@
+import type {
+  EsfBacktestDay,
+  EsfBacktestMonth,
+  EsfBacktestPick,
+} from '../types/esf.ts';
 import {mulberry32, percentileSorted} from './sampling.ts';
 
 /**
- * What a backtest's daily log turns into on the page, as web works it out
- * (`utils/market/basketBacktest.ts`, which web main's strategy library page shares with the
- * baskets): the equity and drawdown curves, the returns by year and by month, the summary figures
- * and the Monte Carlo band.
+ * What a basket's backtest log turns into on the page, as the web works it out
+ * (frontend dev 2226a1e1, `utils/market/basketBacktest.ts`): the equity and drawdown curves,
+ * the returns by year and by month, the summary figures and the Monte Carlo band.
  */
-
-/** One day of an equity curve and its benchmark, both normalised to 1 on the first day. */
-export interface BacktestDay {
-  date: string;
-  nav: number;
-  benchmark: number | null;
-}
 
 export interface CurvePoint {
   date: string;
@@ -58,7 +55,7 @@ export const TRADING_DAYS_PER_YEAR = 252;
 const DAYS_PER_YEAR = 365.25;
 const MS_PER_DAY = 86_400_000;
 
-export function equityCurve(daily: readonly BacktestDay[]): CurvePoint[] {
+export function equityCurve(daily: readonly EsfBacktestDay[]): CurvePoint[] {
   let peak = 0;
   return daily.map(d => {
     peak = Math.max(peak, d.nav);
@@ -71,8 +68,18 @@ export function equityCurve(daily: readonly BacktestDay[]): CurvePoint[] {
   });
 }
 
-export const dailyReturns = (daily: readonly BacktestDay[]): number[] =>
+export const dailyReturns = (daily: readonly EsfBacktestDay[]): number[] =>
   daily.slice(1).map((d, i) => d.nav / (daily[i]?.nav ?? d.nav) - 1);
+
+export function picksByReview(
+  picks: EsfBacktestPick[],
+): Map<string, EsfBacktestPick[]> {
+  const byReview = new Map<string, EsfBacktestPick[]>();
+  for (const p of picks) {
+    byReview.set(p.as_of, [...(byReview.get(p.as_of) ?? []), p]);
+  }
+  return byReview;
+}
 
 /** Calendar years between two YYYY-MM-DD dates, fractional. */
 export const yearsBetween = (from: string, to: string): number =>
@@ -81,9 +88,9 @@ export const yearsBetween = (from: string, to: string): number =>
   DAYS_PER_YEAR;
 
 function returnsByPeriod(
-  daily: readonly BacktestDay[],
+  daily: readonly EsfBacktestDay[],
   key: (date: string) => string,
-  value: (day: BacktestDay) => number = d => d.nav,
+  value: (day: EsfBacktestDay) => number = d => d.nav,
 ): [string, number][] {
   const closing = new Map<string, number>();
   for (const d of daily) closing.set(key(d.date), value(d));
@@ -96,7 +103,9 @@ function returnsByPeriod(
   });
 }
 
-export const yearlyReturns = (daily: readonly BacktestDay[]): PeriodReturn[] =>
+export const yearlyReturns = (
+  daily: readonly EsfBacktestDay[],
+): PeriodReturn[] =>
   returnsByPeriod(daily, date => date.slice(0, 4)).map(([label, basket]) => ({
     label,
     basket,
@@ -113,7 +122,7 @@ export interface YearVersus {
  * (`fc577dca`, `basketBacktest.yearlyVersus`). The benchmark is null in every year when any day of
  * the curve has none, so a year is never set against a part-year of the index.
  */
-export function yearlyVersus(daily: readonly BacktestDay[]): YearVersus[] {
+export function yearlyVersus(daily: readonly EsfBacktestDay[]): YearVersus[] {
   const hasBenchmark = daily.every(d => Number(d.benchmark) > 0);
   const benchmark = new Map(
     returnsByPeriod(
@@ -129,7 +138,7 @@ export function yearlyVersus(daily: readonly BacktestDay[]): YearVersus[] {
   }));
 }
 
-export const monthlyReturns = (daily: readonly BacktestDay[]): MonthCell[] =>
+export const monthlyReturns = (daily: readonly EsfBacktestDay[]): MonthCell[] =>
   returnsByPeriod(daily, date => date.slice(0, 7)).map(([ym, basket]) => ({
     year: Number(ym.slice(0, 4)),
     month: Number(ym.slice(5, 7)),
@@ -153,9 +162,9 @@ function sharpeRatio(returns: number[], years: number): number | null {
 }
 
 export function summarize(
-  daily: readonly BacktestDay[],
+  daily: readonly EsfBacktestDay[],
   /** The periods the win rate counts, each by its net return: positive is a win. */
-  periods: readonly {readonly net: number}[],
+  periods: readonly Pick<EsfBacktestMonth, 'net'>[],
 ): BacktestSummary | null {
   const first = daily[0];
   const last = daily[daily.length - 1];

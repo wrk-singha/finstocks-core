@@ -203,6 +203,18 @@ test('graph-data paths batch, filter placeholders and switch to the share route'
       '/share/graph-data?hmacToken=h%2F1&symbols=TCS&symbols=NIFTY26SEP24000CE&market=IN&period=1w&interval=1d&max_points=72&close_only=1&fno_symbols=NIFTY26SEP24000CE',
     ],
   );
+  assert.deepEqual(
+    graphDataPaths({
+      symbols: ['NIFTY26SEP24000CE'],
+      market: 'IN',
+      period: '3m',
+      fnoSymbols: ['NIFTY26SEP24000CE'],
+      page: {to: 1_790_000_000.5, count: 2000},
+    }),
+    [
+      '/trading/graph-data?symbols=NIFTY26SEP24000CE&market=IN&period=3m&interval=1m&to=1790000000&count=2000&fno_symbols=NIFTY26SEP24000CE',
+    ],
+  );
   const many = Array.from({length: 30}, (_, i) => `S${i}`);
   assert.equal(graphDataPaths({symbols: many, market: 'IN'}).length, 2);
 });

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
 import {
+  formatChartLongDate,
   formatChatListTime,
   formatDateTime,
   formatDateTimeStamp,
@@ -9,6 +10,7 @@ import {
   formatDurationMins,
   formatEventDayHeading,
   formatLastUpdatedIST,
+  formatExpiryDate,
   formatNetWorthChartDate,
   formatNotificationTime,
   formatOrderDayHeading,
@@ -340,6 +342,25 @@ test('getChatDateGroup buckets by IST recency', () => {
   assert.equal(getChatDateGroup('2025-06-10T03:00:00Z', NOW), 'June 2025');
   assert.equal(getChatDateGroup(null, NOW), 'Older');
   assert.equal(getChatDateGroup('bad', NOW), 'Older');
+});
+
+test("an expiry reads as web's heading prints it: day, short month, two-digit year, in IST", () => {
+  assert.equal(formatExpiryDate('2026-10-08'), '8 Oct 26');
+  assert.equal(formatExpiryDate('2026-09-29'), '29 Sept 26');
+  assert.equal(formatExpiryDate('2026-10-08T20:00:00Z'), '9 Oct 26');
+  assert.equal(formatExpiryDate(''), '');
+  assert.equal(formatExpiryDate(null), '');
+  assert.equal(formatExpiryDate('not a day'), '');
+});
+
+test("the chart's long stamp is the IST day, with its clock for an intraday candle", () => {
+  const ms = Date.parse('2026-03-12T04:45:00Z');
+  assert.equal(formatChartLongDate(ms, false), '12 Mar 2026');
+  assert.equal(formatChartLongDate(ms, true), '12 Mar 2026, 10:15');
+  assert.equal(
+    formatChartLongDate(Date.parse('2026-03-12T19:00:00Z'), false),
+    '13 Mar 2026',
+  );
 });
 
 test("the heatmap's month names are web's: en-IN's short months, September as Sept", () => {

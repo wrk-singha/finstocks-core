@@ -350,6 +350,30 @@ export function formatShortDateIST(
   return d ? shortDateISTFormatter.format(d) : '—';
 }
 
+// The chart's long stamps, IST (web `formatChartLongDate`): "12 Mar 2026", "12 Mar 2026, 10:15".
+const chartLongDayFormatter = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: IST,
+});
+const chartLongMinuteFormatter = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: IST,
+});
+
+/** An instant as the chart names a candle: the day, and its IST clock when `intraday`. */
+export const formatChartLongDate = (
+  epochMs: number,
+  intraday: boolean,
+): string =>
+  (intraday ? chartLongMinuteFormatter : chartLongDayFormatter).format(epochMs);
+
 /** Device-local "MMM D, YYYY" ("Jan 5, 2024"); "—" when missing or invalid. */
 // drift resolved 2026-09-13: mobile returned "N/A" and rejected undefined; web returned "—" and
 // accepted it. Web won so the fallback matches the other short-date formatters here.
@@ -487,6 +511,23 @@ export function formatLastUpdatedIST(
 /** Orders-screen day-group heading for an IST day key: "09 Aug 2026". */
 export const formatOrderDayHeading = (isoDate: string): string =>
   orderDayHeadingFormatter.format(dayKeyToUtc(isoDate));
+
+const expiryDateFormatter = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'short',
+  year: '2-digit',
+  timeZone: IST,
+});
+
+/**
+ * An expiry as web's `formatExpiryDate` prints it in a heading: "8 Oct 26", in IST, empty when
+ * missing or unreadable. en-IN, as web's, so September reads "Sept" there too.
+ */
+export function formatExpiryDate(value: string | null | undefined): string {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : expiryDateFormatter.format(d);
+}
 
 /** Net-worth chart readout for a bare YYYY-MM-DD, 2-digit year to keep the row compact: "9 Aug 26". */
 export const formatNetWorthChartDate = (isoDate: string): string =>

@@ -3,7 +3,7 @@
  * its `services/http` client, the web over its axios instance. Core defines paths, query strings,
  * payloads and response types — it never calls `fetch` itself.
  */
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+export type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export type RequestInit = {
   readonly method?: HttpMethod;

@@ -106,6 +106,8 @@ export type {
   TrendLine,
 } from './alertRule.ts';
 
+export {atmLockTarget, crossedMidpoint} from './atmLock.ts';
+
 export {
   chartIntervalLabel,
   chartIntervalMinutes,
@@ -157,6 +159,7 @@ export {
   equityCurve,
   monteCarlo,
   monthlyReturns,
+  picksByReview,
   summarize,
   TRADING_DAYS_PER_YEAR,
   yearlyReturns,
@@ -164,7 +167,6 @@ export {
   yearsBetween,
 } from './basketBacktest.ts';
 export type {
-  BacktestDay,
   BacktestSummary,
   CurvePoint,
   MonteCarloBand,
@@ -172,6 +174,52 @@ export type {
   PeriodReturn,
   YearVersus,
 } from './basketBacktest.ts';
+export {basketCharges} from './basketCharges.ts';
+export type {BasketCharges} from './basketCharges.ts';
+export {esfSubscribeRefusal} from './basketSubscribe.ts';
+export type {
+  EsfSubscribeRefusal,
+  EsfSubscribeRefusalKind,
+} from './basketSubscribe.ts';
+export {
+  awaitingFirstOrders,
+  basketHeadline,
+  BENCHMARK_LABEL,
+  cadenceLabel,
+  DEFAULT_CAPITAL,
+  marketLabel,
+  minAmountHint,
+  MODE_LABEL,
+  navChange,
+  navSummary,
+  ORDER_STATUS,
+  reviewPeriodLabel,
+  reviewPeriodsLabel,
+  planBasketBuy,
+  primaryBacktest,
+  reviewDayLabel,
+  stockCountLabel,
+  subscriptionStatusLabel,
+  trackingStart,
+  volatilityLabel,
+  weightLabel,
+} from './basketFormat.ts';
+export type {
+  BasketBuyLine,
+  BasketBuyPlan,
+  BasketHeadline,
+  EsfOrderTone,
+  NavSummary,
+} from './basketFormat.ts';
+export {
+  formatTopPct,
+  MARKET_LABELS,
+  STAGE_CYCLE,
+  stageCycle,
+  stageLabel,
+  stageName,
+  warningText,
+} from './esfScore.ts';
 
 export {blackScholesGreeks, impliedForward, yearsToExpiry} from './greeks.ts';
 export type {OptionGreeks} from './greeks.ts';
@@ -215,11 +263,67 @@ export type {
   IPOStepState,
 } from './ipo.ts';
 
+export {depthBookStatus, depthRefusal, fairLimitPrice} from './depthReading.ts';
+export type {DepthBookStatus, DepthRefusal} from './depthReading.ts';
+
 export {livePriceFor, priceSymbolFor} from './livePrice.ts';
+
+export {
+  bareLabel,
+  capBandLabel,
+  citedFacts,
+  citesLine,
+  coverageGroups,
+  coveragePct,
+  factHistoryText,
+  factText,
+  factUnit,
+  factUnitWord,
+  figureRows,
+  fiscalYears,
+  gapStatusWord,
+  gateTally,
+  historyTable,
+  isQualityGood,
+  kpiGapLine,
+  kpiTrail,
+  kpiValueText,
+  monitorChips,
+  partTally,
+  partTitle,
+  qualityGoodCount,
+  REPORT_BAND_LABEL,
+  REPORT_GAP_STATUS_WORDS,
+  REPORT_MARK_GLYPH,
+  REPORT_MARK_WORD,
+  REPORT_STAGES,
+  REPORT_STOP_WORD,
+  REPORT_VIEW_LABEL,
+  reportBenchmark,
+  reportDay,
+  reportFactIndex,
+  reportKeyFigures,
+  reportNumber,
+  reportSector,
+  reportShortName,
+  riskChainSteps,
+  signedChangeText,
+  sparkPoints,
+  typographicMinus,
+} from './manualReport.ts';
+export type {
+  ReportCoverageGroup,
+  ReportCoverageRow,
+  ReportFigureRow,
+  ReportHistoryTable,
+  ReportKeyFigure,
+  ReportStageWords,
+} from './manualReport.ts';
 
 export {
   addMarketDays,
   hasHolidayCalendar,
+  IST_OFFSET_MS,
   isMarketOpen,
   isTradingDay,
   lastSessionOpen,
@@ -228,12 +332,23 @@ export {
   marketDaysUntil,
   marketMinutesNow,
   marketMoment,
+  marketSession,
   marketToday,
   nextTradingDay,
+  PRE_OPEN_START,
   SESSION_CLOSE,
   SESSION_OPEN,
 } from './marketHours.ts';
 export type {MarketMoment} from './marketHours.ts';
+
+export {mulberry32, percentileSorted} from './sampling.ts';
+
+export {
+  expiryCalendar,
+  FNO_HISTORY_START,
+  NSE_TUESDAY_EXPIRY_FROM,
+} from './expiryDays.ts';
+export type {ExpiryCalendar, ExpiryDay} from './expiryDays.ts';
 
 export {
   buildFuturesSymbol,
@@ -401,9 +516,6 @@ export type {AlertDraftConfig} from './savedAlerts.ts';
 
 export {mapSector, SECTOR_CHIPS} from './sectors.ts';
 export type {CoarseSector} from './sectors.ts';
-export {mulberry32, percentileSorted} from './sampling.ts';
-
-export {mapStockScore} from './stockScore.ts';
 
 export {
   matchesStockQuery,
@@ -547,3 +659,158 @@ export {
   REGION_ORDER,
 } from './worldIndices.ts';
 export type {Region, RegionGroup, WorldMarketRow} from './worldIndices.ts';
+
+export {
+  beatingBenchmark,
+  indexName,
+  lossesAt,
+  namesOf,
+  pfExtent,
+  pfLastColumnBoxes,
+  pfRatioChange,
+  pfSpans,
+  pickRow,
+  resolvePair,
+  resultsAt,
+  RS_BENCHMARK,
+  RS_BOXES,
+  RS_DEFAULT_BOX,
+  RS_PAIR_COLUMNS,
+  RS_TOP_N,
+  rsShortLabel,
+  splitResults,
+  staleDays,
+} from './rsSectorMatrix.ts';
+export type {PfSpan, RsResult} from './rsSectorMatrix.ts';
+
+export {
+  breadthCounts,
+  canChart,
+  chartExtent,
+  chartTicks,
+  chartXTicks,
+  clockOf,
+  hasRegime,
+  isBearish,
+  isBullish,
+  fractionPct,
+  ivPointsOf,
+  latestDecay,
+  REGIME_LABEL,
+  REGIME_ORDER,
+  REGIME_READING,
+  REGIME_SHORT,
+  regimeChangedSince,
+  regimeDistribution,
+  regimeKey,
+  regimeMap,
+  regimeRowFor,
+  regimeStamp,
+  regimeTone,
+  sessionOverview,
+  signed,
+  signedFixed,
+  zBiasRegime,
+} from './regimePulse.ts';
+export type {
+  ChartExtent,
+  RegimeLean,
+  RegimeStamp,
+  RegimeTone,
+  SessionMark,
+  SessionOverview,
+} from './regimePulse.ts';
+
+export {
+  filterRegimeRows,
+  REGIME_DEFAULT_SORT,
+  REGIME_SORT_KEYS,
+  regimeScannerStatus,
+  regimeSortStartsDescending,
+  sortRegimeRows,
+} from './regimeScanner.ts';
+export type {RegimeScannerStatus, RegimeSortKey} from './regimeScanner.ts';
+
+export {scannerSortStartsDescending, sortScannerRows} from './scannerSort.ts';
+export type {ScannerSortSpec} from './scannerSort.ts';
+
+export {
+  clashesWithRegime,
+  DIRECTION_DEFAULT_SORT,
+  DIRECTION_PRESETS,
+  DIRECTION_SORT_KEYS,
+  DIRECTION_UNIVERSES,
+  directionBreadth,
+  directionPreset,
+  directionScannerStatus,
+  directionSortStartsDescending,
+  directionUniverseRows,
+  filterDirectionRows,
+  inDirectionUniverse,
+  NEAR_WALL_PCT,
+  sortDirectionRows,
+} from './directionScanner.ts';
+export type {
+  DirectionBreadth,
+  DirectionPreset,
+  DirectionPresetKey,
+  DirectionScannerStatus,
+  DirectionSortKey,
+  DirectionUniverse,
+} from './directionScanner.ts';
+
+export {
+  callWallSide,
+  DIRECTION_LABEL,
+  DIRECTION_ORDER,
+  DIRECTION_SHORT,
+  directionSide,
+  disagreesWithRegime,
+  GEX_REGIME_LABEL,
+  GEX_REGIME_READING,
+  gexTone,
+  isThin,
+  isWarmingUp,
+  levelOf,
+  levelsReading,
+  levelsReadingParts,
+  nearestWall,
+  nearestWallText,
+  OI_NOTE,
+  parseWidthVotes,
+  PATTERN_LABEL,
+  PATTERN_READING,
+  pctAway,
+  pendingDirection,
+  putWallSide,
+  THIN_WIDTHS,
+} from './flyone.ts';
+export type {GexTone, LevelsReadingParts, WallSide} from './flyone.ts';
+
+export {
+  densityView,
+  gexBarsView,
+  gexTickEvery,
+  isShownExpiry,
+  nearestPointIndex,
+  timelineIndexAt,
+  timelineScoreY,
+  timelineTicks,
+} from './flyoneDetail.ts';
+export type {DensityPoint, DensityView, GexBarsView} from './flyoneDetail.ts';
+
+export {
+  parseSectorStrengthPath,
+  SECTOR_STRENGTH_ANCHOR,
+  sectorStrengthPath,
+} from './sectorStrength.ts';
+export type {SectorStrengthLink} from './sectorStrength.ts';
+
+export {
+  isManualPagePath,
+  MANUAL_PAGE_PREFIX,
+  manualPageSlug,
+  manualPageSlugOfUrl,
+  manualPageTitle,
+  manualPageUrl,
+} from './manualPages.ts';

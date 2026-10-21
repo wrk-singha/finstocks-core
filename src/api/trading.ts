@@ -207,6 +207,17 @@ export interface GraphDataQuery extends GetGraphDataRequest {
    * the backend need not re-derive it from the spelling.
    */
   fnoSymbols?: string[];
+  /**
+   * Minute-bar paging: each symbol's newest `count` source bars before `to` (Unix seconds,
+   * exclusive), the period counting back from `to`. Served by backend-go `feat/chart-parity`'s
+   * graph.go; a backend without it answers the plain period.
+   */
+  page?: GraphDataPage;
+}
+
+export interface GraphDataPage {
+  to?: number;
+  count?: number;
 }
 
 /**
@@ -342,6 +353,12 @@ const graphDataQuery = (params: GraphDataQuery, batch: string[]): string => {
           ? params.maxPoints
           : undefined,
       close_only: params.closeOnly ? 1 : undefined,
+      to:
+        params.page?.to === undefined ? undefined : Math.floor(params.page.to),
+      count:
+        params.page?.count === undefined
+          ? undefined
+          : Math.floor(params.page.count),
     }),
     fnoParam,
   );

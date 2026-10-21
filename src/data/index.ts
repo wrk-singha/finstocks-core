@@ -62,6 +62,7 @@ export {
   ALERT_SCOPES,
   alertScopeForChannel,
   defaultAlertPreferences,
+  withAlertsEnabled,
 } from './alertChannels.ts';
 export {
   ALERT_FIELDS,

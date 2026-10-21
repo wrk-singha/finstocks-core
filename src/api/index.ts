@@ -63,6 +63,7 @@ export type {
   CreateBacktestRequest,
   CreateBacktestResponse,
   FnoIndexUnderlying,
+  GraphDataPage,
   GraphDataQuery,
   OrderResponse,
   PendingTradeResponse,
@@ -131,3 +132,6 @@ export type {StockWatchlistsApi} from './stockWatchlists.ts';
 
 export {customIndicatorsApi} from './customIndicators.ts';
 export type {CustomIndicatorsApi} from './customIndicators.ts';
+
+export {esfApi} from './esf.ts';
+export type {EsfApi} from './esf.ts';

@@ -6,6 +6,7 @@ import {
   ALERT_SCOPES,
   alertScopeForChannel,
   defaultAlertPreferences,
+  withAlertsEnabled,
 } from '../alertChannels.ts';
 
 test('every channel resolves back to the scope that lists it', () => {
@@ -42,4 +43,29 @@ test('defaults are opt-in with only the intraday channels pre-selected', () => {
     fno_expiry: false,
     fno_exits: true,
   });
+
+  const baskets = defaultAlertPreferences('baskets');
+  assert.equal(baskets.enabled, false);
+  assert.deepEqual(baskets.channels, {basket_rebalances: true});
+  assert.equal(alertScopeForChannel('basket_rebalances'), 'baskets');
+});
+
+test('turning the master on with nothing chosen subscribes to the defaults; otherwise it keeps the set', () => {
+  const silent = {enabled: false, channels: {basket_rebalances: false}};
+  assert.deepEqual(withAlertsEnabled('baskets', silent, true), {
+    enabled: true,
+    channels: {basket_rebalances: true},
+  });
+  const chosen = {
+    enabled: false,
+    channels: {stocks_intraday: false, stocks_swing: true},
+  };
+  assert.deepEqual(withAlertsEnabled('stocks', chosen, true), {
+    ...chosen,
+    enabled: true,
+  });
+  assert.deepEqual(
+    withAlertsEnabled('stocks', {...chosen, enabled: true}, false),
+    chosen,
+  );
 });

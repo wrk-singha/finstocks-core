@@ -63,6 +63,19 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.9.13** — a recommendation resolves live from its minute candles, as web and the dashboard
+  do: `resolveRecommendation` is web's resolver (outcomes waiting, open, target, stop, expired,
+  not_triggered; the fill price and time; the exit; target 2 touched after the fill; the ₹10,000
+  model `positionQty`, display only) with all ten of web's shared vectors as tests. A bar that touches
+  both stop and target exits at the stop, a gap through the stop exits at its edge, and a bar given
+  twice is read once. `resolverCandles` reads a series once (usable bars only, one per minute,
+  sorted), `resolverCandlesFrom` trims it, `mergeResolverCandles` joins two answers (the later wins)
+  and `liveResolutionOver` resolves a pick over its own window, from its publication minute to
+  `valid_until`. `withLiveResolution` lays a resolution over a `Recommendation` while it is open and
+  never changes its status, `valid_until`, plan or price, so a live view can only take a pick out of
+  trading, never put one back; `liveClosedOutcome` and `outcomeOf` name the outcome. A
+  `Recommendation` may carry `outcome` and `position_qty`. Bar times are not parsed here: the caller
+  turns backend-go's IST wall-clock stamps into instants.
 - **v0.9.12** — recommendations read target 2, the stored entry and exit, and a closed trade's
   return in %: since backend-go 5295af0e (migration 26) and aaafcc28, a `RecommendationRow` may carry
   `target2_min`/`target2_max`, `entry_at`, `entry_price` and `target2_hit_at`, and a report row

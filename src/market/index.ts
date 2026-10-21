@@ -322,11 +322,14 @@ export type {
 
 export {
   addMarketDays,
+  FNO_HISTORY_START,
+  formatSessionDate,
   hasHolidayCalendar,
   IST_OFFSET_MS,
   isMarketOpen,
   isTradingDay,
   lastSessionOpen,
+  latestSession,
   MARKET_TIMEZONE,
   marketDateString,
   marketDaysUntil,
@@ -334,12 +337,96 @@ export {
   marketMoment,
   marketSession,
   marketToday,
+  minuteLabel,
   nextTradingDay,
   PRE_OPEN_START,
   SESSION_CLOSE,
   SESSION_OPEN,
+  sessionFor,
+  stepSession,
 } from './marketHours.ts';
-export type {MarketMoment} from './marketHours.ts';
+export type {MarketMoment, TradingSession} from './marketHours.ts';
+
+export {
+  breadthOf,
+  buildHeatModel,
+  FOLD_PREFIX,
+  foldTail,
+  HEAT_BIN_COUNT,
+  HEAT_COLORS,
+  HEAT_COLUMNS,
+  HEAT_FAST_COLUMNS,
+  HEAT_GROUPS,
+  HEAT_MIN_TILE_AREA,
+  HEAT_PERIODS,
+  HEAT_SIZES,
+  HEAT_SKELETON_WEIGHTS,
+  heatBin,
+  heatBreadth,
+  heatPalette,
+  heatStep,
+  heatThresholdLabels,
+  heatThresholds,
+  heatWeights,
+  isListSource,
+  layoutHeat,
+  MARKET_SOURCES,
+  neighbourTile,
+  periodOf,
+  SECTOR_SHORT,
+  sectorOfIndustry,
+  sectorWeight,
+  stockWeight,
+  swatchFor,
+  UNMAPPED_SECTOR,
+  weightedReturn,
+} from './sectorHeatmap.ts';
+export type {
+  FoldedItems,
+  HeatBreadth,
+  HeatColorBy,
+  HeatDirection,
+  HeatFrameRect,
+  HeatGroupBy,
+  HeatLayout,
+  HeatLayoutItem,
+  HeatModel,
+  HeatPalette,
+  HeatPeriod,
+  HeatPeriodSpec,
+  HeatRow,
+  HeatSector,
+  HeatSectorRef,
+  HeatSizeBy,
+  HeatSource,
+  HeatSourceOption,
+  HeatStock,
+  HeatSwatch,
+  HeatTheme,
+  HeatTileRect,
+  HeatUniverse,
+  HeatWeights,
+} from './sectorHeatmap.ts';
+
+export {
+  buildReplay,
+  DEFAULT_REPLAY_INTERVAL,
+  REPLAY_INTERVALS,
+  replayClock,
+  replayIntervalOf,
+  replayReturns,
+  sliceReplay,
+  spansDays,
+  withReplayReturns,
+} from './heatReplay.ts';
+export type {
+  ReplayFrames,
+  ReplayInterval,
+  ReplayIntervalSpec,
+} from './heatReplay.ts';
+
+export {treemap} from './treemap.ts';
+export type {TreemapRect} from './treemap.ts';
 
 export {mulberry32, percentileSorted} from './sampling.ts';
 

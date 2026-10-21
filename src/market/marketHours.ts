@@ -192,3 +192,98 @@ export function marketMoment(now: Date): MarketMoment {
   if (minutes < SESSION_OPEN) return 'preOpen';
   return minutes <= SESSION_CLOSE ? 'live' : 'closed';
 }
+
+/** Stored 1-minute history starts here: nothing earlier was recorded, so no replay or history read reaches before it. */
+export const FNO_HISTORY_START = '2026-01-02';
+
+const IST_OFFSET_SECONDS = 330 * 60;
+
+/** One NSE session, as Unix seconds. */
+export interface TradingSession {
+  /** YYYY-MM-DD, the IST trading date. */
+  date: string;
+  /** 00:00 IST that day. */
+  midnight: number;
+  /** 09:15 IST. */
+  open: number;
+  /** 15:30 IST. */
+  close: number;
+}
+
+/** The session bounds of an IST date (YYYY-MM-DD), whatever the device's time zone. */
+export function sessionFor(date: string): TradingSession {
+  const midnight = Date.parse(`${date}T00:00:00Z`) / 1000 - IST_OFFSET_SECONDS;
+  return {
+    date,
+    midnight,
+    open: midnight + SESSION_OPEN * 60,
+    close: midnight + SESSION_CLOSE * 60,
+  };
+}
+
+/** The session the stored data most recently covers: today once it has opened, else the last trading day. */
+export function latestSession(
+  market = 'IN',
+  now: Date = new Date(),
+): TradingSession {
+  return sessionFor(
+    marketDateString(marketToday(lastSessionOpen(market, now))),
+  );
+}
+
+/**
+ * The trading day one session before (-1) or after (1) an IST date (YYYY-MM-DD). Gives up after
+ * ten calendar days, so a corrupt holiday table cannot spin, and then returns the last day walked.
+ */
+export function stepSession(date: string, step: -1 | 1, market = 'IN'): string {
+  let day = new Date(`${date}T00:00:00Z`);
+  for (let i = 0; i < 10; i++) {
+    day = addMarketDays(day, step);
+    if (isTradingDay(day, market)) break;
+  }
+  return marketDateString(day);
+}
+
+/** "10:15" for a count of minutes since IST midnight (SESSION_OPEN is "09:15"). */
+export const minuteLabel = (minute: number): string =>
+  `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+
+const SESSION_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const;
+
+/**
+ * A session date (YYYY-MM-DD, or a stamp that starts with one) as "9 Oct"; the year is added, in
+ * full, only when it is not this IST year ("9 Oct 2025"), because "9 Oct 26" reads as two days.
+ * Read off the string itself, so the device's time zone never moves the day. Empty for no date.
+ */
+export function formatSessionDate(
+  date: string | null | undefined,
+  now: Date = new Date(),
+): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(date ?? '');
+  if (!m) return '';
+  const [, year = '', month = '', day = ''] = m;
+  const at = new Date(`${year}-${month}-${day}T00:00:00Z`);
+  if (
+    Number.isNaN(at.getTime()) ||
+    marketDateString(at) !== `${year}-${month}-${day}`
+  ) {
+    return '';
+  }
+  const label = `${at.getUTCDate()} ${SESSION_MONTHS[at.getUTCMonth()] ?? ''}`;
+  return year === marketDateString(marketToday(now)).slice(0, 4)
+    ? label
+    : `${label} ${year}`;
+}

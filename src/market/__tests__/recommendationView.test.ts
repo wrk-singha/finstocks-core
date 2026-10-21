@@ -191,6 +191,38 @@ test('bars that cannot be read are dropped: a 0 or NaN low is no stop, and order
   assert.equal(liveResolution(rec, [bar(1, 0, 0, 0, 0)], NOW), null);
 });
 
+test('a minute given twice is one bar, its last usable copy: a fill bar that dipped to the stop does not close the call on itself', () => {
+  const rec = pick();
+  // The review's probe: the fill bar also reaches the stop (95.5 ≤ 96). Read once it is only the
+  // fill, as the rules say; read twice its second copy would be the bar after the fill, a stop.
+  const fillTouchingStop = bar(0, 100.5, 101, 95.5, 100.8);
+  assert.equal(liveResolution(rec, [fillTouchingStop], NOW)?.outcome, 'open');
+  const duplicated = liveResolution(
+    rec,
+    [fillTouchingStop, {...fillTouchingStop}],
+    NOW,
+  );
+  assert.equal(duplicated?.outcome, 'open');
+  assert.equal(duplicated?.fillAt, T0);
+  assert.equal(duplicated?.exitAt, undefined);
+  // Two different copies of one minute: the last one given is the minute.
+  const quiet = bar(1, 101, 102, 100.5, 101.5);
+  const dipped = bar(1, 101, 102, 95, 96);
+  assert.equal(
+    liveResolution(rec, [filled, dipped, quiet], NOW)?.outcome,
+    'open',
+  );
+  assert.equal(
+    liveResolution(rec, [filled, quiet, dipped], NOW)?.outcome,
+    'stop',
+  );
+  // A copy that cannot be read is no copy: the readable one stands.
+  assert.equal(
+    liveResolution(rec, [filled, dipped, bar(1, 0, 0, 0, 0)], NOW)?.outcome,
+    'stop',
+  );
+});
+
 test('a short and a commodity resolve on their own rules', () => {
   const short = pick({
     direction: 'short',

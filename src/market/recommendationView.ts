@@ -59,7 +59,8 @@ export const isUsableCandle = (c: RecommendationCandle): boolean =>
  * "waiting": a pick with no candles reads as the reader read it.
  *
  * The caller hands over the bars since the pick was published, all of them: a run missing its
- * start can fill the pick on a later bar than it did.
+ * start can fill the pick on a later bar than it did. A minute given more than once is read once,
+ * as its last usable copy.
  */
 export function liveResolution(
   rec: Recommendation,
@@ -75,7 +76,11 @@ export function liveResolution(
   if (!Number.isFinite(publishedAt) || !Number.isFinite(validUntil))
     return null;
   const firstMinute = Math.floor(publishedAt / 60) * 60;
-  const bars = candles.filter(isUsableCandle).sort((a, b) => a.t - b.t);
+  // One bar per minute, its last usable copy: read twice, a fill bar that dipped to the stop would
+  // be its own next bar and close the call on itself.
+  const byMinute = new Map<number, RecommendationCandle>();
+  for (const c of candles) if (isUsableCandle(c)) byMinute.set(c.t, c);
+  const bars = [...byMinute.values()].sort((a, b) => a.t - b.t);
   if (!bars.some(c => c.t >= firstMinute && c.t <= validUntil)) return null;
   return resolveRecommendation({
     direction: rec.direction,

@@ -425,10 +425,12 @@ const closedStatus = (exitPrice: number | null, reason: unknown): string =>
  * closed) is what the row's own figures are read at.
  *
  * What backend-go 5295af0e added is read as web's 4105264b maps it, each part kept only when it can
- * be read and none of it a reason to drop the row, so a row without it reads as before: target 2
- * (`target2Of`), the stored entry time and price, a closed call's exit time, and when target 2 was
- * reached. Web reads an open call's fill, exit and target 2 touch live from candles; this reader
- * has only what the server stored once the day was finalised.
+ * be read and none of it a reason to drop the row: target 2 (`target2Of`), the stored entry time
+ * and price, and when target 2 was reached. A row without them reads as before, with one addition
+ * web makes too: a closed row now carries its exit time (`exited_at`, from `exit_at`, which every
+ * closed row had before migration 26), so an old closed call gains that and nothing else. Web reads
+ * an open call's fill, exit and target 2 touch live from candles; this reader has only what the
+ * server stored once the day was finalised.
  */
 function readRecommendation(value: unknown): Recommendation | null {
   if (typeof value !== 'object' || value === null) return null;

@@ -343,7 +343,10 @@ test('a pick needs stamps the app can read; Go’s nanosecond and Postgres’s m
 // which web 4105264b reads. A server before it sends none of the keys; one after it sends null for
 // a call without them.
 
-/** Today's read of `row()`, written out: a row without the new fields must read exactly so. */
+/**
+ * Today's read of `row()`, an open row, written out: an open row without the new fields must read
+ * exactly so. A closed one gains its exit time and nothing else (below).
+ */
 const readBefore: Recommendation = {
   id: 101,
   stock_symbol: 'RELIANCE',
@@ -374,7 +377,7 @@ const readBefore: Recommendation = {
   modify_note: null,
 };
 
-test('a row without target 2 or the entry facts reads exactly as before, the keys absent or null', async () => {
+test('an open row without target 2 or the entry facts reads exactly as before, the keys absent or null', async () => {
   const {recommendations, dropped} = await read({
     recommendations: [
       row(),
@@ -389,6 +392,38 @@ test('a row without target 2 or the entry facts reads exactly as before, the key
   });
   assert.equal(dropped, 0);
   assert.deepEqual(recommendations, [readBefore, readBefore]);
+});
+
+/** Today's read of an old closed row (`row()` closed at its target), written out. */
+const readBeforeClosed: Recommendation = {
+  ...readBefore,
+  ref_price: 1490,
+  ref_basis: 'exit',
+  upside_pct: 0,
+  status: 'hit_target',
+  realized_pnl: 448,
+  resolved_price: 1490,
+};
+
+test('an old closed row reads as before plus its exit time, which web shows too, and nothing else', async () => {
+  const {recommendations} = await read({
+    recommendations: [
+      row({
+        status: 'closed',
+        exit_at: '2026-10-20T08:10:00Z',
+        exit_price: 1490,
+        exit_reason: 'target',
+        realized_pnl: 448,
+        return_pct: 4.49,
+      }),
+    ],
+  });
+  const [closed] = recommendations;
+  assert.ok(closed);
+  const {exited_at: exitedAt, ...rest} = closed;
+  assert.deepEqual(rest, readBeforeClosed);
+  // `exit_at` predates migration 26: every closed row had it, and now it is read.
+  assert.equal(exitedAt, '2026-10-20T08:10:00Z');
 });
 
 test('target 2 is read as its zone and the edge nearest the entry: the bottom for a long, the top for a short', async () => {

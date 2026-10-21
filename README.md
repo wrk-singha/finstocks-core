@@ -63,6 +63,15 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.10.1** — the market map's model, as web dev builds it: `sectorHeatmap` (periods 1D–1Y with
+  their colour steps, the sources from Nifty 50 to the top 500 and lists, size and colour modes,
+  NSE-sector grouping from the industry tree via `sectorOfIndustry`, market-cap weighted sector
+  returns, breadth, the six-bin palette with contrast ink, nested layout and folding of tiles too
+  small to print into "+N"), a one-pass squarified `treemap` that lays out what the app's old one did
+  in linear time, and `heatReplay` with the IST session helpers (`sessionFor`, `latestSession`,
+  `stepSession`, `minuteLabel`, `formatSessionDate`). A `Mover` may carry `sector` and `market_cap`.
+  Fixed against web: a duplicate industry name maps by its level-3 node, a zero previous close falls
+  back to the first bar, and each slice bound compares at its own length.
 - **v0.10.0** — the integration line comes to the release line: what it built from web `dev`, web
   `feat/chart-parity` and backend-go `dev` that v0.8.4 to v0.9.13 did not already bring, over
   v0.9.13. A minor because two changes break callers. **The old score client is gone** (web

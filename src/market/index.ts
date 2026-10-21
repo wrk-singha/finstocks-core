@@ -478,6 +478,26 @@ export type {
   Verdict,
 } from './technicalSignal.ts';
 
+export {
+  POSITION_RUPEES,
+  positionQty,
+  resolveRecommendation,
+} from './recommendationResolve.ts';
+export type {
+  RecommendationCandle,
+  RecommendationResolution,
+  RecommendationZone,
+  ResolveRecommendationInput,
+} from './recommendationResolve.ts';
+export {
+  isUsableCandle,
+  liveClosedOutcome,
+  liveResolution,
+  outcomeOf,
+  withLiveResolution,
+} from './recommendationView.ts';
+export type {ClosedOutcome} from './recommendationView.ts';
+
 export {rankByTopTraded} from './topTraded.ts';
 export type {RankedUnderlying} from './topTraded.ts';
 

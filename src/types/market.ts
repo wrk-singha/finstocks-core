@@ -74,9 +74,22 @@ export interface RecommendationsWire {
 }
 
 /**
+ * Where a call stands, as web's resolver says it (`resolveRecommendation`): `waiting` for its entry,
+ * `open` (filled, inside its plan), closed at its `target` or `stop`, `expired` (filled and still
+ * inside its plan at valid_until) or `not_triggered` (never filled by valid_until).
+ */
+export type RecommendationOutcome =
+  'waiting' | 'open' | 'target' | 'stop' | 'expired' | 'not_triggered';
+
+/**
  * One plain pick as the picks UI renders it: a single stock, long or short, with its entry, stop
  * and target zones, read from a `RecommendationRow` (see `getRecommendations`). The scalar levels
  * are the zone edge a fill exits at; the zones stay on the row for display.
+ *
+ * The reader says only what the server sent. `withLiveResolution` lays a live resolution from
+ * candles over an open row, as web's `recommendationView` does: the call's fill, exit and target 2
+ * touch then come from the candles while the server has the row open, and from what it stored once
+ * it is closed.
  */
 export interface Recommendation {
   id: number;
@@ -107,7 +120,8 @@ export interface Recommendation {
   /**
    * The price the row's figures are read at while no live one is known, and what `ref_basis`
    * says it is: the entry zone's midpoint while the pick is open, its exit price once it closed
-   * with one. Shown only with that label; never an order's price or size.
+   * with one (by the server, or by a live resolution's exit). Shown only with that label; never an
+   * order's price or size.
    */
   ref_price: number;
   ref_basis: 'entry_mid' | 'exit';
@@ -116,13 +130,21 @@ export interface Recommendation {
   /** Reward over risk, both measured from the entry zone's midpoint. Always above 0. */
   risk_reward: number;
   hold_label: string;
-  /** active (open) · hit_target · hit_stop · expired (closed, including not triggered) */
+  /**
+   * active (open) · hit_target · hit_stop · expired (closed, including not triggered): the server's,
+   * which a live resolution never changes. It is `outcome` that says an open row has closed live.
+   */
   status: string;
   /** RFC 3339, readable by `parseTimestamp`: the reader drops a row whose stamp is not. */
   published_at: string;
   /** Until when an open pick may be taken (`isPickExpired`). */
   valid_until: string;
+  /**
+   * Rupees on web's ₹10,000 model position: as the server stored them once closed, or by a live
+   * resolution's exit. Shown only.
+   */
   realized_pnl?: number;
+  /** The exit price: a closed row's, or a live resolution's once it exited. */
   resolved_price?: number;
   modify_zone: [number, number] | null;
   modify_note: string | null;
@@ -136,15 +158,29 @@ export interface Recommendation {
   target2_price?: number;
   /**
    * When and at what price the call entered, as the server stored them once the day was finalised
-   * (`entry_at`, `entry_price`); absent until then and on a call that never filled. Web reads an
-   * open call's fill live from candles (`fill_price`); this reader has no candles and makes none up.
+   * (`entry_at`, `entry_price`); absent until then and on a call that never filled. Over an open row
+   * with a live resolution (`withLiveResolution`), the live fill instead, web's `entered_at` and
+   * `fill_price`, and absent while it has not filled. Shown only, never an order's price.
    */
   entered_at?: string;
   entry_price?: number;
-  /** When a closed call exited (its `exit_at`). Absent while it is open. */
+  /**
+   * When a call exited: a closed row's `exit_at`, or the bar a live resolution exited on. Absent
+   * while it is open.
+   */
   exited_at?: string;
   /** When price first reached target 2 after the entry, before any stop. Only with a target 2. */
   target2_hit_at?: string;
+  /**
+   * Where the call stands by a live resolution (`withLiveResolution`); absent when none is known
+   * (the reader alone, a closed row, or no candles to read). A closed row's is `outcomeOf`.
+   */
+  outcome?: RecommendationOutcome;
+  /**
+   * Shares in web's ₹10,000 model position at the live fill (`positionQty`), with `outcome`. Shown
+   * only: never an order's size.
+   */
+  position_qty?: number;
 }
 
 /** GET /api/market/recommendations, read: only the rows that are plain picks. */

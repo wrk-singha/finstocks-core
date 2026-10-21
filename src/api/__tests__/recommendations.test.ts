@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import type {RecommendationRow} from '../../types/market.ts';
+import type {Recommendation, RecommendationRow} from '../../types/market.ts';
 import {marketApi} from '../market.ts';
 import {fakeHttp} from './fakeHttp.ts';
 
@@ -337,4 +337,197 @@ test('a pick needs stamps the app can read; Go’s nanosecond and Postgres’s m
     recommendations.map(pick => pick.id),
     [1, 2],
   );
+});
+
+// Since backend-go 5295af0e (migration 26) a row may carry target 2 and the call's entry facts,
+// which web 4105264b reads. A server before it sends none of the keys; one after it sends null for
+// a call without them.
+
+/** Today's read of `row()`, written out: a row without the new fields must read exactly so. */
+const readBefore: Recommendation = {
+  id: 101,
+  stock_symbol: 'RELIANCE',
+  market: 'IN',
+  kind: 'equity',
+  horizon: 'intraday',
+  direction: 'long',
+  verdict: 'Buy',
+  tone: 'pos',
+  remark: 'Breakout retest',
+  rationale: 'Held the 20-day high on volume.',
+  entry_min: 1420,
+  entry_max: 1432,
+  stop_loss: 1392,
+  stop_loss_zone: [1385, 1392],
+  target_price: 1490,
+  target_zone: [1490, 1500],
+  cmp: null,
+  ref_price: 1426,
+  ref_basis: 'entry_mid',
+  upside_pct: ((1490 - 1426) / 1426) * 100,
+  risk_reward: (1490 - 1426) / (1426 - 1392),
+  hold_label: 'Same day',
+  status: 'active',
+  published_at: '2026-10-20T03:40:00Z',
+  valid_until: '2026-10-20T09:55:00Z',
+  modify_zone: null,
+  modify_note: null,
+};
+
+test('a row without target 2 or the entry facts reads exactly as before, the keys absent or null', async () => {
+  const {recommendations, dropped} = await read({
+    recommendations: [
+      row(),
+      row({
+        target2_min: null,
+        target2_max: null,
+        entry_at: null,
+        entry_price: null,
+        target2_hit_at: null,
+      }),
+    ],
+  });
+  assert.equal(dropped, 0);
+  assert.deepEqual(recommendations, [readBefore, readBefore]);
+});
+
+test('target 2 is read as its zone and the edge nearest the entry: the bottom for a long, the top for a short', async () => {
+  const {recommendations} = await read({
+    recommendations: [
+      row({target2_min: 1540, target2_max: 1560}),
+      {...shortRow, target2_min: 1400, target2_max: 1410},
+    ],
+  });
+  const [long, short] = recommendations;
+  assert.ok(long && short);
+  assert.deepEqual(long.target2_zone, [1540, 1560]);
+  assert.equal(long.target2_price, 1540);
+  assert.deepEqual(short.target2_zone, [1400, 1410]);
+  assert.equal(short.target2_price, 1410);
+  // Shown only: everything else on the pick, the levels an order is seeded from included, is what
+  // the row reads as without it.
+  const rest: Partial<Recommendation> = {...long};
+  delete rest.target2_zone;
+  delete rest.target2_price;
+  assert.deepEqual(rest, readBefore);
+  assert.equal(short.target_price, 1450);
+  assert.equal(short.stop_loss, 1510);
+});
+
+test('a target 2 half missing, not a positive number, written high to low or not past the target is left off, and the row kept', async () => {
+  const bad: Partial<RecommendationRow>[] = [
+    {target2_min: 1540, target2_max: null},
+    {target2_min: null, target2_max: 1560},
+    {target2_min: 0, target2_max: 1560},
+    {target2_min: 1540, target2_max: Number.NaN},
+    {target2_min: '1540' as unknown as number, target2_max: 1560},
+    {target2_min: 1560, target2_max: 1540},
+    // At or short of the long's target, 1,490: no stretch.
+    {target2_min: 1490, target2_max: 1495},
+    {target2_min: 1450, target2_max: 1470},
+  ];
+  const {recommendations, dropped} = await read({
+    recommendations: bad.map((fields, i) =>
+      row({id: i + 1, ...fields, target2_hit_at: '2026-10-20T06:00:00Z'}),
+    ),
+  });
+  assert.equal(dropped, 0);
+  assert.equal(recommendations.length, bad.length);
+  for (const pick of recommendations) {
+    assert.equal('target2_zone' in pick, false, String(pick.id));
+    assert.equal('target2_price' in pick, false, String(pick.id));
+    // A touch is kept only with the level it touched.
+    assert.equal('target2_hit_at' in pick, false, String(pick.id));
+  }
+  // Above a short's target, 1,450: no stretch either.
+  const [short] = (
+    await read({
+      recommendations: [{...shortRow, target2_min: 1445, target2_max: 1460}],
+    })
+  ).recommendations;
+  assert.ok(short);
+  assert.equal('target2_price' in short, false);
+});
+
+test('the stored entry time and price, a closed call’s exit time and target 2’s touch are read when the row has them', async () => {
+  const {recommendations} = await read({
+    recommendations: [
+      row({
+        id: 1,
+        target2_min: 1540,
+        target2_max: 1560,
+        entry_at: '2026-10-20T03:47:00Z',
+        entry_price: 1424.5,
+        target2_hit_at: '2026-10-20 06:12:00+00',
+        // An open call has not exited, whatever the row says.
+        exit_at: '2026-10-20T07:00:00Z',
+      }),
+      row({
+        id: 2,
+        status: 'closed',
+        exit_at: '2026-10-20T08:10:00.123456789Z',
+        exit_price: 1490,
+        exit_reason: 'target',
+        realized_pnl: 448,
+        return_pct: 4.6,
+        entry_at: '2026-10-20T03:47:00Z',
+        entry_price: 1424.5,
+      }),
+      // Never triggered: closed with no entry and no exit price.
+      row({
+        id: 3,
+        status: 'closed',
+        exit_at: '2026-10-20T09:55:00Z',
+        exit_reason: 'expired',
+        realized_pnl: 0,
+      }),
+    ],
+  });
+  const [open, closed, unfilled] = recommendations;
+  assert.ok(open && closed && unfilled);
+  assert.equal(open.entered_at, '2026-10-20T03:47:00Z');
+  assert.equal(open.entry_price, 1424.5);
+  assert.equal(open.target2_hit_at, '2026-10-20 06:12:00+00');
+  assert.equal('exited_at' in open, false);
+  assert.equal(closed.entered_at, '2026-10-20T03:47:00Z');
+  assert.equal(closed.entry_price, 1424.5);
+  assert.equal(closed.exited_at, '2026-10-20T08:10:00.123456789Z');
+  assert.equal('target2_hit_at' in closed, false);
+  assert.equal(unfilled.status, 'expired');
+  assert.equal(unfilled.exited_at, '2026-10-20T09:55:00Z');
+  assert.equal('entered_at' in unfilled, false);
+  assert.equal('entry_price' in unfilled, false);
+});
+
+test('an entry price that is not a positive number, or a stamp that cannot be read, is left off and the row kept', async () => {
+  const {recommendations, dropped} = await read({
+    recommendations: [
+      row({id: 1, entry_price: 0, entry_at: 'soon'}),
+      row({id: 2, entry_price: -3, entry_at: 42 as unknown as string}),
+      row({id: 3, entry_price: Number.POSITIVE_INFINITY, entry_at: ''}),
+      row({id: 4, entry_price: '1424' as unknown as number}),
+      row({
+        id: 5,
+        status: 'closed',
+        exit_price: 1490,
+        exit_reason: 'target',
+        exit_at: 'later',
+        target2_min: 1540,
+        target2_max: 1560,
+        target2_hit_at: '',
+      }),
+    ],
+  });
+  assert.equal(dropped, 0);
+  assert.equal(recommendations.length, 5);
+  for (const pick of recommendations) {
+    for (const key of [
+      'entered_at',
+      'entry_price',
+      'exited_at',
+      'target2_hit_at',
+    ]) {
+      assert.equal(key in pick, false, `${String(pick.id)} ${key}`);
+    }
+  }
 });

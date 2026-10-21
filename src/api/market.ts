@@ -367,6 +367,23 @@ const stampOf = (value: unknown): string | null =>
   typeof value === 'string' && parseTimestamp(value) !== null ? value : null;
 
 /**
+ * Target 2 as a pick shows it: its zone and the edge nearest the entry, as `target_price` is read,
+ * or null for a call without one, an unreadable one, or one not past the target (a stretch level
+ * short of the target is no stretch).
+ */
+const target2Of = (
+  low: unknown,
+  high: unknown,
+  isLong: boolean,
+  targetPx: number,
+): {zone: [number, number]; price: number} | null => {
+  const zone = zoneOf(low, high);
+  if (zone === null) return null;
+  const price = isLong ? zone[0] : zone[1];
+  return (isLong ? price > targetPx : price < targetPx) ? {zone, price} : null;
+};
+
+/**
  * A row that is not a stock pick by design: an options or spread idea (legs), the model portfolio,
  * or a neutral view. Web leaves these out of the picks as well, so they are not counted as dropped.
  */
@@ -406,6 +423,12 @@ const closedStatus = (exitPrice: number | null, reason: unknown): string =>
  * A row is dropped whole, never shown half filled. The server sends no live price, and none is
  * made up: `cmp` is null, and `ref_price` (the entry zone's midpoint, or the exit price once
  * closed) is what the row's own figures are read at.
+ *
+ * What backend-go 5295af0e added is read as web's 4105264b maps it, each part kept only when it can
+ * be read and none of it a reason to drop the row, so a row without it reads as before: target 2
+ * (`target2Of`), the stored entry time and price, a closed call's exit time, and when target 2 was
+ * reached. Web reads an open call's fill, exit and target 2 touch live from candles; this reader
+ * has only what the server stored once the day was finalised.
  */
 function readRecommendation(value: unknown): Recommendation | null {
   if (typeof value !== 'object' || value === null) return null;
@@ -444,6 +467,11 @@ function readRecommendation(value: unknown): Recommendation | null {
   const horizon = typeof row.horizon === 'string' ? row.horizon : '';
   const modifyZone = zoneOf(row.modify_min, row.modify_max);
   const pnl = row.realized_pnl;
+  const target2 = target2Of(row.target2_min, row.target2_max, isLong, targetPx);
+  const enteredAt = stampOf(row.entry_at);
+  const entryPrice = isPrice(row.entry_price) ? row.entry_price : null;
+  const exitedAt = isClosed ? stampOf(row.exit_at) : null;
+  const target2HitAt = target2 === null ? null : stampOf(row.target2_hit_at);
 
   return {
     id,
@@ -478,6 +506,13 @@ function readRecommendation(value: unknown): Recommendation | null {
     ...(exitPrice === null ? {} : {resolved_price: exitPrice}),
     modify_zone: modifyZone,
     modify_note: textOf(row.modify_note),
+    ...(target2 === null
+      ? {}
+      : {target2_zone: target2.zone, target2_price: target2.price}),
+    ...(enteredAt === null ? {} : {entered_at: enteredAt}),
+    ...(entryPrice === null ? {} : {entry_price: entryPrice}),
+    ...(exitedAt === null ? {} : {exited_at: exitedAt}),
+    ...(target2HitAt === null ? {} : {target2_hit_at: target2HitAt}),
   };
 }
 

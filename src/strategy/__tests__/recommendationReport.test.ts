@@ -133,6 +133,22 @@ test('closedTradeReturnPct is null rather than a made-up figure when the prices 
     closedTradeReturnPct({...trade, entry_min: 0, entry_price: -5}),
     null,
   );
+  // An exit that is no price is no figure, not -100% (or +100% for a short).
+  assert.equal(closedTradeReturnPct({...trade, resolved_price: 0}), null);
+  assert.equal(
+    closedTradeReturnPct({...trade, direction: 'short', resolved_price: 0}),
+    null,
+  );
+  assert.equal(closedTradeReturnPct({...trade, resolved_price: -5}), null);
+  assert.equal(
+    closedTradeReturnPct({...trade, resolved_price: Number.NaN}),
+    null,
+  );
+  // A stored figure still stands whatever the exit says.
+  assert.equal(
+    closedTradeReturnPct({...trade, resolved_price: 0, return_pct: -2.1}),
+    -2.1,
+  );
 });
 
 test('closedTradeEntry is the stored fill when there is one, else the entry zone low, else none', () => {

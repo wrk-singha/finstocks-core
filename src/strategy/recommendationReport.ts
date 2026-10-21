@@ -40,9 +40,10 @@ export const closedTradeEntry = (
 /**
  * A closed trade's return in %: the figure stored when it was finalised, else the move from its
  * entry (`closedTradeEntry`) to its exit, a short's sign flipped. Null when neither can be read: no
- * exit price, or no entry to measure from (the report sends 0 for none), so a row never shows a
- * return its prices cannot back. Web's `closedTradeReturnPct` (f72ddef6), except that a short is
- * read whatever its case, as the row's Short tag is.
+ * exit price, an exit that is not a positive price (a 0 would read as -100%), or no entry to
+ * measure from (the report sends 0 for none), so a row never shows a return its prices cannot
+ * back. Web's `closedTradeReturnPct` (f72ddef6), except that a short is read whatever its case, as
+ * the row's Short tag is, and an exit of 0 or below is no figure.
  */
 export const closedTradeReturnPct = (
   t: Pick<
@@ -52,7 +53,7 @@ export const closedTradeReturnPct = (
 ): number | null => {
   if (isFiniteNumber(t.return_pct)) return t.return_pct;
   const entry = closedTradeEntry(t);
-  if (entry === null || !isFiniteNumber(t.resolved_price)) return null;
+  if (entry === null || !isPositive(t.resolved_price)) return null;
   const move = ((t.resolved_price - entry) / entry) * 100;
   return isShortDirection(t.direction) ? -move : move;
 };

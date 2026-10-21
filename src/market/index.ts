@@ -493,10 +493,14 @@ export {
   isUsableCandle,
   liveClosedOutcome,
   liveResolution,
+  liveResolutionOver,
+  mergeResolverCandles,
   outcomeOf,
+  resolverCandles,
+  resolverCandlesFrom,
   withLiveResolution,
 } from './recommendationView.ts';
-export type {ClosedOutcome} from './recommendationView.ts';
+export type {ClosedOutcome, ResolverCandles} from './recommendationView.ts';
 
 export {rankByTopTraded} from './topTraded.ts';
 export type {RankedUnderlying} from './topTraded.ts';

@@ -2,12 +2,20 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
 import type {Recommendation} from '../../types/market.ts';
-import type {RecommendationCandle} from '../recommendationResolve.ts';
+import {
+  type RecommendationCandle,
+  type RecommendationResolution,
+  resolveRecommendation,
+} from '../recommendationResolve.ts';
 import {
   isUsableCandle,
   liveClosedOutcome,
   liveResolution,
+  liveResolutionOver,
+  mergeResolverCandles,
   outcomeOf,
+  resolverCandles,
+  resolverCandlesFrom,
   withLiveResolution,
 } from '../recommendationView.ts';
 
@@ -320,4 +328,172 @@ test('past valid_until a filled pick expires at its last close, and an unfilled 
   assert.equal(never.exited_at, undefined);
   assert.equal(never.ref_basis, 'entry_mid');
   assert.equal(liveClosedOutcome(never), 'not_triggered');
+});
+
+test('bars read once: the unreadable dropped, one per minute (its last copy given), oldest first', () => {
+  const read = resolverCandles([
+    bar(3, 101, 102, 100, 101),
+    bar(1, 100, 101, 0, 100),
+    bar(1, 100, 101, 99, 100),
+    bar(2, 100, 101, 99.5, 100.5),
+    bar(1, 100, 103, 98, 102),
+  ]);
+  assert.deepEqual(read, [
+    bar(1, 100, 103, 98, 102),
+    bar(2, 100, 101, 99.5, 100.5),
+    bar(3, 101, 102, 100, 101),
+  ]);
+  assert.deepEqual(resolverCandles([]), []);
+});
+
+test('a series kept from a minute on, and two series as one, the later one taking a minute both carry', () => {
+  const series = resolverCandles(
+    [0, 1, 2, 3, 5].map(m => bar(m, 100, 101, 99, 100)),
+  );
+  // From before the first bar: the same series, not a copy.
+  assert.equal(resolverCandlesFrom(series, T0 - 600), series);
+  assert.deepEqual(
+    resolverCandlesFrom(series, T0 + 120).map(c => c.t),
+    [T0 + 120, T0 + 180, T0 + 300],
+  );
+  // Between two bars: from the next one.
+  assert.deepEqual(
+    resolverCandlesFrom(series, T0 + 240).map(c => c.t),
+    [T0 + 300],
+  );
+  assert.deepEqual(resolverCandlesFrom(series, T0 + 301), []);
+
+  // The days before (asked once) under today's session (polled): a minute both carry is today's.
+  const earlier = resolverCandles([
+    bar(0, 100, 101, 99, 100),
+    bar(1, 100, 101, 99, 100),
+    bar(2, 100, 101, 99, 100.2),
+    bar(4, 100, 101, 99, 100),
+  ]);
+  const later = resolverCandles([
+    bar(2, 100, 101.5, 98, 101),
+    bar(3, 101, 102, 100, 101.5),
+    bar(6, 101, 102, 100, 101.5),
+  ]);
+  const merged = mergeResolverCandles(earlier, later);
+  assert.deepEqual(merged, resolverCandles([...earlier, ...later]));
+  assert.deepEqual(
+    merged.map(c => c.t),
+    [0, 1, 2, 3, 4, 6].map(m => T0 + m * 60),
+  );
+  assert.equal(merged[2]?.c, 101);
+  // Either side empty: the other, as it is.
+  const none = resolverCandles([]);
+  assert.equal(mergeResolverCandles(earlier, none), earlier);
+  assert.equal(mergeResolverCandles(none, later), later);
+  // Wholly before, or wholly after.
+  assert.deepEqual(
+    mergeResolverCandles(
+      resolverCandlesFrom(earlier, T0),
+      resolverCandles([bar(9, 100, 101, 99, 100)]),
+    ).map(c => c.t),
+    [0, 1, 2, 4, 9].map(m => T0 + m * 60),
+  );
+  assert.deepEqual(
+    mergeResolverCandles(
+      resolverCandles([bar(9, 100, 101, 99, 100)]),
+      earlier,
+    ).map(c => c.t),
+    [0, 1, 2, 4, 9].map(m => T0 + m * 60),
+  );
+});
+
+/**
+ * The live resolution as it read its bars before they could be read once: every bar given, the
+ * unreadable dropped, one per minute (its last copy), sorted, and the whole run handed to the
+ * resolver, which keeps only the pick's window itself.
+ */
+function resolvedFromAllBars(
+  rec: Recommendation,
+  candles: readonly RecommendationCandle[],
+  now: number,
+): RecommendationResolution | null {
+  if (rec.status !== 'active') return null;
+  const publishedAt = Date.parse(rec.published_at) / 1000;
+  const validUntil = Date.parse(rec.valid_until) / 1000;
+  const byMinute = new Map<number, RecommendationCandle>();
+  for (const c of candles) if (isUsableCandle(c)) byMinute.set(c.t, c);
+  const bars = [...byMinute.values()].sort((a, b) => a.t - b.t);
+  const firstMinute = Math.floor(publishedAt / 60) * 60;
+  if (!bars.some(c => c.t >= firstMinute && c.t <= validUntil)) return null;
+  return resolveRecommendation({
+    direction: rec.direction,
+    kind: rec.kind === 'commodity' ? 'commodity' : 'equity',
+    entry: [rec.entry_min, rec.entry_max],
+    stop: rec.stop_loss_zone,
+    target: rec.target_zone,
+    target2: rec.target2_zone,
+    publishedAt,
+    validUntil,
+    now: now / 1000,
+    candles: bars,
+  });
+}
+
+test('over bars read once, kept from the publication minute and merged, every pick resolves as from all its bars', () => {
+  // A seeded walk: the same 400 cases on every run.
+  let seed = 7;
+  const random = () => {
+    seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+    return seed / 2_147_483_648;
+  };
+  const outcomes = new Set<string>();
+  for (let n = 0; n < 400; n += 1) {
+    const raw: RecommendationCandle[] = [];
+    let price = 100;
+    for (let m = -30; m < 150; m += 1) {
+      if (random() < 0.15) continue; // a gap
+      price += (random() - 0.5) * 3;
+      const high = price + random() * 2;
+      const low = price - random() * 2;
+      raw.push(bar(m, price, high, low, price + (random() - 0.5)));
+      // Now and then a minute sent twice, or a broken bar.
+      if (random() < 0.05) raw.push(bar(m, price, high + 1, low - 1, price));
+      if (random() < 0.03) raw.push(bar(m, 0, 0, 0, 0));
+    }
+    const isShort = random() < 0.4;
+    const rec = pick({
+      direction: isShort ? 'short' : 'long',
+      // Now and then published after the last bar: nothing is known.
+      published_at: iso(
+        T0 + (random() < 0.05 ? 160 : Math.floor(random() * 40)) * 60 + 17,
+      ),
+      valid_until: iso(T0 + 3600 + Math.floor(random() * 2400)),
+      ...(isShort
+        ? {
+            stop_loss_zone: [105, 106],
+            target_zone: [90, 92],
+            target2_zone: [84, 86],
+          }
+        : {}),
+    });
+    const now = (T0 + Math.floor(random() * 9000)) * 1000;
+    const cut = Math.floor(random() * raw.length);
+    const earlier = resolverCandles(raw.slice(0, cut));
+    const later = resolverCandles(raw.slice(cut));
+    const firstMinute = Math.floor(Date.parse(rec.published_at) / 60_000) * 60;
+    const kept = mergeResolverCandles(
+      resolverCandlesFrom(earlier, firstMinute - Math.floor(random() * 5) * 60),
+      later,
+    );
+    const expected = resolvedFromAllBars(rec, raw, now);
+    assert.deepEqual(liveResolutionOver(rec, kept, now), expected);
+    assert.deepEqual(liveResolution(rec, raw, now), expected);
+    outcomes.add(expected?.outcome ?? 'unknown');
+  }
+  // The walk reaches every outcome, so the sameness is not of one kind of case only.
+  assert.deepEqual([...outcomes].sort(), [
+    'expired',
+    'not_triggered',
+    'open',
+    'stop',
+    'target',
+    'unknown',
+    'waiting',
+  ]);
 });

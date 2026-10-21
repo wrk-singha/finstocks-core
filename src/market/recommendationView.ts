@@ -52,6 +52,89 @@ export const isUsableCandle = (c: RecommendationCandle): boolean =>
   isPrice(c.c) &&
   c.l <= c.h;
 
+declare const readOnce: unique symbol;
+
+/**
+ * Minute bars as the live resolution reads them: usable ones only (`isUsableCandle`), one per
+ * minute, ascending. Made by `resolverCandles` and kept so by `resolverCandlesFrom` and
+ * `mergeResolverCandles`, so a caller holding a long series reads and sorts it once per answer,
+ * and `liveResolutionOver` then walks only a pick's own window of it, however often it is asked.
+ */
+export type ResolverCandles = readonly RecommendationCandle[] & {
+  readonly [readOnce]: true;
+};
+
+const asRead = (bars: readonly RecommendationCandle[]): ResolverCandles =>
+  bars as ResolverCandles;
+
+/**
+ * `candles` (any order) as the live resolution reads them: a bar that cannot be read dropped, and
+ * one bar per minute, its last usable copy given. Read twice, a fill bar that dipped to the stop
+ * would be its own next bar and close the call on itself.
+ */
+export function resolverCandles(
+  candles: readonly RecommendationCandle[],
+): ResolverCandles {
+  const byMinute = new Map<number, RecommendationCandle>();
+  for (const c of candles) if (isUsableCandle(c)) byMinute.set(c.t, c);
+  return asRead([...byMinute.values()].sort((a, b) => a.t - b.t));
+}
+
+/** The index of the first bar at or after `t` (strictly after, with `isAfter`); the length when none is. */
+function indexFrom(bars: ResolverCandles, t: number, isAfter = false): number {
+  let low = 0;
+  let high = bars.length;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    const at = bars[mid]?.t ?? Number.POSITIVE_INFINITY;
+    if (isAfter ? at <= t : at < t) low = mid + 1;
+    else high = mid;
+  }
+  return low;
+}
+
+/**
+ * The bars from `t` (epoch seconds) on: all a caller keeps of a series for picks published from
+ * then, since no bar before a pick's publication minute is its. The same array when none is before.
+ */
+export function resolverCandlesFrom(
+  bars: ResolverCandles,
+  t: number,
+): ResolverCandles {
+  const from = indexFrom(bars, t);
+  return from === 0 ? bars : asRead(bars.slice(from));
+}
+
+/**
+ * Two series as one, a minute both carry taking `later`'s bar (a later answer's minute may have
+ * moved on since): the days before today, asked once, under today's session, polled. Everything
+ * before `later`'s first minute is `earlier`'s alone and copied as it is; nothing is sorted again.
+ */
+export function mergeResolverCandles(
+  earlier: ResolverCandles,
+  later: ResolverCandles,
+): ResolverCandles {
+  const first = later[0];
+  if (first === undefined) return earlier;
+  if (earlier.length === 0) return later;
+  let i = indexFrom(earlier, first.t);
+  let j = 0;
+  const out = earlier.slice(0, i);
+  while (i < earlier.length || j < later.length) {
+    const a = earlier[i];
+    const b = later[j];
+    if (b === undefined || (a !== undefined && a.t < b.t)) {
+      if (a !== undefined) out.push(a);
+      i += 1;
+    } else {
+      if (a?.t === b.t) i += 1;
+      out.push(b);
+      j += 1;
+    }
+  }
+  return asRead(out);
+}
+
 /**
  * The live resolution of an open pick from `candles` (any order) at `now` (epoch ms), or null when
  * the candles say nothing about it: the pick is not open on the server, a stamp cannot be read, or
@@ -60,11 +143,24 @@ export const isUsableCandle = (c: RecommendationCandle): boolean =>
  *
  * The caller hands over the bars since the pick was published, all of them: a run missing its
  * start can fill the pick on a later bar than it did. A minute given more than once is read once,
- * as its last usable copy.
+ * as its last usable copy (`resolverCandles`).
  */
 export function liveResolution(
   rec: Recommendation,
   candles: readonly RecommendationCandle[],
+  now: number,
+): RecommendationResolution | null {
+  return liveResolutionOver(rec, resolverCandles(candles), now);
+}
+
+/**
+ * `liveResolution` over bars already read (`resolverCandles`): nothing is filtered or sorted again,
+ * and only the bars from the pick's publication minute to its valid_until are walked, which are all
+ * the rules read. The same answer as `liveResolution` gives for the same bars.
+ */
+export function liveResolutionOver(
+  rec: Recommendation,
+  bars: ResolverCandles,
   now: number,
 ): RecommendationResolution | null {
   if (rec.status !== 'active') return null;
@@ -76,12 +172,11 @@ export function liveResolution(
   if (!Number.isFinite(publishedAt) || !Number.isFinite(validUntil))
     return null;
   const firstMinute = Math.floor(publishedAt / 60) * 60;
-  // One bar per minute, its last usable copy: read twice, a fill bar that dipped to the stop would
-  // be its own next bar and close the call on itself.
-  const byMinute = new Map<number, RecommendationCandle>();
-  for (const c of candles) if (isUsableCandle(c)) byMinute.set(c.t, c);
-  const bars = [...byMinute.values()].sort((a, b) => a.t - b.t);
-  if (!bars.some(c => c.t >= firstMinute && c.t <= validUntil)) return null;
+  const window = bars.slice(
+    indexFrom(bars, firstMinute),
+    indexFrom(bars, validUntil, true),
+  );
+  if (window.length === 0) return null;
   return resolveRecommendation({
     direction: rec.direction,
     kind: rec.kind === 'commodity' ? 'commodity' : 'equity',
@@ -92,7 +187,7 @@ export function liveResolution(
     publishedAt,
     validUntil,
     now: now / 1000,
-    candles: bars,
+    candles: window,
   });
 }
 

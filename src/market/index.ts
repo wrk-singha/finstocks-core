@@ -235,6 +235,9 @@ export {
 } from './marketHours.ts';
 export type {MarketMoment} from './marketHours.ts';
 
+export {treemap} from './treemap.ts';
+export type {TreemapRect} from './treemap.ts';
+
 export {
   buildFuturesSymbol,
   FUTURES_SYMBOL_RE,

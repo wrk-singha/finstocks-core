@@ -3,6 +3,7 @@ import {test} from 'node:test';
 
 import type {FnoTradeIdea, OptionLeg} from '../../types/fno.ts';
 import {
+  BSE_THURSDAY_EXPIRY_FROM,
   costDrag,
   daysToExpiry,
   describeStructure,
@@ -214,6 +215,69 @@ test('index expiries follow the Tuesday weekly/monthly cadence', () => {
     nextIndexExpiry('NIFTY', new Date('2026-11-18T05:00:00Z')),
     '2026-11-23',
   );
+});
+
+// 10:30 IST, inside the session, and 16:30 IST, after the close, on an IST date.
+const am = (day: string) => new Date(`${day}T05:00:00Z`);
+const pm = (day: string) => new Date(`${day}T11:00:00Z`);
+const next = nextIndexExpiry;
+
+test('SENSEX expires weekly on Thursday', () => {
+  // Thu 22 Oct 2026, in the session: today; after the close, the next Thursday.
+  assert.equal(next('SENSEX', am('2026-10-22')), '2026-10-22');
+  assert.equal(next('sensex', pm('2026-10-22')), '2026-10-29');
+  // From a Friday, the coming Thursday.
+  assert.equal(next('SENSEX', am('2026-09-11')), '2026-09-17');
+});
+
+test('a Thursday holiday settles BSE expiries on the trading day before', () => {
+  // Thu 28 May 2026 is a holiday: that week's SENSEX settles on Wed 27 May...
+  assert.equal(next('SENSEX', am('2026-05-25')), '2026-05-27');
+  assert.equal(next('SENSEX', am('2026-05-27')), '2026-05-27');
+  // ...and on the holiday itself it has passed, so the next series is the answer.
+  assert.equal(next('SENSEX', am('2026-05-28')), '2026-06-04');
+  // Thu 2 Oct 2025 (a holiday) moves to Wed 1 Oct.
+  assert.equal(next('SENSEX', am('2025-09-29')), '2025-10-01');
+  // Thu 26 Mar 2026, March's last Thursday, is a holiday: BANKEX settles on Wed 25 Mar.
+  assert.equal(next('BANKEX', am('2026-03-02')), '2026-03-25');
+  // May's monthly settled on Wed 27 May, so from the holiday on it is June's last Thursday.
+  assert.equal(next('BANKEX', am('2026-05-28')), '2026-06-25');
+});
+
+test("BANKEX expires monthly on the month's last Thursday, with no weeklies", () => {
+  // September 2026 ends on a Wednesday: its last Thursday is the 24th.
+  assert.equal(next('BANKEX', am('2026-09-11')), '2026-09-24');
+  // Thu 22 Oct 2026 is a SENSEX expiry, not a BANKEX one: October's is the 29th.
+  assert.equal(next('BANKEX', am('2026-10-22')), '2026-10-29');
+  assert.equal(next('BANKEX', am('2026-10-29')), '2026-10-29');
+  // After the close on its expiry day, the next month's last Thursday.
+  assert.equal(next('BANKEX', pm('2026-10-29')), '2026-11-26');
+  // December 2026 ends on a Thursday, which is its expiry.
+  assert.equal(next('BANKEX', am('2026-12-01')), '2026-12-31');
+});
+
+test('BSE expiries are worked out from 1 Sep 2025, not before', () => {
+  assert.equal(BSE_THURSDAY_EXPIRY_FROM, '2025-09-01');
+  // Fri 29 Aug 2025: BSE still expired on its older weekday, which core does not encode.
+  assert.equal(next('SENSEX', am('2025-08-29')), null);
+  assert.equal(next('BANKEX', am('2025-08-29')), null);
+  // After Sunday 31 Aug's close the search starts on Mon 1 Sep, under the Thursday rule.
+  assert.equal(next('SENSEX', pm('2025-08-31')), '2025-09-04');
+  assert.equal(next('SENSEX', am('2025-09-01')), '2025-09-04');
+  // September 2025 ends on a Tuesday: its last Thursday is the 25th.
+  assert.equal(next('BANKEX', am('2025-09-01')), '2025-09-25');
+});
+
+test("NSE's Tuesday expiries are unchanged beside BSE's", () => {
+  // The day SENSEX expires, NIFTY's weekly is next Tuesday and BANKNIFTY's monthly the last one.
+  assert.equal(next('NIFTY', am('2026-10-22')), '2026-10-27');
+  assert.equal(next('BANKNIFTY', am('2026-10-22')), '2026-10-27');
+  assert.equal(next('FINNIFTY', am('2026-09-11')), '2026-09-29');
+  assert.equal(next('MIDCPNIFTY', am('2026-09-11')), '2026-09-29');
+  // NSE has no start date: before 1 Sep 2025 it still answers on the Tuesday rule, as it did.
+  assert.equal(next('NIFTY', am('2025-08-29')), '2025-09-02');
+  // Other BSE indices list no options.
+  assert.equal(next('SNSX50', am('2026-10-22')), null);
 });
 
 const structures = {

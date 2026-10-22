@@ -516,6 +516,7 @@ export {
 export type {ExpiryChip, ExpiryChipKind} from './expiryKit.ts';
 
 export {
+  BSE_THURSDAY_EXPIRY_FROM,
   costDrag,
   daysToExpiry,
   describeStructure,

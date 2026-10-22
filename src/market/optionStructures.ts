@@ -516,7 +516,57 @@ const MONTHLY_EXPIRY_UNDERLYINGS = [
   'NIFTYNXT50',
 ];
 
-/** Latest trading day at or before `date`, so a holiday expiry settles early. */
+/**
+ * BSE: from this date its index derivatives expire on a Thursday. SEBI's split
+ * of expiry days took effect on 1 Sep 2025, NSE moving to Tuesday and BSE to
+ * Thursday. Before it BSE expired on other weekdays (SENSEX on Tuesday through
+ * 2025, on Friday before that), which is not worked out here: a search that
+ * starts before this date has no BSE answer.
+ */
+export const BSE_THURSDAY_EXPIRY_FROM = '2025-09-01';
+const BSE_EXPIRY_WEEKDAY = 4;
+// The Nov-2024 cap leaves BSE one weekly benchmark, SENSEX; BANKEX lists
+// monthlies only.
+const BSE_WEEKLY_EXPIRY_UNDERLYINGS = ['SENSEX'];
+const BSE_MONTHLY_EXPIRY_UNDERLYINGS = ['BANKEX'];
+
+/** How an index underlying expires: on which weekday, how often, and from when the rule holds. */
+interface IndexExpiryRule {
+  weekday: number;
+  weekly: boolean;
+  /** The first day the rule covers (YYYY-MM-DD), or null when it is the only rule known. */
+  from: string | null;
+}
+
+function indexExpiryRule(symbol: string): IndexExpiryRule | null {
+  if (WEEKLY_EXPIRY_UNDERLYINGS.includes(symbol)) {
+    return {weekday: EXPIRY_WEEKDAY, weekly: true, from: null};
+  }
+  if (MONTHLY_EXPIRY_UNDERLYINGS.includes(symbol)) {
+    return {weekday: EXPIRY_WEEKDAY, weekly: false, from: null};
+  }
+  if (BSE_WEEKLY_EXPIRY_UNDERLYINGS.includes(symbol)) {
+    return {
+      weekday: BSE_EXPIRY_WEEKDAY,
+      weekly: true,
+      from: BSE_THURSDAY_EXPIRY_FROM,
+    };
+  }
+  if (BSE_MONTHLY_EXPIRY_UNDERLYINGS.includes(symbol)) {
+    return {
+      weekday: BSE_EXPIRY_WEEKDAY,
+      weekly: false,
+      from: BSE_THURSDAY_EXPIRY_FROM,
+    };
+  }
+  return null;
+}
+
+/**
+ * Latest trading day at or before `date`, so a holiday expiry settles early.
+ * One holiday table serves both exchanges: BSE's equity and equity-derivative
+ * trading holidays are the same days as NSE's.
+ */
 function settlementDay(date: Date): Date {
   let day = date;
   for (let i = 0; i < 10 && !isTradingDay(day); i++)
@@ -524,49 +574,52 @@ function settlementDay(date: Date): Date {
   return day;
 }
 
-/** First EXPIRY_WEEKDAY at or after `from`. */
-function nextWeekday(from: Date): Date {
-  return addMarketDays(from, (EXPIRY_WEEKDAY - from.getUTCDay() + 7) % 7);
+/** First `weekday` at or after `from`. */
+function nextWeekday(from: Date, weekday: number): Date {
+  return addMarketDays(from, (weekday - from.getUTCDay() + 7) % 7);
 }
 
-/** Last EXPIRY_WEEKDAY of the month `date` falls in. */
-function lastWeekdayOfMonth(date: Date): Date {
+/** Last `weekday` of the month `date` falls in. */
+function lastWeekdayOfMonth(date: Date, weekday: number): Date {
   const monthEnd = new Date(
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0),
   );
-  return addMarketDays(
-    monthEnd,
-    -((monthEnd.getUTCDay() - EXPIRY_WEEKDAY + 7) % 7),
-  );
+  return addMarketDays(monthEnd, -((monthEnd.getUTCDay() - weekday + 7) % 7));
 }
 
 /**
  * Nearest live expiry for an index underlying, as YYYY-MM-DD. Null for symbols
  * with no index options (INDIA VIX, NIFTY 100) rather than a guessed date.
  *
+ * NSE's indices expire on Tuesday (NIFTY weekly, the rest on the month's last
+ * Tuesday), BSE's on Thursday (SENSEX weekly, BANKEX on the month's last
+ * Thursday). A BSE search that starts before `BSE_THURSDAY_EXPIRY_FROM` is
+ * null: BSE's older weekdays are not worked out.
+ *
  * Once the session has closed on expiry day the nearest contract is the next
  * one, so the search starts tomorrow — otherwise the strip would keep claiming
- * "expires today" all evening.
+ * "expires today" all evening. BSE's derivatives close at 15:30 as NSE's do.
  */
 export function nextIndexExpiry(
   underlying: string,
   now: Date = new Date(),
 ): string | null {
-  const symbol = underlying.toUpperCase();
-  const weekly = WEEKLY_EXPIRY_UNDERLYINGS.includes(symbol);
-  if (!weekly && !MONTHLY_EXPIRY_UNDERLYINGS.includes(symbol)) return null;
+  const rule = indexExpiryRule(underlying.toUpperCase());
+  if (rule === null) return null;
 
   const today = marketToday(now);
   const from =
     marketMinutesNow(now) > SESSION_CLOSE ? addMarketDays(today, 1) : today;
+  if (rule.from !== null && marketDateString(from) < rule.from) return null;
 
   // Both cadences can settle before their nominal day, so a holiday-shifted
   // expiry that has already passed rolls to the following series.
   for (let i = 0; i < 3; i++) {
-    const nominal = weekly
-      ? addMarketDays(nextWeekday(from), i * 7)
+    const nominal = rule.weekly
+      ? addMarketDays(nextWeekday(from, rule.weekday), i * 7)
       : lastWeekdayOfMonth(
           new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + i, 1)),
+          rule.weekday,
         );
     const settled = settlementDay(nominal);
     if (settled.getTime() >= from.getTime()) return marketDateString(settled);

@@ -63,6 +63,10 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.10.2** — `nextIndexExpiry` knows BSE: SENSEX expires weekly on Thursday and BANKEX on the
+  month's last Thursday, from 1 Sep 2025 (`BSE_THURSDAY_EXPIRY_FROM`, SEBI's split of NSE to
+  Tuesday and BSE to Thursday), a Thursday holiday settling on the trading day before on the
+  shared holiday table. A BSE search that starts before that date is null. NSE is unchanged.
 - **v0.10.1** — the market map's model, as web dev builds it: `sectorHeatmap` (periods 1D–1Y with
   their colour steps, the sources from Nifty 50 to the top 500 and lists, size and colour modes,
   NSE-sector grouping from the industry tree via `sectorOfIndustry`, market-cap weighted sector

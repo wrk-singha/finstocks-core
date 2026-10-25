@@ -63,6 +63,11 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.11.1** — `listStamp` (`@finstocks/core/market`): when a list's prices are from, as web's
+  `smartListStamp` words it, in parts (`ListStamp`): in session the read's own time, a read from
+  today's pre-open auction as the pre-open, else the last session's close unless the read is older
+  than that session or than its last minute (`CLOSE_FRAME_MS`, the 15:28 frame). Judged on the
+  clock, not on when the list was fetched.
 - **v0.11.0** — the screener's ready-made screens as web files them (feat/screener-upstox):
   `PREBUILT_SCREENS` is web's list of 67, with each screen's `group` (`PrebuiltGroup`) and `theme`
   (`PrebuiltTheme`) and the themes per group in `PREBUILT_THEMES`; the 33 screens core held take

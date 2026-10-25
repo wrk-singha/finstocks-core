@@ -86,5 +86,9 @@ export {CHAT_CATEGORIES, chatCategoryLabels} from './chatCategories.ts';
 export type {ChatCategoryOption} from './chatCategories.ts';
 export {AGENT_STATUS_MESSAGES} from './agentStatusMessages.ts';
 export {CORE_LESSONS, LESSONS, lessonsForRoute} from './lessons.ts';
-export {PREBUILT_SCREENS} from './prebuiltScreens.ts';
-export type {PrebuiltScreen} from './prebuiltScreens.ts';
+export {PREBUILT_SCREENS, PREBUILT_THEMES} from './prebuiltScreens.ts';
+export type {
+  PrebuiltGroup,
+  PrebuiltScreen,
+  PrebuiltTheme,
+} from './prebuiltScreens.ts';

@@ -63,6 +63,15 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.11.0** — the screener's ready-made screens as web files them (feat/screener-upstox):
+  `PREBUILT_SCREENS` is web's list of 67, with each screen's `group` (`PrebuiltGroup`) and `theme`
+  (`PrebuiltTheme`) and the themes per group in `PREBUILT_THEMES`; the 33 screens core held take
+  web's names and blurbs. The screener home's rules move here from web's `screenerHome`
+  (`@finstocks/core/screener`): `prebuiltScreenState`, `screenFields` and `footerFields` for a
+  card's footer, `matchesQuery` and `searchScreens`, `stockScreenKey(Of)` (what a screen asks, so a
+  column or a sort keeps a preset's name), `uniqueName`, `isBookmarkCopy`, `latestMatch`,
+  `splitFilterText`, `rawCondition(Parts)` for a field the catalogue cannot name, and
+  `describeSavedScreen`/`savedScreenParts`.
 - **v0.10.2** — `nextIndexExpiry` knows BSE: SENSEX expires weekly on Thursday and BANKEX on the
   month's last Thursday, from 1 Sep 2025 (`BSE_THURSDAY_EXPIRY_FROM`, SEBI's split of NSE to
   Tuesday and BSE to Thursday), a Thursday holiday settling on the trading day before on the

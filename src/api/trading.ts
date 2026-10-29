@@ -4,6 +4,8 @@ import type {BacktestAnalysisResponse} from '../types/backtestAnalysis.ts';
 import type {FnoChainFallback, FnoExpiries} from '../types/fno.ts';
 import type {TopTradedFutures} from '../types/futures.ts';
 import type {
+  ContractBars,
+  ContractSeries,
   GetGraphDataRequest,
   GraphDataPoint,
   LastPrices,
@@ -213,6 +215,12 @@ export interface GraphDataQuery extends GetGraphDataRequest {
    * graph.go; a backend without it answers the plain period.
    */
   page?: GraphDataPage;
+  /**
+   * Asks for each contract's open interest per bar and its previous session's (`oi`, `poi`), for
+   * the F&O heatmap's replay. The server keys its cache on it, so a request without it keeps the
+   * key it had before the flag existed (backend `graph.go` graphDataCacheKey).
+   */
+  includeOI?: boolean;
 }
 
 export interface GraphDataPage {
@@ -326,6 +334,74 @@ export const parseGraphPrevCloses = (raw: unknown): Record<string, number> => {
   return out;
 };
 
+/**
+ * Futures contracts' closes with each bar's open interest, still columnar, and each one's
+ * previous-session close and OI (`pc`, `poi`), keyed as the request spelt them, through either
+ * wrapper. A series without its `t` and `c` columns (the older array shape, an empty body) is
+ * left out rather than landing as a contract with no bars.
+ */
+export const parseContractBars = (raw: unknown): ContractBars => {
+  const out: ContractBars = {};
+  const map = graphSeriesMap(raw);
+  if (!map) return out;
+  for (const [symbol, series] of Object.entries(map)) {
+    if (!series || typeof series !== 'object' || Array.isArray(series)) {
+      continue;
+    }
+    const {t, c, oi, pc, poi} = series as Partial<RawGraphSeries>;
+    if (!Array.isArray(t) || !Array.isArray(c)) continue;
+    const contract: ContractSeries = {t, c};
+    if (Array.isArray(oi)) contract.oi = oi;
+    if (typeof pc === 'number') contract.pc = pc;
+    if (typeof poi === 'number') contract.poi = poi;
+    out[symbol] = contract;
+  }
+  return out;
+};
+
+/** One contract-bars read: every batch's contracts merged, and whether a batch came back empty. */
+export interface ContractBarsRead {
+  bars: ContractBars;
+  /** A batch came back with none of its contracts: a failed read, or futures that had not listed yet. */
+  partial: boolean;
+}
+
+const isEmptyBatch = (bars: ContractBars | undefined): boolean =>
+  bars === undefined || Object.keys(bars).length === 0;
+
+/**
+ * The contracts of every batch as one read, from each batch's first answer and a way to ask one
+ * again. The server answers a failed contract read with an empty body and a 200, the same as a
+ * batch of futures that had not listed yet. Every batch empty is a failed read, left to the
+ * query's own retry. A batch is 26 contracts in name order, so one empty beside full ones is nearly
+ * always a failure too: it is asked once more, and kept and marked if it stays empty or the second
+ * ask fails, without losing the batches that came. No batches at all is an empty read, not a failed
+ * one.
+ */
+export async function contractBarsOf(
+  first: readonly (ContractBars | undefined)[],
+  readAgain: (batch: number) => Promise<ContractBars | undefined>,
+): Promise<ContractBarsRead> {
+  if (first.length === 0) return {bars: {}, partial: false};
+  if (first.every(isEmptyBatch)) {
+    throw new Error('No contract bars in response');
+  }
+  const series = [...first];
+  await Promise.all(
+    series.map(async (bars, i) => {
+      if (!isEmptyBatch(bars)) return;
+      series[i] = await readAgain(i).catch(() => undefined);
+    }),
+  );
+  return {
+    bars: Object.assign(
+      {},
+      ...series.filter(bars => !isEmptyBatch(bars)),
+    ) as ContractBars,
+    partial: series.some(isEmptyBatch),
+  };
+}
+
 const PLACEHOLDER_SYMBOLS = new Set(['CUSTOM_LIST', 'UNKNOWN', 'UNDEFINED']);
 
 /** Drops the sentinel spellings chat cards sometimes carry instead of a real symbol. */
@@ -348,6 +424,7 @@ const graphDataQuery = (params: GraphDataQuery, batch: string[]): string => {
       interval: params.interval ?? '1m',
       isCompare: params.isCompare ? true : undefined,
       include_volume: params.includeVolume ? 1 : undefined,
+      include_oi: params.includeOI ? 1 : undefined,
       max_points:
         params.maxPoints !== undefined && params.maxPoints > 0
           ? params.maxPoints
@@ -683,6 +760,33 @@ export const tradingApi = (http: HttpClient) => ({
         ...pages.map(parseGraphPrevCloses),
       ) as Record<string, number>,
     };
+  },
+
+  /**
+   * Futures contracts' closes with each bar's open interest, still columnar, and each one's
+   * previous-session close and OI (`pc`, `poi`): the F&O heatmap's replay reads its arrays as they
+   * come rather than as a point per bar. Close-only with `include_oi`, every symbol named a
+   * contract (`fno_symbols`) unless the caller names the subset; batched as every graph-data read
+   * is, and `partial` when a batch came back empty (`contractBarsOf`). Web's `getContractBars`.
+   */
+  getContractBars: async (
+    params: GraphDataQuery,
+  ): Promise<ContractBarsRead> => {
+    const paths = graphDataPaths({
+      ...params,
+      closeOnly: true,
+      includeOI: true,
+      fnoSymbols: params.fnoSymbols ?? params.symbols,
+    });
+    const read = (path: string | undefined): Promise<ContractBars> =>
+      path === undefined
+        ? Promise.resolve({})
+        : http
+            .request<unknown>(path, params.hmacToken ? {anonymous: true} : {})
+            .then(parseContractBars);
+    return contractBarsOf(await Promise.all(paths.map(read)), batch =>
+      read(paths[batch]),
+    );
   },
 
   /**

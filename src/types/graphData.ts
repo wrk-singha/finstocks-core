@@ -32,9 +32,34 @@ export interface RawGraphSeries {
   // GraphDataPoint[]; read it with parseGraphPrevCloses. Absent while the backend rolls it out,
   // and for a symbol with no settled session behind it.
   pc?: number;
+  // A contract's open interest at each bar, present only when the request opted in via includeOI
+  // and one of the bars carried it, which only a derivative's do; null where the feed gave a bar
+  // none (backend `news.go` GraphSeries.OI).
+  oi?: (number | null)[];
+  // A contract's open interest at the end of the session before the one its series shows: the
+  // base of that day's OI change. Sent only with includeOI, and absent when unknown.
+  poi?: number;
 }
 
 export type RawStockGraphData = Record<string, RawGraphSeries>;
+
+/**
+ * A futures contract's bars as the F&O heatmap's replay reads them: its closes with each bar's
+ * open interest, still columnar (the replay reads the arrays as they come rather than a point per
+ * bar), and the session before's close and open interest (`pc`, `poi`), the bases that day's
+ * changes are measured from. Read with `parseContractBars`.
+ */
+export interface ContractSeries {
+  t: string[];
+  c: number[];
+  /** Each bar's open interest; null where the feed gave a bar none. Absent when no bar carried one. */
+  oi?: (number | null)[];
+  pc?: number;
+  poi?: number;
+}
+
+/** Keyed by the contract spelling the request used. */
+export type ContractBars = Record<string, ContractSeries>;
 
 // `max` is ours, not model2's — the backend stitches DB history behind its 3y
 // ceiling rather than forwarding the value upstream.

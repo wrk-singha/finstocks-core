@@ -44,10 +44,12 @@ export type {
 } from './chat.ts';
 
 export {
+  contractBarsOf,
   futureExpiries,
   graphDataPaths,
   normalizeOrderType,
   ohlcvStreamPath,
+  parseContractBars,
   parseGraphData,
   parseGraphPrevCloses,
   premiumStreamPath,
@@ -58,6 +60,7 @@ export {
 export type {
   ActivateAutopilotRequest,
   BuyStockPayload,
+  ContractBarsRead,
   CreateBacktestBatchRequest,
   CreateBacktestBatchResponse,
   CreateBacktestRequest,

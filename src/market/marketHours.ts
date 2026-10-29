@@ -1,5 +1,5 @@
 import {holidaysFor} from '../data/holidayTable.ts';
-import {IST} from '../format/index.ts';
+import {IST} from '../format/date.ts';
 import type {MarketSession} from '../types/market.ts';
 
 // NSE regular session: 09:15–15:30 IST, minutes-since-midnight bounds. Exported

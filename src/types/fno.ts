@@ -227,7 +227,8 @@ export interface OptionEntry {
   iv: number;
   delta: number;
   oi: number;
-  prev_oi: number;
+  /** Null for a contract with no previous session (a fresh listing), as web reads the feed. */
+  prev_oi: number | null;
   volume: number;
   stock_name?: string;
   gamma?: number;
@@ -239,6 +240,16 @@ export interface OptionEntry {
   /** The day's move in points, which some socket feeds publish in place of
    *  `prev_close`. `prevCloseOf` reconstructs the close from it. */
   ltp_change?: number;
+  /** Microstructure, present on the snapshot both feeds send and absent from
+   *  the per-contract tick. Optional so a tick-built entry stays valid. */
+  atp?: number;
+  buy_qty?: number;
+  sell_qty?: number;
+  day_high_oi?: number;
+  day_low_oi?: number;
+  best_bid?: number;
+  best_ask?: number;
+  spread_bps?: number;
 }
 
 export interface ChainData {
@@ -319,3 +330,6 @@ export interface FnoExpiries {
   expiries: string[];
   lotSize: number | null;
 }
+
+/** Which F&O book a contract belongs to: an index's, a stock's or a commodity's. */
+export type FnoSegment = 'index' | 'stock' | 'commodity';

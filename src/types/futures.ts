@@ -1,3 +1,5 @@
+import type {FnoSegment} from './fno.ts';
+
 /**
  * A single futures contract as the detail screen and the F&O tab need it.
  *
@@ -43,6 +45,10 @@ export interface TopTradedFutures {
   index: TopTradedContract[];
   stock: TopTradedContract[];
   commodity: TopTradedContract[];
+  /** Every underlying with futures volume, busiest first; the arrays above are each segment's top few. */
+  ranking?: Record<FnoSegment, string[]>;
+  /** False while a fresh server has ranked indices and commodities but not yet stocks. */
+  complete?: boolean;
 }
 
 /** Day statistics for the Performance block. Every field is nullable because

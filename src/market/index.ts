@@ -422,10 +422,28 @@ export {
   withReplayReturns,
 } from './heatReplay.ts';
 export type {
+  ReplayCalendarLimits,
   ReplayFrames,
   ReplayInterval,
   ReplayIntervalSpec,
 } from './heatReplay.ts';
+
+export {
+  arrangeFnoReplay,
+  buildFnoReplay,
+  buildupFrom,
+  fnoReplayFigures,
+} from './fnoHeatReplay.ts';
+export type {
+  FnoBuildup,
+  FnoReplayFigures,
+  FnoReplayFilter,
+  FnoReplayFrames,
+  FnoReplayOrder,
+  FnoReplayShown,
+  FnoReplayTile,
+  FnoReplayWindow,
+} from './fnoHeatReplay.ts';
 
 export {treemap} from './treemap.ts';
 export type {TreemapRect} from './treemap.ts';

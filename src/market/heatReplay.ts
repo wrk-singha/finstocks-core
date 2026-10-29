@@ -55,6 +55,17 @@ export const REPLAY_INTERVALS: readonly ReplayIntervalSpec[] = [
 
 export const DEFAULT_REPLAY_INTERVAL: ReplayInterval = '5m';
 
+/**
+ * A narrower day picker: some bar sizes only, and no day before `earliest`. The F&O heatmap's
+ * replay plays the contracts on the board today, and a month is about as far back as those were
+ * the ones traded (web's `ReplayCalendarLimits`).
+ */
+export interface ReplayCalendarLimits {
+  intervals?: readonly ReplayInterval[];
+  /** The first day that can be picked, `YYYY-MM-DD`. */
+  earliest?: string;
+}
+
 /** An interval's spec; anything unknown reads as 5m. */
 export const replayIntervalOf = (key: ReplayInterval): ReplayIntervalSpec =>
   REPLAY_INTERVALS.find(i => i.key === key) ?? FIVE_MINUTES;
@@ -106,17 +117,18 @@ export function buildReplay(
 }
 
 /** Whether the frames span more than one session. */
-export const spansDays = (frames: ReplayFrames): boolean =>
+export const spansDays = (frames: Pick<ReplayFrames, 'times'>): boolean =>
   frames.times[0]?.slice(0, 10) !==
   frames.times[frames.times.length - 1]?.slice(0, 10);
 
 /**
  * The replay clock at a step: "10:11" from the bar's IST stamp; "16 Oct · 10:11" when the replay
  * spans several sessions; and "16 Oct" alone for daily bars (whose first two stamps share a time
- * of day). `now` only decides whether the year is printed.
+ * of day). `now` only decides whether the year is printed. Any frames on a shared clock (the
+ * market map's, the F&O heatmap's) read it: only the stamps are looked at.
  */
 export function replayClock(
-  frames: ReplayFrames,
+  frames: Pick<ReplayFrames, 'times'>,
   step: number,
   now: Date = new Date(),
 ): string {

@@ -63,6 +63,15 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.12.0** — the F&O heatmap's replay (web 9b642b08 and after). `ScreenRow.text`: a screen's
+  text columns (`fut_symbol`, the most-traded future's name). `GraphDataQuery.includeOI`
+  (`include_oi=1`), `RawGraphSeries.oi`/`poi`, and in `/api` `parseContractBars`,
+  `tradingApi.getContractBars` and `contractBarsOf` (every batch empty is a failed read; one empty
+  beside full ones is asked once more, else kept and marked `partial`). In `/market`
+  `buildFnoReplay`, `buildupFrom`, `fnoReplayFigures` and `arrangeFnoReplay` (frames on a shared
+  clock, the server's build-up rule, figures from pc/poi else the session before, tiles held in the
+  order the window closed in), `ReplayCalendarLimits`, and `replayClock`/`spansDays` reading any
+  frames with stamps. Additive; existing graph-data readers are byte-identical.
 - **v0.11.1** — `listStamp` (`@finstocks/core/market`): when a list's prices are from, as web's
   `smartListStamp` words it, in parts (`ListStamp`): in session the read's own time, a read from
   today's pre-open auction as the pre-open, else the last session's close unless the read is older

@@ -18,7 +18,9 @@ registry after the org transfer. Import paths: `@finstocks/core`, `@finstocks/co
 - `src/market/`, `src/trading/`, `src/strategy/`, `src/screener/`, `src/portfolio/` — the maths,
   one module per concern, each with a colocated `__tests__/*.test.ts`.
 - `src/data/` — static data: brokers (no logos — those are app assets), lot sizes, holidays,
-  stocks, indicators config, wizard steps, lessons, alert channels.
+  stocks, indicators config, wizard steps, lessons, alert channels. One store sits beside it:
+  `holidayTable.ts`, the holiday table every calendar answer reads, which starts as the bundled
+  `HOLIDAYS` and which a client may replace with the backend's (`setHolidayTable`).
 - `src/format/` — number, date, text and market-calendar formatting (IST, hoisted Intl formatters).
 - `src/fundamentals/` — how a filed statement is read: the per-family line schemas and disclosure
   tiers, the Screener-style tables (quarterly results, profit & loss with its trailing twelve
@@ -63,6 +65,15 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.13.0** — the market calendar web runs on. `data/holidayTable.ts`: one holiday table, the
+  bundled `HOLIDAYS` until a client hands it the backend's (`setHolidayTable`, web's validation:
+  an empty year or a date that is not its own is left out, a reply with no IN year is refused);
+  `subscribeHolidayTable`, `holidayTableVersion`, `holidaysFor`; `isHoliday` reads it. In
+  `/market`: `holidaysIn`, `previousTradingDay`, `istDateOf`, `istInstant`, `previousSessionClose`,
+  `IST_OFFSET_SECONDS`, and MCX (`MCX_SESSION_OPEN`, `MCX_CLOSE_US_DAYLIGHT/STANDARD`,
+  `isUsDaylightDate`, `mcxSessionClose`, `isMcxTradingDay`, `isMcxSessionOpen`,
+  `exchangeSessionRun`). `hasHolidayCalendar` needs a year with dates. The bundled 2025 list is
+  corrected (26 Feb and 22 Oct shut, 4 Nov a session), so 2025 answers change for those three days.
 - **v0.12.0** — the F&O heatmap's replay (web 9b642b08 and after). `ScreenRow.text`: a screen's
   text columns (`fut_symbol`, the most-traded future's name). `GraphDataQuery.includeOI`
   (`include_oi=1`), `RawGraphSeries.oi`/`poi`, and in `/api` `parseContractBars`,

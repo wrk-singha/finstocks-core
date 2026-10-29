@@ -188,6 +188,23 @@ test("each exchange's sessions tile to the Day P&L day they belong to", () => {
   });
 });
 
+test('the session edges: open at 09:15 and at 15:30, the next day from 15:30, the last open from 09:15', () => {
+  assert.equal(marketSession('IN', ist(`${TRADING_DAY}T09:14`)), 'preopen');
+  assert.equal(marketSession('IN', ist(`${TRADING_DAY}T09:15`)), 'open');
+  assert.equal(marketSession('IN', ist(`${TRADING_DAY}T15:30`)), 'open');
+  assert.equal(marketSession('IN', ist(`${TRADING_DAY}T15:31`)), 'closed');
+  assert.equal(nextTradingDay('IN', ist(`${TRADING_DAY}T15:29`)), TRADING_DAY);
+  assert.equal(nextTradingDay('IN', ist(`${TRADING_DAY}T15:30`)), '2026-10-30');
+  assert.equal(
+    lastSessionOpen('IN', ist(`${TRADING_DAY}T09:14`)).getTime(),
+    at('2026-10-28', SESSION_OPEN),
+  );
+  assert.equal(
+    lastSessionOpen('IN', ist(`${TRADING_DAY}T09:15`)).getTime(),
+    at(TRADING_DAY, SESSION_OPEN),
+  );
+});
+
 // Last: these replace the bundled table for the rest of this file.
 test("every calendar answer follows the backend's table once a client hands it over", () => {
   const shortNotice = '2026-10-29';

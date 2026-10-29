@@ -22,6 +22,14 @@ test('the table starts as the bundled one, so a client that loads nothing still 
   assert.equal(isHoliday('2026-10-21'), false);
 });
 
+test('the bundled 2025 list is as NSE kept it: 26 Feb and 22 Oct shut, 4 Nov a session', () => {
+  assert.equal(isHoliday('2025-02-26'), true);
+  assert.equal(isHoliday('2025-10-22'), true);
+  assert.equal(isHoliday('2025-11-04'), false);
+  assert.equal(isHoliday('2025-11-05'), true);
+  assert.equal(holidaysFor('IN', 2025)?.length, 16);
+});
+
 test('the bundled table handed back unchanged is not a change', () => {
   let heard = 0;
   const stop = subscribeHolidayTable(() => {
@@ -75,6 +83,8 @@ test('a reply with no usable IN year is refused and the last good table kept', (
     {in: {'2026': ['2026-10-20']}},
     {IN: {'2026': ['20 Oct 2026']}},
     {IN: {'2026': ['2026-10-20', 20261020]}},
+    {IND: {'2026': ['2026-10-20']}},
+    {In: {'2026': ['2026-10-20']}},
   ]) {
     assert.equal(setHolidayTable(bad), false, JSON.stringify(bad));
   }

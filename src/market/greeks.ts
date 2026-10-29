@@ -52,7 +52,12 @@ const erf = (x: number): number => {
   return sign * (1 - poly * Math.exp(-a * a));
 };
 
-const normCdf = (x: number): number => 0.5 * (1 + erf(x / Math.SQRT2));
+/**
+ * The standard normal distribution's CDF, to the erf above's 1.5e-7. Exported for the option
+ * pricing built beside these greeks (a basket's Black-76 value and its probability of profit), so
+ * the price and the greeks read one curve.
+ */
+export const normCdf = (x: number): number => 0.5 * (1 + erf(x / Math.SQRT2));
 
 /**
  * Fraction of a year until the expiry date's 15:30 IST close. Null once that

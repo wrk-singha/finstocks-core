@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
 import type {OptionChainRow} from '../../types/fno.ts';
-import {blackScholesGreeks, impliedForward, yearsToExpiry} from '../greeks.ts';
+import {
+  blackScholesGreeks,
+  impliedForward,
+  normCdf,
+  yearsToExpiry,
+} from '../greeks.ts';
 
 const row = (
   strike: number,
@@ -49,4 +54,23 @@ test('blackScholesGreeks refuses unquotable inputs', () => {
   assert.equal(blackScholesGreeks(0, 100, 1, 0.2, 'CE'), null);
   assert.equal(blackScholesGreeks(100, 100, 0, 0.2, 'CE'), null);
   assert.equal(blackScholesGreeks(100, 100, 1, 0, 'PE'), null);
+});
+
+test('normCdf is the standard normal CDF, to 1.5e-7 and symmetric about zero', () => {
+  // The approximation's coefficients sum to 1 - 1e-9, so the middle is 0.5 to 1e-9, not exactly.
+  assert.ok(Math.abs(normCdf(0) - 0.5) < 1e-8);
+  // Tabled values of the standard normal: Φ(1) = 0.8413447, Φ(1.96) = 0.9750021, Φ(3) = 0.9986501.
+  for (const [x, want] of [
+    [1, 0.8413447],
+    [1.96, 0.9750021],
+    [3, 0.9986501],
+    [-1, 0.1586553],
+  ] as const) {
+    assert.ok(Math.abs(normCdf(x) - want) < 2e-7, `normCdf(${String(x)})`);
+  }
+  for (const x of [0.1, 0.5, 1.3, 2.7]) {
+    assert.ok(Math.abs(normCdf(x) + normCdf(-x) - 1) < 1e-12);
+  }
+  assert.ok(normCdf(-40) >= 0 && normCdf(-40) < 1e-12);
+  assert.ok(normCdf(40) <= 1 && normCdf(40) > 1 - 1e-12);
 });

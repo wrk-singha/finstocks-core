@@ -221,7 +221,12 @@ export {
   warningText,
 } from './esfScore.ts';
 
-export {blackScholesGreeks, impliedForward, yearsToExpiry} from './greeks.ts';
+export {
+  blackScholesGreeks,
+  impliedForward,
+  normCdf,
+  yearsToExpiry,
+} from './greeks.ts';
 export type {OptionGreeks} from './greeks.ts';
 
 export {

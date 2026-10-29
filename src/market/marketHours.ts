@@ -1,4 +1,4 @@
-import {HOLIDAYS} from '../data/holidays.ts';
+import {holidaysFor} from '../data/holidayTable.ts';
 import {IST} from '../format/index.ts';
 import type {MarketSession} from '../types/market.ts';
 
@@ -11,7 +11,10 @@ export const SESSION_CLOSE = 15 * 60 + 30;
 export const PRE_OPEN_START = 9 * 60;
 export const MARKET_TIMEZONE = IST;
 /** IST is UTC+05:30 all year (no daylight saving): an IST wall clock is this far ahead of UTC. */
-export const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+export const IST_OFFSET_SECONDS = 330 * 60;
+export const IST_OFFSET_MS = IST_OFFSET_SECONDS * 1000;
+
+const DAY_MS = 86_400_000;
 
 // Hoisted: constructing a DateTimeFormat costs more than the check itself, and
 // the chart's scene serializer calls this on every message send.
@@ -82,9 +85,20 @@ export function marketMinutesNow(now: Date = new Date()): number {
   return (Number(get('hour')) % 24) * 60 + Number(get('minute'));
 }
 
-/** Whether the holiday table covers this UTC-midnight date's year: outside it a session day is a guess. */
+/** The market's holiday dates in a year, YYYY-MM-DD; empty for a year the table does not cover. */
+export function holidaysIn(
+  year: string | number,
+  market = 'IN',
+): readonly string[] {
+  return holidaysFor(market, year) ?? [];
+}
+
+/**
+ * Whether the holiday table covers this UTC-midnight date's year: outside it a session day is a
+ * guess. A year with no dates is not covered, as the backend reads coverage from the dates present.
+ */
 export function hasHolidayCalendar(date: Date, market = 'IN'): boolean {
-  return HOLIDAYS[market]?.[String(date.getUTCFullYear())] !== undefined;
+  return holidaysIn(date.getUTCFullYear(), market).length > 0;
 }
 
 /** Whether a UTC-midnight market date is a session day at all (not a weekend or holiday). */
@@ -92,9 +106,24 @@ export function isTradingDay(date: Date, market = 'IN'): boolean {
   const weekday = date.getUTCDay();
   if (weekday === 0 || weekday === 6) return false;
   const dateStr = marketDateString(date);
-  const holidays = HOLIDAYS[market]?.[dateStr.slice(0, 4)] ?? [];
-  return !holidays.includes(dateStr);
+  return !holidaysIn(dateStr.slice(0, 4), market).includes(dateStr);
 }
+
+/** The last trading day before today (IST), as YYYY-MM-DD. */
+export function previousTradingDay(
+  market = 'IN',
+  now: Date = new Date(),
+): string {
+  return stepSession(marketDateString(marketToday(now)), -1, market);
+}
+
+/** The UTC-midnight date of the IST day the instant `ms` falls on. */
+export const istDateOf = (ms: number): Date =>
+  new Date(Math.floor((ms + IST_OFFSET_MS) / DAY_MS) * DAY_MS);
+
+/** IST wall-clock `minutes` on a UTC-midnight market date, as an instant (ms). */
+export const istInstant = (day: Date, minutes: number): number =>
+  day.getTime() - IST_OFFSET_MS + minutes * 60_000;
 
 /**
  * UTC instant of the most recent session open — the boundary market-derived
@@ -112,9 +141,20 @@ export function lastSessionOpen(market = 'IN', now: Date = new Date()): Date {
       day = addMarketDays(day, -1);
     } while (!isTradingDay(day, market));
   }
-  // SESSION_OPEN is IST minutes against a UTC-midnight day, so the 5:30 offset
-  // comes back off to land on the real instant.
-  return new Date(day.getTime() + (SESSION_OPEN - 330) * 60_000);
+  return new Date(istInstant(day, SESSION_OPEN));
+}
+
+/**
+ * 15:30 IST on the trading day before the session opening at `openMs`. Anything entered after it
+ * (an after-hours fill, the pre-open) is that session's.
+ */
+export function previousSessionClose(openMs: number, market = 'IN'): number {
+  let day = istDateOf(openMs);
+  for (let i = 0; i < 14; i++) {
+    day = addMarketDays(day, -1);
+    if (isTradingDay(day, market)) break;
+  }
+  return istInstant(day, SESSION_CLOSE);
 }
 
 /**
@@ -195,8 +235,6 @@ export function marketMoment(now: Date): MarketMoment {
 
 /** Stored 1-minute history starts here: nothing earlier was recorded, so no replay or history read reaches before it. */
 export const FNO_HISTORY_START = '2026-01-02';
-
-const IST_OFFSET_SECONDS = 330 * 60;
 
 /** One NSE session, as Unix seconds. */
 export interface TradingSession {
@@ -286,4 +324,106 @@ export function formatSessionDate(
   return year === marketDateString(marketToday(now)).slice(0, 4)
     ? label
     : `${label} ${year}`;
+}
+
+/** MCX's non-agri session opens at 09:00 IST. */
+export const MCX_SESSION_OPEN = 9 * 60;
+/** MCX's close (IST minutes) while New York keeps daylight time: its evening follows the US. */
+export const MCX_CLOSE_US_DAYLIGHT = 23 * 60 + 30;
+/** MCX's close (IST minutes) while New York is on standard time. */
+export const MCX_CLOSE_US_STANDARD = 23 * 60 + 55;
+
+/** The `n`th Sunday of a month (0-based month) as a UTC-midnight instant. */
+const nthSunday = (year: number, month: number, n: number): number => {
+  const first = new Date(Date.UTC(year, month, 1)).getUTCDay();
+  return Date.UTC(year, month, 1 + ((7 - first) % 7) + 7 * (n - 1));
+};
+
+/**
+ * Whether New York keeps daylight time on a UTC-midnight market date: from the second Sunday of
+ * March to the first Sunday of November, the US rule since 2007. Worked out from the date rather than
+ * asked of Intl in New York's zone, because a phone's Intl is not held to that zone's names. The
+ * switch falls on a Sunday, when MCX is shut, so a date is enough, as backend-go's usDaylightSaving
+ * says; the two ways of asking differ only on the March switch Sunday itself.
+ */
+export function isUsDaylightDate(day: Date): boolean {
+  const year = day.getUTCFullYear();
+  const at = day.getTime();
+  return at >= nthSunday(year, 2, 2) && at < nthSunday(year, 10, 1);
+}
+
+/** MCX's closing minute (IST) on the market date `at` falls on. */
+export function mcxSessionClose(at: Date = new Date()): number {
+  return isUsDaylightDate(istDateOf(at.getTime()))
+    ? MCX_CLOSE_US_DAYLIGHT
+    : MCX_CLOSE_US_STANDARD;
+}
+
+/**
+ * Whether MCX has a session on a UTC-midnight market date: any weekday. There is no MCX holiday
+ * table, and NSE's does not apply (MCX trades evenings on several NSE holidays), so an MCX-only
+ * holiday reads as a session day.
+ */
+export function isMcxTradingDay(date: Date): boolean {
+  const weekday = date.getUTCDay();
+  return weekday !== 0 && weekday !== 6;
+}
+
+/** Whether MCX trades at `at`, on the IST clock: a weekday from 09:00 to its close, both minutes in. */
+export function isMcxSessionOpen(at: Date = new Date()): boolean {
+  if (!isMcxTradingDay(istDateOf(at.getTime()))) return false;
+  const minutes = marketMinutesNow(at);
+  return minutes >= MCX_SESSION_OPEN && minutes <= mcxSessionClose(at);
+}
+
+/** The exchanges a book's lots trade on, each with its own session. */
+export type SessionExchange = 'NSE' | 'MCX';
+
+/** An exchange's run of sessions, as instants (ms): the one before, and the one a day owns. */
+export interface ExchangeSessionRun {
+  prevOpen: number;
+  prevClose: number;
+  open: number;
+  close: number;
+}
+
+/**
+ * `exchange`'s sessions belonging to the NSE session opening at `openMs` (a Day P&L day). For MCX
+ * that includes MCX-only days before the next NSE session (an NSE holiday's evening), so consecutive
+ * runs tile with no gap.
+ */
+export function exchangeSessionRun(
+  exchange: SessionExchange,
+  openMs: number,
+): ExchangeSessionRun {
+  const day = istDateOf(openMs);
+  if (exchange === 'NSE') {
+    const prevClose = previousSessionClose(openMs);
+    return {
+      prevOpen: prevClose - (SESSION_CLOSE - SESSION_OPEN) * 60_000,
+      prevClose,
+      open: openMs,
+      close: istInstant(day, SESSION_CLOSE),
+    };
+  }
+  const mcxClose = (date: Date): number =>
+    istInstant(date, mcxSessionClose(new Date(istInstant(date, 12 * 60))));
+  let prev = addMarketDays(day, -1);
+  for (let i = 0; i < 14 && !isMcxTradingDay(prev); i++) {
+    prev = addMarketDays(prev, -1);
+  }
+  let nextNse = addMarketDays(day, 1);
+  for (let i = 0; i < 14 && !isTradingDay(nextNse); i++) {
+    nextNse = addMarketDays(nextNse, 1);
+  }
+  let last = addMarketDays(nextNse, -1);
+  while (last.getTime() > day.getTime() && !isMcxTradingDay(last)) {
+    last = addMarketDays(last, -1);
+  }
+  return {
+    prevOpen: istInstant(prev, MCX_SESSION_OPEN),
+    prevClose: mcxClose(prev),
+    open: istInstant(day, MCX_SESSION_OPEN),
+    close: mcxClose(last),
+  };
 }

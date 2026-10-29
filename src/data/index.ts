@@ -21,7 +21,8 @@ export {
   TEAM_WHATSAPP_NUMBER,
   WHATSAPP_URL,
 } from './contact.ts';
-export {HOLIDAYS, isHoliday} from './holidays.ts';
+export {HOLIDAYS} from './holidays.ts';
+export {isHoliday} from './holidayTable.ts';
 export {LOT_SIZES, lotSizeFor} from './lotSizes.ts';
 export {SCREEN_EXAMPLES} from './screenerPresets.ts';
 export {BROKER_WIZARDS, BROKER_WIZARD_BY_ID} from './brokerWizardSteps.ts';

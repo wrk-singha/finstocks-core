@@ -322,12 +322,20 @@ export type {
 
 export {
   addMarketDays,
+  exchangeSessionRun,
   FNO_HISTORY_START,
   formatSessionDate,
   hasHolidayCalendar,
+  holidaysIn,
   IST_OFFSET_MS,
+  IST_OFFSET_SECONDS,
+  istDateOf,
+  istInstant,
   isMarketOpen,
+  isMcxSessionOpen,
+  isMcxTradingDay,
   isTradingDay,
+  isUsDaylightDate,
   lastSessionOpen,
   latestSession,
   MARKET_TIMEZONE,
@@ -337,15 +345,33 @@ export {
   marketMoment,
   marketSession,
   marketToday,
+  MCX_CLOSE_US_DAYLIGHT,
+  MCX_CLOSE_US_STANDARD,
+  MCX_SESSION_OPEN,
+  mcxSessionClose,
   minuteLabel,
   nextTradingDay,
   PRE_OPEN_START,
+  previousSessionClose,
+  previousTradingDay,
   SESSION_CLOSE,
   SESSION_OPEN,
   sessionFor,
   stepSession,
 } from './marketHours.ts';
-export type {MarketMoment, TradingSession} from './marketHours.ts';
+export type {
+  ExchangeSessionRun,
+  MarketMoment,
+  SessionExchange,
+  TradingSession,
+} from './marketHours.ts';
+export {
+  holidaysFor,
+  holidayTableVersion,
+  setHolidayTable,
+  subscribeHolidayTable,
+} from '../data/holidayTable.ts';
+export type {HolidayTable} from '../data/holidayTable.ts';
 export {CLOSE_FRAME_MS, listStamp} from './listStamp.ts';
 export type {ListStamp} from './listStamp.ts';
 

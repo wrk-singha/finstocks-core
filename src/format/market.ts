@@ -1,4 +1,4 @@
-import {isHoliday} from '../data/holidays.ts';
+import {isHoliday} from '../data/holidayTable.ts';
 import {istDayKey} from './date.ts';
 
 const IST_OFFSET_MINUTES = 330;

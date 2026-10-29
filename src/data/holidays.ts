@@ -1,6 +1,6 @@
-// Exchange holidays by market and year (ISO dates). Source: data/holidays.json in both apps; the
-// same file, so a JSON import (which Node's type stripping cannot do without an attribute) is
-// not needed.
+// Exchange holidays by market and year (ISO dates), as bundled: the table the calendar starts from
+// (holidayTable.ts) until a client hands it the backend's. Kept as TypeScript, not JSON, because
+// Node's type stripping cannot import JSON without an attribute.
 export const HOLIDAYS: Readonly<
   Record<string, Readonly<Record<string, readonly string[]>>>
 > = {
@@ -42,9 +42,3 @@ export const HOLIDAYS: Readonly<
     ],
   },
 };
-
-/** Whether `isoDate` (YYYY-MM-DD) is an exchange holiday for `market`. */
-export function isHoliday(isoDate: string, market = 'IN'): boolean {
-  const year = isoDate.slice(0, 4);
-  return HOLIDAYS[market]?.[year]?.includes(isoDate) ?? false;
-}

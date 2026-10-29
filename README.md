@@ -65,6 +65,11 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.14.0** — `normCdf` (`/market`), the normal curve the greeks read, for a basket's Black-76
+  value and probability of profit. Every module is also exported under its own subpath
+  (`@finstocks/core/market/greeks`, `./<folder>/*`), so a web build can import one module without its
+  folder's index making the rest reachable from that import; the folder indexes stay. The calendar
+  takes `IST` from `format/date`, not the format index.
 - **v0.13.0** — the market calendar web runs on. `data/holidayTable.ts`: one holiday table, the
   bundled `HOLIDAYS` until a client hands it the backend's (`setHolidayTable`, web's validation:
   an empty year or a date that is not its own is left out, a reply with no IN year is refused);

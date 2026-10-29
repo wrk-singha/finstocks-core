@@ -65,6 +65,11 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.15.0** — types as web reads the feeds. `OptionEntry`: optional snapshot microstructure (`atp`,
+  `buy_qty`, `sell_qty`, `day_high_oi`, `day_low_oi`, `best_bid`, `best_ask`, `spread_bps`), and
+  `prev_oi` may be null. `TopTradedFutures`: `ranking` per segment and `complete`. `FnoSegment`
+  (`index | stock | commodity`). A consumer that indexes `TopTradedFutures` by `keyof` should index by
+  `FnoSegment`.
 - **v0.14.0** — `normCdf` (`/market`), the normal curve the greeks read, for a basket's Black-76
   value and probability of profit. Every module is also exported under its own subpath
   (`@finstocks/core/market/greeks`, `./<folder>/*`), so a web build can import one module without its

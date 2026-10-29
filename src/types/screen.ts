@@ -94,6 +94,11 @@ export interface ScreenRow {
   industry: string;
   /** Keyed by column id; a figure the company has no value for is absent. */
   values: Record<string, number | undefined>;
+  /**
+   * A text column's value (a futures contract's name, its expiry), keyed by column id; absent with
+   * no text column asked for (backend `screenoptions.go` futureText: `fut_symbol`, `fut_expiry`).
+   */
+  text?: Record<string, string | undefined>;
 }
 
 export interface ScreenResult {

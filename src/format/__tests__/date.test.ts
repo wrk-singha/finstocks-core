@@ -87,6 +87,12 @@ test('parseTimestamp normalises microseconds and every offset spelling', () => {
   assert.equal(parseTimestamp('2026-13-45 99:99:99'), null);
 });
 
+test('parseTimestamp reads a value of the wrong type as no time, never a throw', () => {
+  for (const value of [Infinity, 8.64e15 + 1, {}, new Date(Number.NaN)]) {
+    assert.equal(parseTimestamp(value as unknown as string), null);
+  }
+});
+
 test('formatYyyymmdd reads the vendor integer date', () => {
   assert.equal(formatYyyymmdd(20210331), '31 Mar 2021');
   assert.equal(formatYyyymmdd(20211331), null);

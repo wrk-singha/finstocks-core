@@ -54,6 +54,8 @@ export const parseTimestamp = (
 
   const direct = new Date(value);
   if (!Number.isNaN(direct.getTime())) return direct;
+  // Loose JSON can hand over a number or object the types do not admit; no row is worth a throw.
+  if (typeof value !== 'string') return null;
 
   const [date, rest] = value.trim().split(/[T ]/);
   if (!date || !rest) return null;

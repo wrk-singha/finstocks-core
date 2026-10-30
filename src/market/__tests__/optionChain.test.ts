@@ -253,6 +253,9 @@ test('max pain is the strike with the least writer intrinsic value', () => {
   assert.equal(computeMaxPain(chain), 24100);
   assert.equal(computeMaxPain([row(24000), row(24100)]), null);
   assert.equal(computeMaxPain([]), null);
+  // Stored OI carries no prices; the strike and its OI are all the sum needs.
+  const stored = chain.map(({strike, ceOi, peOi}) => ({strike, ceOi, peOi}));
+  assert.equal(computeMaxPain(stored), 24100);
 });
 
 test('tradable rows drop never-traded strikes unless nothing has traded', () => {

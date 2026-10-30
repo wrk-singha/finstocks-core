@@ -308,7 +308,10 @@ export function selectAtmWindow(
 //
 // Missing or non-positive OI on a strike contributes 0. Returns null when the
 // chain is empty or carries no real OI (caller renders no Max Pain marker).
-export function computeMaxPain(rows: OptionChainRow[]): number | null {
+// Only the strike and its OI are read, so callers holding stored OI (no prices) pass it as it is.
+export function computeMaxPain(
+  rows: readonly Pick<OptionChainRow, 'strike' | 'ceOi' | 'peOi'>[],
+): number | null {
   if (rows.length === 0) return null;
 
   const strikes = rows.map(r => ({

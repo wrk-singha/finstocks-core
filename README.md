@@ -65,6 +65,8 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.16.0** — `computeMaxPain` takes rows with only `strike`, `ceOi` and `peOi`, so stored OI with
+  no prices passes as it is. Wider input only; full chain rows still pass.
 - **v0.15.0** — types as web reads the feeds. `OptionEntry`: optional snapshot microstructure (`atp`,
   `buy_qty`, `sell_qty`, `day_high_oi`, `day_low_oi`, `best_bid`, `best_ask`, `spread_bps`), and
   `prev_oi` may be null. `TopTradedFutures`: `ranking` per segment and `complete`. `FnoSegment`

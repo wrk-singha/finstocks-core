@@ -70,7 +70,9 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   and the future sold against them) charged leg by leg at each leg's own rates;
   `estimateOrderCharges` is that with one segment for every leg, unchanged. `computeBrokerageTotals`
   reads a trade's prices and size as web does (`Number(x || 0)`): a NaN or missing field counts as
-  0 and a numeric string as its number, where a NaN made every total NaN.
+  0 and a numeric string as its number, where a NaN made every total NaN. `chargesForTrips` and
+  `netOfCharges` (`/strategy`): per-round-trip charges with DP once per scrip on each IST day, and
+  the trips with those charges taken out of their P&L.
 - **v0.18.0** — `formatOrderDayHeading`, `formatNetWorthChartDate` and `formatEventDayHeading` return `""`
   for a key that names no day instead of throwing (Intl throws on an invalid Date). `formatPercent`
   reads a missing or non-finite value as "—" (it printed `0.00%` for null and `NaN%` for NaN).

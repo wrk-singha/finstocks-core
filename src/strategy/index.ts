@@ -72,6 +72,8 @@ export {
   tripSymbols,
 } from './roundTrips.ts';
 export type {RoundTrip, TripSource} from './roundTrips.ts';
+export {chargesForTrips, netOfCharges} from './tradeCharges.ts';
+export type {ChargeSummary} from './tradeCharges.ts';
 export {
   PRICE_TOLERANCE,
   tradeExcursion,

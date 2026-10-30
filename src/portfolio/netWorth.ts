@@ -1,4 +1,4 @@
-import {istDayKey} from '../format/index.ts';
+import {istDayKey} from '../format/date.ts';
 import type {TradeData} from '../types/user.ts';
 import type {PriceSeriesBySymbol} from './holdingsPricing.ts';
 

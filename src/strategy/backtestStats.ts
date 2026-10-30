@@ -9,7 +9,7 @@
  * of buildEquityPath/buildBacktestEquity here (the web keeps them in activeStrategies, where the
  * mobile copy had grown a second, narrower buildEquityPath - one version now).
  */
-import {signedCurrency, signedPct} from '../format/index.ts';
+import {signedCurrency, signedPct} from '../format/number.ts';
 import {IST_OFFSET_MS} from '../market/marketHours.ts';
 import type {BacktestTradeInput, TradeSummary} from '../types/backtest.ts';
 

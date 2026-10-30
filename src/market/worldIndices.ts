@@ -1,5 +1,5 @@
 import type {WorldIndexRow} from '../api/market.ts';
-import {formatNumber} from '../format/index.ts';
+import {formatNumber} from '../format/number.ts';
 
 export type Region = 'Americas' | 'Europe' | 'Asia Pacific';
 

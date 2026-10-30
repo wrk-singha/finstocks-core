@@ -3,7 +3,7 @@
  * dynamic log level encodes. The backtest-payload helpers live in strategyStatus. Web-only
  * today.
  */
-import {istDateTimeParts} from '../format/index.ts';
+import {istDateTimeParts} from '../format/date.ts';
 
 export interface LogDateTime {
   full: string;

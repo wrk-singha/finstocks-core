@@ -1,4 +1,4 @@
-import {formatCurrency} from '../format/index.ts';
+import {formatCurrency} from '../format/number.ts';
 import type {TradeData} from '../types/user.ts';
 import {calculatePNL} from './portfolio.ts';
 

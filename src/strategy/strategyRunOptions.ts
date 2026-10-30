@@ -6,7 +6,7 @@
  * Words are the apps': a period, a cap and a run come back as values, never as a label, so the
  * phone can put them through its own strings.
  */
-import {parseTimestamp} from '../format/index.ts';
+import {parseTimestamp} from '../format/date.ts';
 import type {
   BacktestPeriod,
   RunOptionKind,

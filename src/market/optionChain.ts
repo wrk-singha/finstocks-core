@@ -2,7 +2,7 @@ import {
   formatCompactQuantity,
   formatCurrency,
   formatNumber,
-} from '../format/index.ts';
+} from '../format/number.ts';
 import type {OptionChainRow, OptionOrderDraft} from '../types/fno.ts';
 import {daysToExpiry} from './optionStructures.ts';
 

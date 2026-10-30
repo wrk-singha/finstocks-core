@@ -1,8 +1,5 @@
-import {
-  formatCurrency,
-  formatShortDateIST,
-  signedPct,
-} from '../format/index.ts';
+import {formatShortDateIST} from '../format/date.ts';
+import {formatCurrency, signedPct} from '../format/number.ts';
 import type {
   EsfBacktestMetrics,
   EsfBacktestRun,

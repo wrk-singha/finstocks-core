@@ -5,7 +5,8 @@
  * date parser (core `parseTimestamp`) where the web used a bare `new Date`, which rejects the
  * backend's "2026-08-31 20:00:24+00" spelling on device.
  */
-import {IST, isShortDirection, parseTimestamp} from '../format/index.ts';
+import {IST, parseTimestamp} from '../format/date.ts';
+import {isShortDirection} from '../format/text.ts';
 import type {ClosedTrade, MonthlyPnl} from '../types/market.ts';
 
 /** Per-trade % return from entry/exit price, sign-flipped for shorts. Null if unresolved. */

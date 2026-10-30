@@ -1,4 +1,4 @@
-import {formatCroreCompact} from '../format/index.ts';
+import {formatCroreCompact} from '../format/number.ts';
 import type {InstitutionalFlowRow} from '../types/market.ts';
 
 const FLOW_SOURCES = {fii: 'nse_fii', dii: 'nse_dii'} as const;

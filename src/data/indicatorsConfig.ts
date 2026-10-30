@@ -42,7 +42,7 @@
  * 2026-09-27: Adaptive & Cycle moved to the end, after Standard MACD & Volume Averages, where web
  * (`dc29567e`) lists it, so the stock screen's sheet and the rule picker read in web's order.
  */
-import {formatCurrency, formatNumber} from '../format/index.ts';
+import {formatCurrency, formatNumber} from '../format/number.ts';
 import type {TechnicalIndicatorData} from '../types/indicators.ts';
 
 export type IndicatorKind = 'priceLevel' | 'raw';

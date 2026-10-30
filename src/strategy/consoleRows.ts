@@ -2,12 +2,8 @@
  * The pre-formatted rows the Strategy Console renders: positions, closed positions, the
  * activity timeline and the meta chips. Web-only today; the mobile drawer can adopt them.
  */
-import {
-  formatCurrency,
-  formatShortDateTime,
-  signedCurrency,
-  signedPct,
-} from '../format/index.ts';
+import {formatShortDateTime} from '../format/date.ts';
+import {formatCurrency, signedCurrency, signedPct} from '../format/number.ts';
 import type {ConsoleActivityRow, ConsolePosition} from '../types/console.ts';
 import type {StrategyLog} from '../types/strategyLogs.ts';
 import type {TradeData} from '../types/user.ts';

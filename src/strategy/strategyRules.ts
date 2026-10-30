@@ -8,7 +8,7 @@
  * buildConsoleRules and buildConsoleRulesDraft, which the mobile copy has no console for yet;
  * its React `ruleValue` wrapper and buildScreenerStrategyRules stay in the web app.
  */
-import {formatAllocation, formatCurrency} from '../format/index.ts';
+import {formatAllocation, formatCurrency} from '../format/number.ts';
 import {extractUnderlyingSymbol} from '../market/symbols.ts';
 import {splitEntryExit} from '../screener/screenerUtils.ts';
 import type {ConsoleRules, ConsoleRulesDraft} from '../types/console.ts';

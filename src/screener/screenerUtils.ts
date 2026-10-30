@@ -1,4 +1,5 @@
-import {formatNextBatch, formatNumber} from '../format/index.ts';
+import {formatNextBatch} from '../format/market.ts';
+import {formatNumber} from '../format/number.ts';
 import type {
   MonthlyPerformance,
   ScreenerBacktestResult,

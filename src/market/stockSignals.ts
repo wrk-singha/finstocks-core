@@ -1,4 +1,5 @@
-import {istDayKey, parseApiDate, signedPct} from '../format/index.ts';
+import {istDayKey, parseApiDate} from '../format/date.ts';
+import {signedPct} from '../format/number.ts';
 import type {GraphDataPoint} from '../types/graphData.ts';
 import type {TechnicalIndicatorData} from '../types/indicators.ts';
 import type {MarketNewsItem} from '../types/market.ts';

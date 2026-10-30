@@ -1,5 +1,5 @@
 import type {PrebuiltScreen} from '../data/prebuiltScreens.ts';
-import {pluralCount} from '../format/index.ts';
+import {pluralCount} from '../format/text.ts';
 import type {ScreenFilter} from '../types/screen.ts';
 import {EMPTY_SCREEN, isActiveFilter, type ScreenState} from './screenModel.ts';
 

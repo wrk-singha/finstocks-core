@@ -1,4 +1,4 @@
-import {formatNumber} from '../format/index.ts';
+import {formatNumber} from '../format/number.ts';
 import type {FnoPosition, FnoTradeIdea, OptionLeg} from '../types/fno.ts';
 import {
   SESSION_CLOSE,

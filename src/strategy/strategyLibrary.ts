@@ -1,4 +1,4 @@
-import {formatNumber, signedFractionPct} from '../format/index.ts';
+import {formatNumber, signedFractionPct} from '../format/number.ts';
 import {
   annualisedReturn,
   monthlyReturns,

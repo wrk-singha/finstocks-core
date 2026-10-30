@@ -1,4 +1,4 @@
-import {IST, istDayKey, parseApiDate} from '../format/index.ts';
+import {IST, istDayKey, parseApiDate} from '../format/date.ts';
 import {priceSymbolFor} from '../market/livePrice.ts';
 import {isFnOSymbol} from '../market/symbols.ts';
 import type {TradeData} from '../types/user.ts';

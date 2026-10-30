@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
 import {computeBrokerageTotals, resolveBrokerageSegment} from '../brokerage.ts';
+import type {BrokerageTrade} from '../brokerage.ts';
 import {calculateBrokerage} from '../brokerageCalculator.ts';
 
 test('computeBrokerageTotals skips open trades and bills DP once per scrip-day', () => {
@@ -58,6 +59,38 @@ test('a trade without symbol or sell time keeps its own DP fee', () => {
     'delivery',
   );
   assert.equal(totals.dpCharges, 14.75 * 2);
+});
+
+test('a missing, NaN or numeric-string field reads as web reads it, not as NaN', () => {
+  const sbin = (over: Record<string, unknown>) =>
+    ({
+      symbol: 'SBIN',
+      buy_price: 800,
+      sell_price: 810,
+      quantity: 15,
+      sell_time: '2026-10-27T10:00:00',
+      ...over,
+    }) as BrokerageTrade;
+  const total = (t: BrokerageTrade) =>
+    computeBrokerageTotals([t], 'zerodha', 'delivery');
+  // A NaN sell is no sale: skipped like an open trade.
+  assert.deepEqual(
+    total(sbin({sell_price: Number.NaN})),
+    total(sbin({sell_price: null})),
+  );
+  // A NaN buy price or quantity counts as 0, as a missing one does.
+  assert.deepEqual(
+    total(sbin({buy_price: Number.NaN})),
+    total(sbin({buy_price: undefined})),
+  );
+  assert.equal(total(sbin({buy_price: Number.NaN})).grossPnl, 810 * 15);
+  assert.equal(total(sbin({quantity: Number.NaN})).totalCharges, 0);
+  // A numeric string is its number.
+  assert.deepEqual(
+    total(sbin({buy_price: '800', sell_price: '810', quantity: '15'})),
+    total(sbin({})),
+  );
+  assert.equal(total(sbin({sell_price: ''})).totalCharges, 0);
 });
 
 test('resolveBrokerageSegment reads the strategy first, then average hold time', () => {

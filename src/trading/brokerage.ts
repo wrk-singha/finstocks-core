@@ -27,6 +27,14 @@ const scripDayKey = (symbol: string, time: string) =>
   `${symbol}|${time.slice(0, 10)}`;
 
 /**
+ * A trade's price or size as a number. Backtest rows reach here through a loose shape check, so a
+ * field can arrive as a numeric string or NaN; read as web reads it (`Number(x || 0)`), a missing,
+ * empty or NaN field counts as 0 and a numeric string as its number, rather than one bad row turning
+ * every total into NaN.
+ */
+const amount = (value: unknown): number => (value ? Number(value) : 0);
+
+/**
  * Sum per-trade brokerage charges + gross/net P&L across completed trades.
  *
  * drift resolved 2026-09-13: mobile bridged `BrokerOptions` "dhann" to its screener `BrokerKey`
@@ -58,10 +66,10 @@ export function computeBrokerageTotals(
   const billedScripDays = new Set<string>();
 
   for (const trade of trades) {
-    const sellPrice = trade.sell_price ?? 0;
-    if (sellPrice <= 0) continue;
-    const buyPrice = trade.buy_price ?? 0;
-    const quantity = trade.quantity ?? 0;
+    const sellPrice = amount(trade.sell_price);
+    if (sellPrice <= 0) continue; // only completed trades contribute
+    const buyPrice = amount(trade.buy_price);
+    const quantity = amount(trade.quantity);
 
     const charges = calculateBrokerage(
       buyPrice,

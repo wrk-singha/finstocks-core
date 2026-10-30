@@ -8,35 +8,9 @@ import {
   marketMinutesNow,
   marketToday,
 } from './marketHours.ts';
+import {payoffAt} from './payoffMath.ts';
 
-/** Payoff of one leg at an expiry spot, in ₹ (premium already netted). */
-export function legPayoff(
-  leg: OptionLeg,
-  spotAtExpiry: number,
-  lotSize: number,
-): number {
-  const qty = leg.lots * lotSize;
-  const sign = leg.action === 'buy' ? 1 : -1;
-  // A future has no premium, so `premium` carries its entry price instead of a
-  // per-unit cost, which keeps one leg shape across both kinds.
-  if (leg.right === 'FUT') return sign * (spotAtExpiry - leg.premium) * qty;
-  const intrinsic =
-    leg.right === 'CE'
-      ? Math.max(spotAtExpiry - leg.strike, 0)
-      : Math.max(leg.strike - spotAtExpiry, 0);
-  return sign * (intrinsic - leg.premium) * qty;
-}
-
-export function payoffAt(
-  legs: OptionLeg[],
-  spotAtExpiry: number,
-  lotSize: number,
-): number {
-  return legs.reduce(
-    (sum, leg) => sum + legPayoff(leg, spotAtExpiry, lotSize),
-    0,
-  );
-}
+export {legPayoff, payoffAt} from './payoffMath.ts';
 
 export interface StructureMath {
   /** Negative = net debit paid, positive = net credit received. */

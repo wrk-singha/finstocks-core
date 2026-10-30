@@ -1,6 +1,6 @@
 import type {OptionLeg} from '../types/fno.ts';
 import {blackScholesGreeks, normCdf, RISK_FREE_RATE} from './greeks.ts';
-import {payoffAt} from './optionStructures.ts';
+import {payoffAt} from './payoffMath.ts';
 
 // Pricing and risk read-outs for a basket of option legs: the "today" (T+0)
 // curve, net greeks, probability of profit and the ±1σ range. Everything is

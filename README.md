@@ -72,7 +72,8 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   at or past the close is the expiry payoff on spot; web held today's basis and sat off the expiry line by
   basis × net delta (a 60-point basis on a bull call lot: −₹1,875 against −₹6,375). `netGreeks` takes a
   leg's `quoted` chain greeks where given, model elsewhere, and says where each net came from (`sources`).
-  `RISK_FREE_RATE` is exported from `greeks`.
+  `RISK_FREE_RATE` is exported from `greeks`; `legPayoff` and `payoffAt` live in `payoffMath`, which
+  `optionStructures` re-exports, so the analytics load without its formatting and calendar code.
 - **v0.19.0** — charges as web prices them. `estimateSegmentedCharges` and `SegmentedChargeLeg`
   (`/trading`): an order whose legs sit in different segments (a cash-and-carry's delivery shares
   and the future sold against them) charged leg by leg at each leg's own rates;

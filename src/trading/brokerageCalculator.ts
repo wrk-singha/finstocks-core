@@ -4,13 +4,48 @@ import type {BrokerageBreakdown} from '../types/trade.ts';
 export type BrokerageSegment = 'intraday' | 'delivery' | 'futures' | 'options';
 
 /**
- * Drops sub-paisa fractions the way a contract note does. The nudge before the floor absorbs
- * binary float error only: 10,000 × 0.015% is 1.4999999999999998 in IEEE-754 and the schedule
- * says ₹1.50, not ₹1.49 (drift resolved 2026-09-13 — both apps floored the raw product).
+ * Drops sub-paisa fractions the way a contract note does, for a value that is not a whole number of
+ * paise (a basket's fractional slice, GST on a percentage brokerage) and for the DP fee. The nudge
+ * before the floor absorbs binary float error: 10,000 × 0.015% is 1.4999999999999998 in IEEE-754
+ * and the schedule says ₹1.50, not ₹1.49 (drift resolved 2026-09-13 — both apps floored the raw
+ * product). It is relative, 1e-14 of the value (some forty units in the last place): enough for
+ * float error, far under any real sub-paisa remainder, and it never lifts a negative fraction of a
+ * paisa to 0. Whole-paise values skip it and are floored exactly (`levy`).
  */
 const truncate = (x: number, decimals = 2) => {
   const factor = 10 ** decimals;
-  return Math.floor(x * factor + 1e-9) / factor;
+  const scaled = x * factor;
+  return Math.floor(scaled + Math.abs(scaled) * 1e-14) / factor;
+};
+
+/** A rate as an exact fraction, numerator over denominator. */
+type Fraction = readonly [bigint, bigint];
+
+/**
+ * `value` × `rate`, floored to the paisa. When `value` is a whole number of paise — every order's
+ * is, a 2-decimal price times a whole quantity, and so is a sum of levies — the levy is worked out
+ * in integers and is the exact floor: the float nudge alone could not be, because the exchange
+ * charge and IPFT are quoted to nine decimals in paise and can leave an exact value 1e-9 paise
+ * under a whole paisa (₹24,855,207.01 of equity turnover owes ₹763.0299999…, which the nudge lifted
+ * to ₹763.03), and on large values the float product can miss a whole paisa by more than the nudge.
+ * Any other value takes `truncate` on the float rate.
+ */
+const levy = (value: number, rate: number, [num, den]: Fraction): number => {
+  const scaled = value * 100;
+  const paise = Math.round(scaled);
+  // The float product of a 2-decimal price and a quantity is within a few ulps of its paise.
+  const tolerance = Math.max(1e-9, Math.abs(paise) * 1e-14);
+  if (
+    !Number.isSafeInteger(paise) ||
+    tolerance >= 0.5 ||
+    Math.abs(scaled - paise) > tolerance
+  ) {
+    return truncate(value * rate);
+  }
+  const product = BigInt(paise) * num;
+  let floored = product / den;
+  if (product % den !== 0n && product < 0n) floored -= 1n;
+  return Number(floored) / 100;
 };
 
 /**
@@ -57,6 +92,30 @@ const RATES = {
   },
   gst: 0.18,
 } as const;
+
+/** RATES as exact fractions, for `levy`. */
+const EXACT = {
+  exchange: {
+    equity: [30_699n, 1_000_000_000n],
+    futures: [18_299n, 1_000_000_000n],
+    options: [355_299n, 1_000_000_000n],
+  },
+  sebi: [1n, 1_000_000n],
+  ipft: [1n, 1_000_000_000n],
+  stt: {
+    delivery: [1n, 1_000n],
+    intradaySell: [25n, 100_000n],
+    futuresSell: [5n, 10_000n],
+    optionsSell: [15n, 10_000n],
+  },
+  stamp: {
+    delivery: [15n, 100_000n],
+    intraday: [3n, 100_000n],
+    futures: [2n, 100_000n],
+    options: [3n, 100_000n],
+  },
+  gst: [18n, 100n],
+} as const satisfies Record<string, Fraction | Record<string, Fraction>>;
 
 /** ₹20-or-a-percentage-whichever-is-lower, the shape every broker here uses. */
 const cappedPct = (value: number, pct: number, cap = 20) =>
@@ -143,17 +202,21 @@ export const calculateBrokerage = (
     profile.brokerage(buyValue, isIntraday) +
     profile.brokerage(sellValue, isIntraday);
 
-  const exchangeCharges = truncate(turnover * RATES.exchange.equity);
-  const sebiCharges = truncate(turnover * RATES.sebi);
-  const ipft = truncate(turnover * RATES.ipft);
+  const exchangeCharges = levy(
+    turnover,
+    RATES.exchange.equity,
+    EXACT.exchange.equity,
+  );
+  const sebiCharges = levy(turnover, RATES.sebi, EXACT.sebi);
+  const ipft = levy(turnover, RATES.ipft, EXACT.ipft);
 
   const stt = isIntraday
-    ? truncate(sellValue * RATES.stt.intradaySell)
-    : truncate(turnover * RATES.stt.delivery);
+    ? levy(sellValue, RATES.stt.intradaySell, EXACT.stt.intradaySell)
+    : levy(turnover, RATES.stt.delivery, EXACT.stt.delivery);
 
-  const stampDuty = truncate(
-    buyValue * (isIntraday ? RATES.stamp.intraday : RATES.stamp.delivery),
-  );
+  const stampDuty = isIntraday
+    ? levy(buyValue, RATES.stamp.intraday, EXACT.stamp.intraday)
+    : levy(buyValue, RATES.stamp.delivery, EXACT.stamp.delivery);
 
   // DP is a demat-debit fee: it only applies when shares actually leave the demat account, i.e.
   // on a delivery sell. Intraday never pays it. Quoted here GST-inclusive for every broker so
@@ -165,8 +228,10 @@ export const calculateBrokerage = (
 
   // GST applies to the broker's own fees and the exchange/SEBI/IPFT levies, but never to STT or
   // stamp duty. DP is excluded because dpCharges above already carries its own GST.
-  const gst = truncate(
-    (brokerage + exchangeCharges + sebiCharges + ipft) * RATES.gst,
+  const gst = levy(
+    brokerage + exchangeCharges + sebiCharges + ipft,
+    RATES.gst,
+    EXACT.gst,
   );
 
   const totalCharges =
@@ -211,20 +276,22 @@ function fnoBrokerage(
 ): BrokerageBreakdown {
   const brokerage = (buyValue > 0 ? 20 : 0) + (sellValue > 0 ? 20 : 0);
 
-  const stt = truncate(
-    sellValue * (isOptions ? RATES.stt.optionsSell : RATES.stt.futuresSell),
-  );
-  const exchangeCharges = truncate(
-    turnover * (isOptions ? RATES.exchange.options : RATES.exchange.futures),
-  );
-  const sebiCharges = truncate(turnover * RATES.sebi);
-  const ipft = truncate(turnover * RATES.ipft);
-  const stampDuty = truncate(
-    buyValue * (isOptions ? RATES.stamp.options : RATES.stamp.futures),
-  );
+  const stt = isOptions
+    ? levy(sellValue, RATES.stt.optionsSell, EXACT.stt.optionsSell)
+    : levy(sellValue, RATES.stt.futuresSell, EXACT.stt.futuresSell);
+  const exchangeCharges = isOptions
+    ? levy(turnover, RATES.exchange.options, EXACT.exchange.options)
+    : levy(turnover, RATES.exchange.futures, EXACT.exchange.futures);
+  const sebiCharges = levy(turnover, RATES.sebi, EXACT.sebi);
+  const ipft = levy(turnover, RATES.ipft, EXACT.ipft);
+  const stampDuty = isOptions
+    ? levy(buyValue, RATES.stamp.options, EXACT.stamp.options)
+    : levy(buyValue, RATES.stamp.futures, EXACT.stamp.futures);
 
-  const gst = truncate(
-    (brokerage + exchangeCharges + sebiCharges + ipft) * RATES.gst,
+  const gst = levy(
+    brokerage + exchangeCharges + sebiCharges + ipft,
+    RATES.gst,
+    EXACT.gst,
   );
 
   const totalCharges =

@@ -95,3 +95,31 @@ test('F&O is broker-agnostic: flat ₹20 a leg, sell-side STT, no DP', () => {
   near(opt.stampDuty, 0.29); // 0.003% of ₹9,750 buy premium
   near(opt.gst, 8.57);
 });
+
+test('the exchange charge and IPFT are the exact floor, never a paisa over', () => {
+  // Each exact value sits 1e-9 paise under a whole paisa; the float nudge used to lift it over.
+  const cases = [
+    [9480.03, 1567, 'delivery', 'exchangeCharges', 456.03],
+    [24855207.01, 1, 'delivery', 'exchangeCharges', 763.02],
+    [55999.01, 801, 'intraday', 'exchangeCharges', 1377],
+    [7154453.01, 1, 'options', 'exchangeCharges', 2541.96],
+    [96741.91, 1211, 'options', 'exchangeCharges', 41624.85],
+    [9219083.01, 1, 'futures', 'exchangeCharges', 168.69],
+    [49999999.99, 1, 'delivery', 'ipft', 0.04],
+    [40020.01, 1999, 'delivery', 'ipft', 0.07],
+  ] as const;
+  for (const [price, qty, segment, field, expected] of cases) {
+    const c = calculateBrokerage(price, 0, qty, segment, 'zerodha');
+    assert.equal(c[field], expected, `${segment} ${price} x ${qty} ${field}`);
+  }
+  // GST on the exact exchange charge is exact too: 18% of ₹20 + ₹2,541.96 + ₹7.15 is ₹462.4398.
+  assert.equal(
+    calculateBrokerage(7154453.01, 0, 1, 'options', 'zerodha').gst,
+    462.43,
+  );
+  // GST that float error left a paisa short on a large premium.
+  assert.equal(
+    calculateBrokerage(0, 756203.43, 1228, 'options', 'zerodha').gst,
+    59559.57,
+  );
+});

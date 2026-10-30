@@ -8,45 +8,47 @@ export type BrokerageSegment = 'intraday' | 'delivery' | 'futures' | 'options';
  * paise (a basket's fractional slice, GST on a percentage brokerage) and for the DP fee. The nudge
  * before the floor absorbs binary float error: 10,000 × 0.015% is 1.4999999999999998 in IEEE-754
  * and the schedule says ₹1.50, not ₹1.49 (drift resolved 2026-09-13 — both apps floored the raw
- * product). It is relative, 1e-14 of the value (some forty units in the last place) and at most
- * 1e-9 paise: enough for float error, far under any real sub-paisa remainder, never a whole paisa
- * on a huge value, and it never lifts a negative fraction of a paisa to 0. Whole-paise values skip
- * it and are floored exactly (`levy`).
+ * product). It is float noise only: about nine units in the last place of the value, and never
+ * more than 1e-9 paise, so it never lifts a remainder the float can represent, nor a negative
+ * fraction of a paisa to 0. Decimal values skip it and are floored exactly (`levy`).
  */
 const truncate = (x: number, decimals = 2) => {
   const factor = 10 ** decimals;
   const scaled = x * factor;
-  return Math.floor(scaled + Math.min(Math.abs(scaled) * 1e-14, 1e-9)) / factor;
+  return Math.floor(scaled + Math.min(Math.abs(scaled) * 2e-15, 1e-9)) / factor;
 };
 
 /** A rate as an exact fraction, numerator over denominator. */
 type Fraction = readonly [bigint, bigint];
 
 /**
- * `value` × `rate`, floored to the paisa. When `value` is a whole number of paise — every order's
- * is, a 2-decimal price times a whole quantity, and so is a sum of levies — the levy is worked out
- * in integers and is the exact floor: the float nudge alone could not be, because the exchange
- * charge and IPFT are quoted to nine decimals in paise and can leave an exact value 1e-9 paise
- * under a whole paisa (₹24,855,207.01 of equity turnover owes ₹763.0299999…, which the nudge lifted
- * to ₹763.03), and on large values the float product can miss a whole paisa by more than the nudge.
- * Any other value takes `truncate` on the float rate.
+ * `value` × `rate`, floored to the paisa. When `value` is a decimal of at most six places — every
+ * order's is: a 2-decimal price (or a 3- or 4-decimal average fill) times a whole quantity, and a
+ * sum of levies — the levy is worked out in integers and is the exact floor. The float nudge alone
+ * could not be: the exchange charge and IPFT are quoted to nine decimals in paise and can leave an
+ * exact value a billionth of a paisa (or less) under a whole paisa (₹24,855,207.01 of equity
+ * turnover owes ₹763.0299999…, which a nudge lifted to ₹763.03), and on large values the float
+ * product can miss a whole paisa by more than any nudge. Any other value (a basket's fractional
+ * slice) takes `truncate` on the float rate.
  */
 const levy = (value: number, rate: number, [num, den]: Fraction): number => {
-  const scaled = value * 100;
-  const paise = Math.round(scaled);
-  // The float product of a 2-decimal price and a quantity is within a few ulps of its paise.
-  const tolerance = Math.max(1e-9, Math.abs(paise) * 1e-15);
-  if (
-    !Number.isSafeInteger(paise) ||
-    tolerance >= 0.5 ||
-    Math.abs(scaled - paise) > tolerance
-  ) {
-    return truncate(value * rate);
+  for (let places = 2; places <= 6; places += 1) {
+    const scaled = value * 10 ** places;
+    const units = Math.round(scaled);
+    // Past 1e14 units a float cannot hold the units to better than about a hundredth of one.
+    if (!Number.isSafeInteger(units) || Math.abs(units) > 1e14) break;
+    // The float product of a decimal price and a quantity is within a few ulps of its units.
+    if (Math.abs(scaled - units) > Math.max(Math.abs(units) * 2e-15, 1e-12)) {
+      continue;
+    }
+    // units / 10^places rupees × num / den, in paise: units × num / (den × 10^(places − 2)).
+    const divisor = den * 10n ** BigInt(places - 2);
+    const product = BigInt(units) * num;
+    let floored = product / divisor;
+    if (product % divisor !== 0n && product < 0n) floored -= 1n;
+    return Number(floored) / 100;
   }
-  const product = BigInt(paise) * num;
-  let floored = product / den;
-  if (product % den !== 0n && product < 0n) floored -= 1n;
-  return Number(floored) / 100;
+  return truncate(value * rate);
 };
 
 /**

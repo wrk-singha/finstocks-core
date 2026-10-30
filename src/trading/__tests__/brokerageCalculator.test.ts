@@ -123,3 +123,39 @@ test('the exchange charge and IPFT are the exact floor, never a paisa over', () 
     59559.57,
   );
 });
+
+test('a value with more decimals than paise is still the exact floor', () => {
+  // 3- and 4-decimal prices (an average fill): worked out exactly, not lifted a paisa by a nudge.
+  const cases = [
+    [82266.6511, 1019, 'futures', 1533.99],
+    [93416.487, 9323, 'futures', 15936.99],
+    [96049.6513, 5431, 'delivery', 16013.99],
+  ] as const;
+  for (const [price, qty, segment, expected] of cases) {
+    assert.equal(
+      calculateBrokerage(price, 0, qty, segment, 'zerodha').exchangeCharges,
+      expected,
+      `${segment} ${price} x ${qty}`,
+    );
+  }
+  // Seven decimals takes the float floor: its nudge is float noise only, so a real remainder of
+  // a few trillionths of a paisa under ₹1.29 stays ₹1.28.
+  assert.equal(
+    calculateBrokerage(70495.6555003, 0, 1, 'futures', 'zerodha')
+      .exchangeCharges,
+    1.28,
+  );
+});
+
+test('a negative remainder floors down, and a large value misses no paisa', () => {
+  // -₹12.34 x 0.025% is -₹0.003085: the floor is -₹0.01, not 0.
+  assert.equal(
+    calculateBrokerage(0, -12.34, 1, 'intraday', 'zerodha').stt,
+    -0.01,
+  );
+  // ₹10,000 crore bought: 0.015% is ₹1,50,00,000.00 exactly; the float product fell a paisa short.
+  assert.equal(
+    calculateBrokerage(1e7, 0, 1e4, 'delivery', 'zerodha').stampDuty,
+    15000000,
+  );
+});

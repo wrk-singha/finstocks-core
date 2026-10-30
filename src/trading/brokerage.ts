@@ -2,7 +2,7 @@ import type {BrokerOptions} from '../types/broker.ts';
 import type {BrokerageBreakdown, Strategy} from '../types/trade.ts';
 import {calculateBrokerage} from './brokerageCalculator.ts';
 import type {BrokerageSegment} from './brokerageCalculator.ts';
-import {isFnOSymbol} from '../market/symbols.ts';
+import {isFnOSymbol, TRADABLE_INDICES} from '../market/symbols.ts';
 
 export type {BrokerageSegment} from './brokerageCalculator.ts';
 
@@ -113,15 +113,23 @@ const JOINED_OPTION = /\d(CE|PE)$/;
 const SPACED_AFTER_EXPIRY = / \d{2}[A-Z]{3}(?:\d{2})? \d+(?:\.\d+)? (CE|PE)$/;
 /**
  * Spaced with no expiry ("RELIANCE 2900 CE"): a strike of three digits or more, standing as its
- * own word. Shorter or glued runs are names, not strikes: "NIFTY 50 PE", "NV20 PE",
- * "MIDCAP150 PE", "ABC 2 PE". One plain space only; a tab or newline is not the backend's form.
+ * own word with one plain space on each side. Shorter or glued runs are names, not strikes:
+ * "NV20 PE", "MIDCAP150 PE", "ABC 2 PE"; a tab, a newline or a double space is not the backend's
+ * form.
  */
-const SPACED_STRIKE = /(?:^| )\d{3,}(?:\.\d+)? (CE|PE)$/;
+const SPACED_STRIKE = /(?:^|[^ ] )\d{3,}(?:\.\d+)? (CE|PE)$/;
+
+/**
+ * An index's own names end in numbers too ("NIFTY 50", "NIFTY 500", "NIFTY MIDCAP 150"), so under an
+ * index a bare number is never read as a strike; only an expiry before it makes it a contract.
+ */
+const startsWithIndex = (symbol: string): boolean =>
+  TRADABLE_INDICES.some(idx => symbol.toUpperCase().startsWith(`${idx} `));
 
 const isOptionSymbol = (symbol: string): boolean =>
   JOINED_OPTION.test(symbol) ||
   SPACED_AFTER_EXPIRY.test(symbol) ||
-  SPACED_STRIKE.test(symbol);
+  (!startsWithIndex(symbol) && SPACED_STRIKE.test(symbol));
 
 export type BrokerageStrategy = Partial<
   Pick<Strategy, 'symbol' | 'is_fno' | 'is_intraday'>

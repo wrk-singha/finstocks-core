@@ -153,8 +153,20 @@ test('resolveBrokerageSegment reads the strategy first, then average hold time',
   ]) {
     assert.equal(seg(symbol), 'delivery', symbol);
   }
-  // An index name stays the index's (futures), as web reads it.
-  assert.equal(seg('NIFTY 50 PE'), 'futures');
+  // An index name stays the index's (futures), as web reads it: under an index a bare number is a
+  // name, not a strike, unless an expiry comes first.
+  for (const symbol of [
+    'NIFTY 50 PE',
+    'NIFTY 100 PE',
+    'NIFTY 500 CE',
+    'NIFTY MIDCAP 150 PE',
+    'NIFTY SMLCAP 250 CE',
+  ]) {
+    assert.equal(seg(symbol), 'futures', symbol);
+  }
+  assert.equal(seg('NIFTY 24DEC 500 CE'), 'options');
+  // A double space is not the backend's form.
+  assert.equal(seg('RELIANCE  2900 CE'), 'delivery');
   assert.equal(resolveBrokerageSegment(undefined), 'delivery');
   assert.equal(
     resolveBrokerageSegment(undefined, [

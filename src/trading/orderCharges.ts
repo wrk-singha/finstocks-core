@@ -1,5 +1,5 @@
 import {BROKER_NAMES, DEFAULT_BROKER} from '../data/brokers.ts';
-import {formatCurrency, formatNumber} from '../format/index.ts';
+import {formatCurrency, formatNumber} from '../format/number.ts';
 import type {BrokerOptions} from '../types/broker.ts';
 import type {BrokerageBreakdown, OrderSide} from '../types/trade.ts';
 import {resolveBrokerageSegment} from './brokerage.ts';
@@ -119,6 +119,26 @@ export function estimateOrderCharges(
   segment: BrokerageSegment,
   broker: BrokerOptions | null,
 ): OrderChargesEstimate | null {
+  return estimateSegmentedCharges(
+    legs.map(leg => ({...leg, segment})),
+    broker,
+  );
+}
+
+/** A leg that carries its own segment, for an order that mixes delivery shares with contracts. */
+export interface SegmentedChargeLeg extends OrderChargeLeg {
+  segment: BrokerageSegment;
+}
+
+/**
+ * `estimateOrderCharges` for an order whose legs sit in different segments — a cash-and-carry buys
+ * delivery shares and sells the future against them — so each leg is charged at its own
+ * segment's rates. As web prices its arbitrage order (frontend `utils/trading/orderCharges.ts`).
+ */
+export function estimateSegmentedCharges(
+  legs: SegmentedChargeLeg[],
+  broker: BrokerOptions | null,
+): OrderChargesEstimate | null {
   const priced = legs.filter(leg => leg.qty > 0 && leg.price > 0);
   if (priced.length === 0) return null;
 
@@ -139,7 +159,7 @@ export function estimateOrderCharges(
         isBuy ? leg.price : 0,
         isBuy ? 0 : leg.price,
         leg.qty,
-        segment,
+        leg.segment,
         key,
       ),
     );

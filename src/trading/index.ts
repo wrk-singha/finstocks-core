@@ -37,6 +37,7 @@ export {
   chargeGroups,
   chargeSegmentFor,
   estimateOrderCharges,
+  estimateSegmentedCharges,
   NO_CHARGES,
 } from './orderCharges.ts';
 export type {
@@ -46,6 +47,7 @@ export type {
   ChargeTotals,
   OrderChargeLeg,
   OrderChargesEstimate,
+  SegmentedChargeLeg,
 } from './orderCharges.ts';
 export {lotSizeForSymbol, productFor} from './orderInstrument.ts';
 export {outcomeOfError} from './orderOutcome.ts';

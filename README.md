@@ -65,6 +65,10 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.19.0** — charges as web prices them. `estimateSegmentedCharges` and `SegmentedChargeLeg`
+  (`/trading`): an order whose legs sit in different segments (a cash-and-carry's delivery shares
+  and the future sold against them) charged leg by leg at each leg's own rates;
+  `estimateOrderCharges` is that with one segment for every leg, unchanged.
 - **v0.18.0** — `formatOrderDayHeading`, `formatNetWorthChartDate` and `formatEventDayHeading` return `""`
   for a key that names no day instead of throwing (Intl throws on an invalid Date). `formatPercent`
   reads a missing or non-finite value as "—" (it printed `0.00%` for null and `NaN%` for NaN).

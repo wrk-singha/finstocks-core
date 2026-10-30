@@ -6,8 +6,10 @@ import {
   chargeGroups,
   chargeSegmentFor,
   estimateOrderCharges,
+  estimateSegmentedCharges,
   NO_CHARGES,
 } from '../orderCharges.ts';
+import {calculateBrokerage} from '../brokerageCalculator.ts';
 
 test('a single delivery buy is itemised like a contract note', () => {
   const est = estimateOrderCharges(
@@ -73,6 +75,63 @@ test('a multi-leg structure nets the legs and reports a leg count', () => {
 test('nothing priced yields null', () => {
   assert.equal(
     estimateOrderCharges([{side: 'BUY', qty: 0, price: 100}], 'delivery', null),
+    null,
+  );
+});
+
+test('a leg that carries its own segment is charged at that segment’s rates', () => {
+  // A cash-and-carry: delivery shares bought, the future sold against them, an option bought.
+  const est = estimateSegmentedCharges(
+    [
+      {side: 'BUY', qty: 250, price: 2471.35, segment: 'delivery'},
+      {side: 'SELL', qty: 250, price: 2489.9, segment: 'futures'},
+      {side: 'BUY', qty: 250, price: 21.4, segment: 'options'},
+      {side: 'BUY', qty: 0, price: 10, segment: 'options'},
+    ],
+    'dhann',
+  );
+  assert.ok(est);
+  const legs = [
+    calculateBrokerage(2471.35, 0, 250, 'delivery', 'dhann'),
+    calculateBrokerage(0, 2489.9, 250, 'futures', 'dhann'),
+    calculateBrokerage(21.4, 0, 250, 'options', 'dhann'),
+  ];
+  assert.equal(
+    est.totalCharges,
+    legs.reduce((sum, c) => addCharges(sum, c), NO_CHARGES).totalCharges,
+  );
+  // Zero brokerage on Dhan delivery, ₹20 an order on the future and the option.
+  assert.equal(est.groups[0]?.lines[0]?.value, 40);
+  // The shares are bought, not sold, so no DP row.
+  assert.equal(est.groups[1]?.lines.length, 4);
+  assert.equal(est.tradeValueDetail, '3 legs');
+  assert.ok(Math.abs(est.tradeValue - 250 * (2471.35 - 2489.9 + 21.4)) < 1e-9);
+});
+
+test('one segment for every leg reads exactly as estimateOrderCharges', () => {
+  const legs = [
+    {side: 'SELL' as const, qty: 75, price: 142.15},
+    {side: 'BUY' as const, qty: 75, price: 41.05},
+  ];
+  for (const segment of [
+    'intraday',
+    'delivery',
+    'futures',
+    'options',
+  ] as const) {
+    assert.deepEqual(
+      estimateSegmentedCharges(
+        legs.map(leg => ({...leg, segment})),
+        null,
+      ),
+      estimateOrderCharges(legs, segment, null),
+    );
+  }
+  assert.equal(
+    estimateSegmentedCharges(
+      [{side: 'BUY', qty: 10, price: 0, segment: 'futures'}],
+      'zerodha',
+    ),
     null,
   );
 });

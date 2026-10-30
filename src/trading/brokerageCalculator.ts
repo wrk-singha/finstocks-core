@@ -8,14 +8,15 @@ export type BrokerageSegment = 'intraday' | 'delivery' | 'futures' | 'options';
  * paise (a basket's fractional slice, GST on a percentage brokerage) and for the DP fee. The nudge
  * before the floor absorbs binary float error: 10,000 × 0.015% is 1.4999999999999998 in IEEE-754
  * and the schedule says ₹1.50, not ₹1.49 (drift resolved 2026-09-13 — both apps floored the raw
- * product). It is relative, 1e-14 of the value (some forty units in the last place): enough for
- * float error, far under any real sub-paisa remainder, and it never lifts a negative fraction of a
- * paisa to 0. Whole-paise values skip it and are floored exactly (`levy`).
+ * product). It is relative, 1e-14 of the value (some forty units in the last place) and at most
+ * 1e-9 paise: enough for float error, far under any real sub-paisa remainder, never a whole paisa
+ * on a huge value, and it never lifts a negative fraction of a paisa to 0. Whole-paise values skip
+ * it and are floored exactly (`levy`).
  */
 const truncate = (x: number, decimals = 2) => {
   const factor = 10 ** decimals;
   const scaled = x * factor;
-  return Math.floor(scaled + Math.abs(scaled) * 1e-14) / factor;
+  return Math.floor(scaled + Math.min(Math.abs(scaled) * 1e-14, 1e-9)) / factor;
 };
 
 /** A rate as an exact fraction, numerator over denominator. */
@@ -34,7 +35,7 @@ const levy = (value: number, rate: number, [num, den]: Fraction): number => {
   const scaled = value * 100;
   const paise = Math.round(scaled);
   // The float product of a 2-decimal price and a quantity is within a few ulps of its paise.
-  const tolerance = Math.max(1e-9, Math.abs(paise) * 1e-14);
+  const tolerance = Math.max(1e-9, Math.abs(paise) * 1e-15);
   if (
     !Number.isSafeInteger(paise) ||
     tolerance >= 0.5 ||

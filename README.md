@@ -66,7 +66,8 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 ## Versions
 
 - **v0.18.0** — `formatOrderDayHeading`, `formatNetWorthChartDate` and `formatEventDayHeading` return `""`
-  for a key that names no day instead of throwing (Intl throws on an invalid Date).
+  for a key that names no day instead of throwing (Intl throws on an invalid Date). `formatPercent`
+  reads a missing or non-finite value as "—" (it printed `0.00%` for null and `NaN%` for NaN).
 - **v0.17.0** — `oiTotals` (and so `computeChainSentiment`) reads a PCR only when both sides carry OI
   on at least three strikes, as web did; a put-less or one-strike chain reads null, not 0.00 or a
   one-strike ratio. Consumers that showed a PCR on thin chains now show none.

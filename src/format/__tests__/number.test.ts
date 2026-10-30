@@ -37,7 +37,10 @@ test('formatCurrency leads with the minus so columns align on ₹', () => {
 test('formatPercent fixes the decimals', () => {
   assert.equal(formatPercent(12.345), '12.35%');
   assert.equal(formatPercent(-0.5), '-0.50%');
-  assert.equal(formatPercent(null), '0.00%');
+  assert.equal(formatPercent(-0), '0.00%');
+  for (const missing of [null, undefined, Number.NaN, Infinity, -Infinity]) {
+    assert.equal(formatPercent(missing), '—');
+  }
 });
 
 test('formatQuantity truncates to whole units', () => {

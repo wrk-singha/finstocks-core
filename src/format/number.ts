@@ -37,14 +37,17 @@ export const formatCurrency = (
   return `${sign}₹${grouped(decimals).format(Math.abs(amount))}`;
 };
 
-/** Percentage with fixed decimals: `formatPercent(-0.5)` → `-0.50%`. */
+/**
+ * Percentage with fixed decimals: `formatPercent(-0.5)` → `-0.50%`. A missing or non-finite value
+ * reads "—", as web's did: 0% would be a figure nobody measured, and NaN% printed literally.
+ */
 export const formatPercent = (
   value: number | null | undefined,
   decimals = 2,
 ): string => {
-  const amount = value ?? 0;
-  const sign = amount < 0 ? '-' : '';
-  return `${sign}${grouped(decimals).format(Math.abs(amount))}%`;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+  const sign = value < 0 ? '-' : '';
+  return `${sign}${grouped(decimals).format(Math.abs(value))}%`;
 };
 
 /** Whole units (shares, lots, contracts): `formatQuantity(100000)` → `1,00,000`. */

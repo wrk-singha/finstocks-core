@@ -129,6 +129,32 @@ test('resolveBrokerageSegment reads the strategy first, then average hold time',
     resolveBrokerageSegment({symbol: 'BANKNIFTY 26NOV 52000 PE', is_fno: true}),
     'options',
   );
+  // A spaced strike stands as its own word of three digits or more, or follows an expiry; a name
+  // that merely ends in a number and CE/PE is not a contract, and only a plain space separates.
+  const seg = (symbol: string) =>
+    resolveBrokerageSegment({symbol, is_fno: false, is_intraday: false});
+  for (const symbol of [
+    'TCS 24DEC 3000 PE',
+    'RELIANCE 2900 CE',
+    'IDEA 24DEC 10 CE',
+    'NIFTY 24DEC25 24000.5 PE',
+    'X1CE',
+  ]) {
+    assert.equal(seg(symbol), 'options', symbol);
+  }
+  for (const symbol of [
+    'NV20 PE',
+    'MIDCAP150 PE',
+    'ABC 2 PE',
+    'NIFTY50\tCE',
+    'X 1\nPE',
+    '24000  CE',
+    'RELIANCE 2900 CE ',
+  ]) {
+    assert.equal(seg(symbol), 'delivery', symbol);
+  }
+  // An index name stays the index's (futures), as web reads it.
+  assert.equal(seg('NIFTY 50 PE'), 'futures');
   assert.equal(resolveBrokerageSegment(undefined), 'delivery');
   assert.equal(
     resolveBrokerageSegment(undefined, [

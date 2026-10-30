@@ -107,6 +107,22 @@ export function computeBrokerageTotals(
   return acc;
 }
 
+/** Joined: a digit then CE/PE, web's rule exactly. */
+const JOINED_OPTION = /\d(CE|PE)$/;
+/** Spaced, after an expiry token ("NIFTY 24DEC 24000 CE", "X 24DEC25 95.5 PE"): any strike. */
+const SPACED_AFTER_EXPIRY = / \d{2}[A-Z]{3}(?:\d{2})? \d+(?:\.\d+)? (CE|PE)$/;
+/**
+ * Spaced with no expiry ("RELIANCE 2900 CE"): a strike of three digits or more, standing as its
+ * own word. Shorter or glued runs are names, not strikes: "NIFTY 50 PE", "NV20 PE",
+ * "MIDCAP150 PE", "ABC 2 PE". One plain space only; a tab or newline is not the backend's form.
+ */
+const SPACED_STRIKE = /(?:^| )\d{3,}(?:\.\d+)? (CE|PE)$/;
+
+const isOptionSymbol = (symbol: string): boolean =>
+  JOINED_OPTION.test(symbol) ||
+  SPACED_AFTER_EXPIRY.test(symbol) ||
+  SPACED_STRIKE.test(symbol);
+
 export type BrokerageStrategy = Partial<
   Pick<Strategy, 'symbol' | 'is_fno' | 'is_intraday'>
 >;
@@ -123,7 +139,7 @@ export function resolveBrokerageSegment(
     // ends in CE too, and was charged an option's brokerage and taxes (zerodha, 10 at 2,900 to
     // 3,000: ₹117.86 against ₹80.88 delivery, ₹31.45 intraday). Web's rule (frontend
     // `src/utils/trading/brokerage.ts`, `/\d(CE|PE)$/`), with the spaced form kept as options.
-    if (/\d\s*(CE|PE)$/.test(symbol)) return 'options';
+    if (isOptionSymbol(symbol)) return 'options';
     if (strategy.is_fno || isFnOSymbol(symbol)) return 'futures';
     if (strategy.is_intraday) return 'intraday';
     return 'delivery';

@@ -78,6 +78,10 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
   under a paisa and the old float nudge lifted them a paisa over (₹24,855,207.01 of equity turnover:
   ₹763.03, now ₹763.02); a large value's float product could also miss a paisa either way. Other
   values keep a float floor with a relative nudge.
+  `resolveBrokerageSegment` reads a spaced contract as an option only when its strike follows an
+  expiry ("NIFTY 24DEC 24000 CE") or stands as a word of three digits or more ("RELIANCE 2900 CE"),
+  with plain spaces; "NIFTY 50 PE", "NV20 PE", "MIDCAP150 PE" and tab-separated names are not
+  contracts. The joined form is web's `/\d(CE|PE)$/`, unchanged.
 - **v0.18.0** — `formatOrderDayHeading`, `formatNetWorthChartDate` and `formatEventDayHeading` return `""`
   for a key that names no day instead of throwing (Intl throws on an invalid Date). `formatPercent`
   reads a missing or non-finite value as "—" (it printed `0.00%` for null and `NaN%` for NaN).

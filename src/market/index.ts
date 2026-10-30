@@ -174,6 +174,28 @@ export type {
   PeriodReturn,
   YearVersus,
 } from './basketBacktest.ts';
+export {
+  basketIv,
+  black76Price,
+  hasModel,
+  hasNakedShort,
+  netGreeks,
+  niceTicks as basketNiceTicks,
+  NO_SCENARIO,
+  oneSigmaRange,
+  pnlAt,
+  probabilityOfProfit,
+  RISK_FREE_RATE,
+} from './basketAnalytics.ts';
+export type {
+  AnalyticLeg,
+  GreekSource,
+  Market as BasketMarket,
+  NetGreeks,
+  QuotedGreeks,
+  Scenario as BasketScenario,
+  SigmaRange,
+} from './basketAnalytics.ts';
 export {basketCharges} from './basketCharges.ts';
 export type {BasketCharges} from './basketCharges.ts';
 export {esfSubscribeRefusal} from './basketSubscribe.ts';

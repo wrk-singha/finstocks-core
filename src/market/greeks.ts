@@ -17,7 +17,7 @@ import type {OptionChainRow} from '../types/fno.ts';
 
 // Indian risk-free proxy (roughly the 91-day T-bill). Under Black-76 it only
 // discounts — it does not set the forward, which the market quotes for us.
-const RISK_FREE_RATE = 0.065;
+export const RISK_FREE_RATE = 0.065;
 
 const MS_PER_YEAR = 365 * 24 * 60 * 60 * 1000;
 

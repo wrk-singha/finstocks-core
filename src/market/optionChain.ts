@@ -138,9 +138,15 @@ export const formatPremium = (ltp: number | null): string =>
 export interface OiTotals {
   callOi: number;
   putOi: number;
-  /** Σ pe oi / Σ ce oi; null when there is no call OI to divide by. */
+  /** Σ pe oi / Σ ce oi; null unless both sides carry OI on at least
+   *  MIN_PCR_STRIKES strikes. */
   pcr: number | null;
 }
+
+// A ratio over fewer strikes quoting both sides is one strike's quirk, not the
+// market's positioning: a put-less fallback chain would otherwise read 0.00 and
+// "bearish".
+const MIN_PCR_STRIKES = 3;
 
 // Call and put OI summed over `rows`, and the put-call ratio between them. The
 // OI panel sums its window of strikes around the ATM, so the chart's assistant
@@ -148,11 +154,17 @@ export interface OiTotals {
 export function oiTotals(rows: readonly OptionChainRow[]): OiTotals {
   let callOi = 0;
   let putOi = 0;
+  let paired = 0;
   for (const r of rows) {
     callOi += r.ceOi ?? 0;
     putOi += r.peOi ?? 0;
+    if ((r.ceOi ?? 0) > 0 && (r.peOi ?? 0) > 0) paired += 1;
   }
-  return {callOi, putOi, pcr: callOi > 0 ? putOi / callOi : null};
+  const pcr =
+    callOi > 0 && putOi > 0 && paired >= MIN_PCR_STRIKES
+      ? putOi / callOi
+      : null;
+  return {callOi, putOi, pcr};
 }
 
 // The row the ATM panel reads: the stream's own ATM flag, else the row at
@@ -188,8 +200,8 @@ export function strikeIv(row: OptionChainRow | null): number | null {
 }
 
 export interface ChainSentiment {
-  /** Put/Call OI ratio over the whole chain (Σ pe oi / Σ ce oi). Null when call
-   *  OI is empty (no fabrication). */
+  /** Put/Call OI ratio over the whole chain, as `oiTotals` reads it: null
+   *  without enough strikes quoting both sides (no fabrication). */
   pcr: number | null;
   /** ATM straddle premium in points (ce ltp + pe ltp at the ATM strike) — the
    *  market's own expected move on the underlying by expiry. */

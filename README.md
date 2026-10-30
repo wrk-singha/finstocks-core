@@ -65,6 +65,9 @@ Rules and extraction plan: the migration docs (`wrk-singha/finstocks-migration`,
 
 ## Versions
 
+- **v0.17.0** — `oiTotals` (and so `computeChainSentiment`) reads a PCR only when both sides carry OI
+  on at least three strikes, as web did; a put-less or one-strike chain reads null, not 0.00 or a
+  one-strike ratio. Consumers that showed a PCR on thin chains now show none.
 - **v0.16.0** — `computeMaxPain` takes rows with only `strike`, `ceOi` and `peOi`, so stored OI with
   no prices passes as it is. Wider input only; full chain rows still pass.
 - **v0.15.0** — types as web reads the feeds. `OptionEntry`: optional snapshot microstructure (`atp`,

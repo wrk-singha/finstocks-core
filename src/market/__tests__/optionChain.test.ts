@@ -203,19 +203,25 @@ test('chain sentiment falls back to the atm strike when no row is flagged', () =
   assert.equal(computeChainSentiment(chain).expectedMove, null);
 });
 
-test('oi totals sum both sides and read the pcr, null without call oi', () => {
+test('oi totals sum both sides, and read a pcr only over three strikes quoting both', () => {
   assert.deepEqual(oiTotals(chain), {callOi: 700, putOi: 700, pcr: 1});
+  // One or two paired strikes are a quirk, not positioning.
   assert.deepEqual(oiTotals(chain.slice(0, 1)), {
     callOi: 100,
     putOi: 400,
-    pcr: 4,
+    pcr: null,
   });
+  assert.equal(oiTotals(chain.slice(0, 2)).pcr, null);
+  // Unpaired strikes still add to the sums, and to the ratio once three pair.
+  assert.equal(oiTotals([...chain, row(24300, {ceOi: 300})]).pcr, 700 / 1000);
   // A side the chain has not reported counts as none, not as a gap.
   assert.deepEqual(oiTotals([row(1, {peOi: 50}), row(2, {ceOi: 25})]), {
     callOi: 25,
     putOi: 50,
-    pcr: 2,
+    pcr: null,
   });
+  // A put-less chain (the fallback before puts quote) reads no ratio, not 0.
+  assert.equal(oiTotals(chain.map(r => ({...r, peOi: null}))).pcr, null);
   assert.deepEqual(oiTotals([row(1, {peOi: 50})]), {
     callOi: 0,
     putOi: 50,

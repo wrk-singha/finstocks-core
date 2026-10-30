@@ -21,6 +21,13 @@ const istYear = (d: Date): string => istDayKey(d).slice(0, 4);
 // named the previous day east of Kolkata.
 const dayKeyToUtc = (key: string): Date => new Date(`${key}T00:00:00Z`);
 
+// A heading for a key that names no day renders empty: Intl throws on an invalid Date, and one
+// bad row is no reason to take the screen down (web printed "Invalid Date" there).
+const dayKeyDate = (key: string): Date | null => {
+  const d = dayKeyToUtc(key);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
 /** Whole calendar days from `dayKey` forward to `todayKey`; negative when it lies ahead. */
 const daysBetween = (todayKey: string, dayKey: string): number =>
   Math.round(
@@ -509,8 +516,10 @@ export function formatLastUpdatedIST(
 }
 
 /** Orders-screen day-group heading for an IST day key: "09 Aug 2026". */
-export const formatOrderDayHeading = (isoDate: string): string =>
-  orderDayHeadingFormatter.format(dayKeyToUtc(isoDate));
+export const formatOrderDayHeading = (isoDate: string): string => {
+  const d = dayKeyDate(isoDate);
+  return d ? orderDayHeadingFormatter.format(d) : '';
+};
 
 const expiryDateFormatter = new Intl.DateTimeFormat('en-IN', {
   day: 'numeric',
@@ -530,12 +539,16 @@ export function formatExpiryDate(value: string | null | undefined): string {
 }
 
 /** Net-worth chart readout for a bare YYYY-MM-DD, 2-digit year to keep the row compact: "9 Aug 26". */
-export const formatNetWorthChartDate = (isoDate: string): string =>
-  netWorthChartDateFormatter.format(dayKeyToUtc(isoDate));
+export const formatNetWorthChartDate = (isoDate: string): string => {
+  const d = dayKeyDate(isoDate);
+  return d ? netWorthChartDateFormatter.format(d) : '';
+};
 
 /** Events-calendar day heading for an IST day key: "21 Sep, Mon". */
 export const formatEventDayHeading = (isoDate: string): string => {
-  const get = partsOf(eventDayHeadingFormatter, dayKeyToUtc(isoDate));
+  const d = dayKeyDate(isoDate);
+  if (!d) return '';
+  const get = partsOf(eventDayHeadingFormatter, d);
   return `${get('day')} ${get('month')}, ${get('weekday')}`;
 };
 

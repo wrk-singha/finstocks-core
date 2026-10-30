@@ -297,6 +297,14 @@ test('day-key headings render the day they name in every timezone', () => {
   assert.equal(formatNetWorthChartDate('2026-08-09'), '9 Aug 26');
 });
 
+test('a day-key heading for a key that names no day is empty, never a throw', () => {
+  for (const key of ['', 'garbage', '2026-08-09T05:00:00Z', '2026-13-01']) {
+    assert.equal(formatOrderDayHeading(key), '');
+    assert.equal(formatNetWorthChartDate(key), '');
+    assert.equal(formatEventDayHeading(key), '');
+  }
+});
+
 test('the events heading reads day, short month, then weekday', () => {
   assert.equal(formatEventDayHeading('2026-09-21'), '21 Sep, Mon');
   assert.equal(formatEventDayHeading('2026-10-04'), '4 Oct, Sun');
